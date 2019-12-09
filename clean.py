@@ -9,20 +9,17 @@ def readCT(name, direc):
 
 ct = []
 slices_to_read = 250
-for i in tqdm(range(1500,1999)):
-	ct.append(cv2.imread('../../Data/uCT/EK_208_215/EK_208_215_'+(str(i).zfill(4))+'.tif', cv2.IMREAD_GRAYSCALE))
+for i in tqdm(range(1800,1900)):
+	x = cv2.imread('../../Data/uCT/EK_208_215/EK_208_215_'+(str(i).zfill(4))+'.tif')
+	x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+	x = cv2.GaussianBlur(x, (5,5), cv2.BORDER_DEFAULT)
+	ret, x = cv2.threshold(x, 50, 100, cv2.THRESH_BINARY) #+cv2.THRESH_OTSU)
+	ct.append(x)
+
 ct = np.array(ct)
-#ct = np.moveaxis(ct, 0, -1)
 
 fig, ax = plt.subplots(1, 1)
 tracker = IndexTracker(ax, ct.T)
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 plt.show()
-
-
-
-
-
-
-
 
