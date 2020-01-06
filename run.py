@@ -5,9 +5,6 @@ from tqdm import tqdm
 import numpy as np
 import cv2
 
-def readCT(name, direc):
-	pass
-
 ct = []
 color = []
 slices_to_read = 250
@@ -24,10 +21,10 @@ for i in tqdm(range(1800,1900)):
 ct = np.array(ct)
 color = np.array(color)
 
-inp = color[0].copy()
+input_ = color[0].copy()
 resize = 0.4
-inp = cv2.resize(inp, None, fx=resize, fy=resize)
-output = inp.copy()
+input_ = cv2.resize(input_, None, fx=resize, fy=resize)
+output = input_.copy()
 gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
 
 # detect circles in the image
