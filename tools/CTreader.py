@@ -1,68 +1,49 @@
 import numpy as np 
-import matplotlib.pyplt as pypl
+import pandas as pd
+import matplotlib.pyplot as pypl
 import cv2
 import os
-import csv
 
 class CTreader():
     def init(self):
         pass
 
-        self.master = 
+    def mastersheet(self):
+        return pd.read_csv('./uCT_mastersheet.csv')
 
-    def encode(self):
+    def read(self, fish):
         pass
 
-    def read(self, int = fish):
-        self.label
-        self.genotype
-        self.age
+    def read_dirty(self, fish):
         pass
+        # read xtekct
 
-    def read_dirty(self, int = fish):
+
+'''
+class Fish():
+    def init(self, ct, metadata):
         pass
-        'xtekct :('
+        self.ct = ct
+        self.number     = metadata['number']
+        self.genotype   = metadata['genotype']
+        self.age        = metadata['age']
+        self.x_size     = metadata['x_size']
+        self.y_size     = metadata['y_size']
+        self.z_size     = metadata['z_size']
 
-def get_directory_structure(rootdir):
-    """
-    Creates a nested dictionary that represents the folder structure of rootdir
-    """
-    dir = {}
-    rootdir = rootdir.rstrip(os.sep)
-    start = rootdir.rfind(os.sep) + 1
-    for path, dirs, files in os.walk(rootdir):
-        folders = path[start:].split(os.sep)
-        subdir = dict.fromkeys(files)
-        parent = reduce(dict.get, folders[:-1], dir)
-        parent[folders[-1]] = subdir
-    return dir
-
-'../../Data/uCT/low_res_clean/208/'
-
-try:
-    # Create target Directory
-    os.mkdir(dirName)
-    print("Directory " , dirName ,  " Created ") 
-except FileExistsError:
-    print("Directory " , dirName ,  " already exists")
-
-
-stock_directory = 
-{
-  '../../Data/uCT/low_res_clean/'+fish+'': {
-        'metadata': 'meta.json',
-        "reconstructed_tifs": {
-            "item1": None
-        }
-    }
+metadata = {
+'n':   None, 
+'skip':   None, 
+'age':   None, 
+'genotype':   None, 
+'strain':   None, 
+'name':   None, 
+'re-uCT scan':   None,
+'Comments':   None, 
+'age(old)':   None, 
+'Phantom':   None, 
+'Scaling Value':   None, 
+'Arb Value:   None'
 }
 
-
-
-
-
-
-#need a function to read amira labels
-
-
-
+'''
