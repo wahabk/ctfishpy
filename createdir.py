@@ -1,4 +1,4 @@
-from tools.utility import IndexTracker
+from CTFishPy.utility import IndexTracker
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
@@ -6,23 +6,28 @@ import cv2
 import json
 import os
 import os.path
-
 def makedir(dirName):
 	# Create target Directory if don't exist
 	if not os.path.exists(dirName):
 		os.mkdir(dirName)
-		print("Directory " , dirName ,  " Created.")
+		print("Created.", end="\r")
 	else:    
-		print("Directory " , dirName ,  " already exists.", end="\r")
+		print("Already exists.", end="\r")
 
 
-metadata = {
-	'number':	None,
-	'genotype':	None, 
-	'age'	:	None,
-	'x_size':	None,
-	'y_size':	None,
-	'z_size':	None
+metadata = {	
+	'N':   None, 
+	'Skip':   None, 
+	'Age':   None, 
+	'Genotype':   None, 
+	'Strain':   None, 
+	'Name':   None, 
+	'Re-uCT scan':   None,
+	'Comments':   None, 
+	'Age(old)':   None, 
+	'Phantom':   None, 
+	'Scaling Value':   None, 
+	'Arb Value':   None
 }
 
 
@@ -33,21 +38,7 @@ for i in range(40, 639):
 	makedir(path)
 	makedir(tifpath)
 	metadata['number'] = i
+	metadata_json = json.dumps(metadata, indent=4)
 	with open(jsonpath, 'w') as o:
 		json.dump(metadata, o)
-
-metadata = {
-'n':   None, 
-'skip':   None, 
-'age':   None, 
-'genotype':   None, 
-'strain':   None, 
-'name':   None, 
-'re-uCT scan':   None,
-'Comments':   None, 
-'age(old)':   None, 
-'Phantom':   None, 
-'Scaling Value':   None, 
-'Arb Value:   None'
-}
 
