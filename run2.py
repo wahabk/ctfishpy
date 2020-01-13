@@ -22,7 +22,28 @@ print(oneyearolds)
 '''
 
 
-ct = CTreader.read_dirty(0)
-CTreader.view(ct)
+ct, color = CTreader.read_dirty(0)
+#CTreader.view(ct)
 
 
+
+circle = CTreader.find_tubes(color[99])
+
+
+if circle.any():
+	cv2.imshow('output', circle)
+	cv2.waitKey()
+
+'''
+detect 1st fish cap
+'''
+
+
+
+'''
+crop circles to save as single fish
+# given x,y are circle center and r is radius
+rectX = (x - r) 
+rectY = (y - r)
+crop_img = self.img[y:(y+2*r), x:(x+2*r)]
+'''

@@ -1,5 +1,5 @@
 from matplotlib import pyplot as plt
-from tools.utility import IndexTracker
+from CTFishPy.utility import IndexTracker
 import argparse
 from tqdm import tqdm
 import numpy as np
@@ -10,7 +10,7 @@ color = []
 slices_to_read = 250
 
 for i in tqdm(range(1800,1900)):
-	x = cv2.imread('../../Data/uCT/EK_208_215/EK_208_215_'+(str(i).zfill(4))+'.tif')
+	x = cv2.imread('../../Data/uCT/low_res/EK_208_215/EK_208_215_'+(str(i).zfill(4))+'.tif')
 	color.append(x)
 	x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
 	#x = cv2.GaussianBlur(x, (5,5), cv2.BORDER_DEFAULT)
