@@ -7,36 +7,24 @@ import cv2
 import pandas as pd
 pd.set_option('display.max_rows', None)
 
-#master['age'].value_counts()
 
 CTreader = CTreader()
 
-'''
-master = CTreader.mastersheet()
+for i in range(12):
+	ct, color = CTreader.read_dirty(i, r=(1,50))
+	#CTreader.view(ct)
 
-index = utility.findrows(master, 'age', 12)
+	circles = CTreader.find_tubes(color[0])
 
-oneyearolds = utility.trim(master, 'age', 12)
+	if circles.any():
+		cv2.imshow('output', circles)
+		cv2.waitKey()
 
-print(oneyearolds)
-'''
-
-
-ct, color = CTreader.read_dirty(0)
-#CTreader.view(ct)
+		print(circles.shape)
 
 
 
-circle = CTreader.find_tubes(color[99])
 
-
-if circle.any():
-	cv2.imshow('output', circle)
-	cv2.waitKey()
-
-'''
-detect 1st fish cap
-'''
 
 
 
