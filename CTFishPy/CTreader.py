@@ -91,10 +91,12 @@ class CTreader():
                 cv2.circle(output, (x, y), r, (0, 0, 255), 2)
                 cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
 
-            return output
+            return output, circles
 
         else:
             print('No circles found :(')
+
+        
 
     def crop(self):
         pass

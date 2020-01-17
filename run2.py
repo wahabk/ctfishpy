@@ -10,17 +10,27 @@ pd.set_option('display.max_rows', None)
 CTreader = CTreader()
 
 #CTreader.view(ct)
-for i in range(12):
+for i in range(5,12):
 	ct, color = CTreader.read_dirty(i, r=(950,1000))
-	circles = CTreader.find_tubes(color[30])
+	output, circles  = CTreader.find_tubes(color[30])
 
-	if circles.any():
-		cv2.imshow('output', circles)
+	if output.any():
+		cv2.imshow('output', output)
 		cv2.waitKey()
+		print(circles.shape[0]) # number of circles detected
+'''
+def crop(self, ct, circles):
+	CTs = []
 
+	for circle in circles:
+		for slice_ in ct:
+			x = slice_.cv.crop()
 
-#Loop over circle and change every value 
-#(thresh etc) until you get 8 tubes detected
+	pass
+	return CTs
+'''
+
+# manually label each tube? what if they're at an angle?
 
 
 
