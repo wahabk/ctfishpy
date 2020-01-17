@@ -32,11 +32,11 @@ class CTreader():
         file = files[file_number]
         paths = next(os.walk('../../Data/uCT/low_res/'+file+''))[1]
         
+        # Find tif folder and if it doesnt exist read images in main folder
         tif = []
         for i in paths: 
             if i.startswith('EK'):
                 tif.append(i)
-        print(tif)
         if tif:
             tifpath = path+file+'/'+tif[0]+'/'
         else:
@@ -44,6 +44,7 @@ class CTreader():
 
         ct = []
         ct_color = []
+
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
             x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')            
@@ -60,7 +61,6 @@ class CTreader():
         if np.count_nonzero(ct) == 0:
             raise ValueError('Image is empty.')
 
-
         return ct, ct_color
 
     def view(self, ct_array):
@@ -69,13 +69,15 @@ class CTreader():
         fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
         plt.show()
 
-    def find_tubes(self, ct , minDistance = 150, minRad = 40, thresh = [50, 100]):
+    def find_tubes(self, ct, minDistance = 200, 
+        minRad = 50, thresh = [50, 100]):
         output = ct.copy()
         ct = cv2.cvtColor(ct, cv2.COLOR_BGR2GRAY)
         min_thresh, max_thresh = thresh
         ret, ct = cv2.threshold(ct, min_thresh, max_thresh, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-        circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.2, minDist = minDistance, minRadius = minRad) #param1=50, param2=30,
+        circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.5, 
+        minDist = minDistance, minRadius = minRad, maxRadius = 150) #param1=50, param2=30,
 
 
         if circles is not None:
