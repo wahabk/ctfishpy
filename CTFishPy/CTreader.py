@@ -1,4 +1,5 @@
 import CTFishPy.utility as utility
+from natsort import natsorted, ns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
@@ -17,37 +18,49 @@ class CTreader():
     def read(self, fish):
         pass
 
-    def read_dirty(self, file_number = None, r = (0,100), scale = 40, color = False):
+    def read_dirty(self, file_number = None, r = (1,100), scale = 40, color = False):
         path = '../../Data/uCT/low_res/'
         files = os.listdir(path)
-        with open('../../Data/uCT/filenames.csv','w') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow(files)
+        files = natsorted(files, alg=ns.IGNORECASE)
+        files_df = pd.DataFrame(files)
+        files_df.to_csv('../../Data/uCT/filenames_low_res.csv', index = False, header = False)
         if file_number == None:
+
             print(files)
             return
 
         file = files[file_number]
-        reconstructed_tifs = path+file+'_reconstructed_tifs/'
-        if not os.path.exists(reconstructed_tifs):
-            reconstructed_tifs = path+file+'/'
+        paths = next(os.walk('../../Data/uCT/low_res/'+file+''))[1]
         
+        # Find tif folder and if it doesnt exist read images in main folder
+        tif = []
+        for i in paths: 
+            if i.startswith('EK'):
+                tif.append(i)
+        if tif:
+            tifpath = path+file+'/'+tif[0]+'/'
+        else:
+            tifpath = path+file+'/'
+
         ct = []
         ct_color = []
+
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
-            x = cv2.imread(reconstructed_tifs+file+'_'+(str(i).zfill(4))+'.tif')            
-            width = int(x.shape[1] * scale / 100)
+            x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')            
             height = int(x.shape[0] * scale / 100)
+            width = int(x.shape[1] * scale / 100)
             x = cv2.resize(x, (width, height), interpolation = cv2.INTER_AREA)         
             x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
             ct.append(x_gray)
             ct_color.append(x)
+        ct = np.array(ct)
+        ct_color = np.array(ct_color)
 
         # read xtekct
-        
-        ct = np.array(ct)
-        ct_color = (ct_color)
+        if np.count_nonzero(ct) == 0:
+            raise ValueError('Image is empty.')
+
         return ct, ct_color
 
     def view(self, ct_array):
@@ -56,12 +69,15 @@ class CTreader():
         fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
         plt.show()
 
-    def find_tubes(self, ct , minDistance = 150, minRad = 40):
+    def find_tubes(self, ct, minDistance = 200, 
+        minRad = 50, thresh = [50, 100]):
         output = ct.copy()
         ct = cv2.cvtColor(ct, cv2.COLOR_BGR2GRAY)
-        ret, ct = cv2.threshold(ct, 50, 100, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        min_thresh, max_thresh = thresh
+        ret, ct = cv2.threshold(ct, min_thresh, max_thresh, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
-        circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.2, minDist = minDistance, minRadius = minRad) #param1=50, param2=30,
+        circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.5, 
+        minDist = minDistance, minRadius = minRad, maxRadius = 150) #param1=50, param2=30,
 
 
         if circles is not None:
@@ -80,10 +96,15 @@ class CTreader():
         else:
             print('No circles found :(')
 
-    def write_metadata(self, fish, metadata):
+        
+
+    def crop(self):
         pass
 
-    def write_images(self, fish, ct):
+    def write_metadata(self):
+        pass
+
+    def write_images(self):
         pass
 
 '''
@@ -114,3 +135,11 @@ metadata = {
 }
 
 '''
+
+'''
+master = CTreader.mastersheet()
+index = utility.findrows(master, 'age', 12)
+oneyearolds = utility.trim(master, 'age', 12)
+'''
+
+#master['age'].value_counts()
