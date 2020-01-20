@@ -37,18 +37,7 @@ def trim(df, col, value):
     trimmed = df.drop(set(df.index) - set(index))
     return trimmed
 
-def crop(ct, circles):
-    CTs = []
-    for x, y, r in circles:
-        c = []
-        for slice_ in ct:
-            rectX = (x - r) 
-            rectY = (y - r)
-            cropped_slice = slice_[rectY:(y+2*r), rectX:(x+2*r)]
-            c.append(cropped_slice)
-        CTs.append(c)
 
-    return CTs
 
 if __name__ == "__main__":
     #How to use:

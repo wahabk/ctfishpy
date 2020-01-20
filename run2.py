@@ -9,47 +9,19 @@ pd.set_option('display.max_rows', None)
 
 CTreader = CTreader()
 
-<<<<<<< HEAD
-for i in range(5):
-	ct, color = CTreader.read_dirty(5, r=(950,1000))
-=======
-#CTreader.view(ct)
-for i in range(5,12):
-	ct, color = CTreader.read_dirty(i, r=(950,1000))
->>>>>>> parent of 5556536... finished circle cropping
-	output, circles  = CTreader.find_tubes(color[30])
+for i in range(1):
+	ct, color = CTreader.read_dirty(i, r=(0,1000))
+	output, circles  = CTreader.find_tubes(color[50])
+
+	CTreader.view(ct) 
 
 	if output.any():
-		print(circles.shape[0]) # number of circles detected
-<<<<<<< HEAD
+		cv2.imshow('output', output)
+		cv2.waitKey()
 
-cropped_cts = utility.crop(ct, circles)
-CTreader.view(cropped_cts[0])
-cv2.imshow('output', cropped_cts[0][0])
-cv2.waitKey()
+cropped_cts = CTreader.crop(ct, circles)
+for cropped_ct in cropped_cts:
+	CTreader.view(cropped_ct)
+#cv2.imshow('output', cropped_cts[0][0])
+#cv2.waitKey()
 
-=======
-'''
-def crop(self, ct, circles):
-	CTs = []
-
-	for circle in circles:
-		for slice_ in ct:
-			x = slice_.cv.crop()
-
-	pass
-	return CTs
-'''
-
-# manually label each tube? what if they're at an angle?
-
-
-
-'''
-crop circles to save as single fish
-# given x,y are circle center and r is radius
-rectX = (x - r) 
-rectY = (y - r)
-crop_img = self.img[y:(y+2*r), x:(x+2*r)]
-'''
->>>>>>> parent of 5556536... finished circle cropping

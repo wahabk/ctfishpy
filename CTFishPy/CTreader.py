@@ -61,7 +61,7 @@ class CTreader():
         if np.count_nonzero(ct) == 0:
             raise ValueError('Image is empty.')
 
-        return ct, ct_color
+        return ct, ct_color #ct: (slice, x, y), color: (slice, x, y, 3)
 
     def view(self, ct_array):
         fig, ax = plt.subplots(1, 1)
@@ -70,14 +70,15 @@ class CTreader():
         plt.show()
 
     def find_tubes(self, ct, minDistance = 200, 
-        minRad = 50, thresh = [50, 100]):
+        minRad = 50, maxRad = 150, thresh = [50, 100]):
         output = ct.copy()
         ct = cv2.cvtColor(ct, cv2.COLOR_BGR2GRAY)
         min_thresh, max_thresh = thresh
-        ret, ct = cv2.threshold(ct, min_thresh, max_thresh, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret, ct = cv2.threshold(ct, min_thresh, max_thresh, 
+            cv2.THRESH_BINARY+cv2.THRESH_OTSU)
 
         circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.5, 
-        minDist = minDistance, minRadius = minRad, maxRadius = 150) #param1=50, param2=30,
+        minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
 
         if circles is not None:
@@ -90,16 +91,25 @@ class CTreader():
                 # corresponding to the center of the circle
                 cv2.circle(output, (x, y), r, (0, 0, 255), 2)
                 cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-
+            print('[FishPy] Tubes detected:', circles.shape[0])
             return output, circles
 
         else:
-            print('No circles found :(')
+            print('[FishPy] No circles found :(')
 
-        
+    def crop(self, ct, circles):
+        CTs = []
+        for x, y, r in circles:
+            c = []
+            for slice_ in ct:
+                rectx = x-r
+                recty = y-r
+                cropped_slice = slice_[recty:(recty+2*r), rectx:(rectx+2*r)]
+                c.append(cropped_slice)
+            c = np.array(c)
 
-    def crop(self):
-        pass
+            CTs.append(c)
+        return CTs
 
     def write_metadata(self):
         pass
