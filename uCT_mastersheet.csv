@@ -111,18 +111,18 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 245,,36,wt,,tg from london chrissy friend,,ELIS,3 year,EKPhantoms_21SepPM,7.312511,2.5
 246,,36,wt,,tg from london chrissy friend,,ELIS,3 year,EKPhantoms_21SepPM,7.312511,2.5
 247,,12,wt,,osx:nls-egfp,,contrast enhance for 1.5 week and not dehydrated (check for fat),2. year,EKPhantoms_21SepPM,7.312511,2.5
-248,,18,hom,aridb1,Arid1b -/- ,* (248_255),,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-249,,18,hom,aridb2,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-250,,18,hom,aridb3,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-251,,18,hom,aridb4,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-252,,18,hom,aridb5,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-253,,18,hom,aridb6,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-254,,18,hom,aridb7,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-255,,18,hom,aridb8,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+248,,18,hom,arid1b,Arid1b -/- ,* (248_255),,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+249,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+250,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+251,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+252,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+253,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+254,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+255,,18,hom,arid1b,Arid1b -/- ,,,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
 256,,18,het,col11a2,col11a2 +/-,* (256_263),HR  + contrast,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-257,,18,het,col11a3,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-258,,18,het,col11a4,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
-259,,18,het,col11a5,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+257,,18,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+258,,18,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+259,,18,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
 260,,8,hom,panther,panther(csfr1a)j4e1 -/-,,HR head and ribs,8 months,EKPhantoms_21Sep End Day,7.393011,2.5
 261,,8,hom,panther,panther(csfr1a)j4e1 -/-,,,8 months,EKPhantoms_21Sep End Day,7.393011,2.5
 262,,8,hom,panther,panther(csfr1a)j4e1 -/-,,,8 months,EKPhantoms_21Sep End Day,7.393011,2.5
@@ -152,23 +152,23 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 286,,30,wt,chst11,chst11 talen SIBS,,,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
 287,,30,wt,chst11,chst11 talen SIBS,,,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
 288,,24,het,runx2,runx2 +/-,* (288_295),HR head,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-289,,24,het,runx3,runx2 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-290,,24,het,runx4,runx2 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-291,,24,het,runx5,runx2 +/-,,enhance contrast + high res head ribs tail,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-292,,24,het,runx6,runx2 +/-,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-293,,30,het,runx7,runx2 +/-,,HR head and ribs,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-294,,30,het,runx8,runx2 +/-,,,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+289,,24,het,runx2,runx2 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+290,,24,het,runx2,runx2 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+291,,24,het,runx2,runx2 +/-,,enhance contrast + high res head ribs tail,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+292,,24,het,runx2,runx2 +/-,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+293,,30,het,runx2,runx2 +/-,,HR head and ribs,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+294,,30,het,runx2,runx2 +/-,,,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
 295,,30,het,barx1,barx1 +/-,,,2.5 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-296,,24,wt,barx2,barx1 +/-,* (296_303),enhance contrast + high res head ribs tail +Elis Loading rig,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-297,,24,wt,barx3,barx1 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-298,,24,wt,barx4,barx1 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-299,,24,wt,barx5,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-300,,24,wt,barx6,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-301,,24,wt,barx7,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
-302,,7,mosaic,barx8,barx1 sibs,,,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
+296,,24,wt,barx1,barx1 +/-,* (296_303),enhance contrast + high res head ribs tail +Elis Loading rig,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+297,,24,wt,barx1,barx1 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+298,,24,wt,barx1,barx1 +/-,," For high res: head ribs, tail ",2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+299,,24,wt,barx1,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+300,,24,wt,barx1,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+301,,24,wt,barx1,barx1 sibs,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+302,,7,mosaic,barx1,barx1 sibs,,,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
 303,,7,mosaic,wnt16,wnt16-2 injected,,,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
-304,,7,mosaic,wnt17,wnt16-2 injected,* (304_310),,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
-305,,7,mosaic,wnt18,wnt16-2 injected,,spine phenotype and jaw? ,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
+304,,7,mosaic,wnt16,wnt16-2 injected,* (304_310),,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
+305,,7,mosaic,wnt16,wnt16-2 injected,,spine phenotype and jaw? ,7 months,EKPhantoms_22Sep17_PM,7.134997,2.5
 306,,4,mosaic,ncoa3,ncoa3 g1 injected,,,4 months,EKPhantoms_22Sep17_PM,7.134997,2.5
 307,,4,mosaic,ncoa3,ncoa3 g1 injected,,,4 months,EKPhantoms_22Sep17_PM,7.134997,2.5
 308,,4,mosaic,ncoa3,ncoa3 g1 injected,,,4 months,EKPhantoms_22Sep17_PM,7.134997,2.5
@@ -223,8 +223,8 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 357,,,hom,scxa,scxa kg170/kg170,,contrast enhance,,EKPhantoms_22Sep17_PM2,6.509225,2.5
 358,,,hom,scxa,scxa kg170/kg170,,histology ,,EKPhantoms_22Sep17_PM2,6.509225,2.5
 359,,18,wt,dot1,dot1 +/+,* (359-365)," For high res: head ribs, tail / ELIS",1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
-360,,18,wt,dot2,dot1 +/+,," For high res: head ribs, tail /ELIS",1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
-361,,18,wt,dot3,dot1 +/+,,ELIS,1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
+360,,18,wt,dot1,dot1 +/+,," For high res: head ribs, tail /ELIS",1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
+361,,18,wt,dot1,dot1 +/+,,ELIS,1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
 362,,24,wt,,dvl:gfp contrast enhance,,,2 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
 363,,24,wt,,dvl:gfp contrast enhance,,,2 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
 364,,24,wt,,dvl:gfp contrast enhance,,,2 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
@@ -430,12 +430,12 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 565,,12,injected,ctsk,ctsk injected,,For OA paper ,1 year,ek_phantom_150719_12pm,7.7294744,2.5
 566,,12,injected,ctsk,ctsk injected,,For OA paper ,1 year,ek_phantom_150719_12pm,7.7294744,2.5
 567,,30,hom,spp1,spp1 -/- #1,567_573 scanned with phantom where is the tiff? ,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
-568,,30,hom,spp2,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
-569,,30,hom,spp3,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
-570,,30,hom,spp4,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
-571,,12,hom,spp5,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
-572,,12,hom,spp6,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
-573,,12,hom,spp7,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
+568,,30,hom,spp1,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
+569,,30,hom,spp1,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
+570,,30,hom,spp1,spp1 -/- #1,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
+571,,12,hom,spp1,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
+572,,12,hom,spp1,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
+573,,12,hom,spp1,spp1 -/- #4,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
 574,,12,wt,,wt #5,574_581 ,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
 575,,12,wt,,wt #5,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
 576,,12,wt,,wt #5,,Beck's,1 year,567_573 scanned with phantom ,6.953716,2.5
@@ -443,7 +443,7 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 578,,24,wt,,wt #3,,Beck's,2 year ,567_573 scanned with phantom ,6.953716,2.5
 579,,24,wt,,wt #3,,Beck's,2 year ,567_573 scanned with phantom ,6.953716,2.5
 580,,30,hom,spp1,spp1 -/- #2,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
-581,,30,hom,spp2,spp1 -/- #2,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
+581,,30,hom,spp1,spp1 -/- #2,,Beck's,2.5 year,567_573 scanned with phantom ,6.953716,2.5
 582,,12,hom,col11a2,Col11a2 -/-,582_589 ,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
 583,,12,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
 584,,12,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
@@ -470,11 +470,11 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 605,,3,injected,pleca,PlecA inj,high res only ,EK head,3 months ,,,
 606,,3,injected,pleca,PlecA inj,high res only ,EK head,3 months ,,,
 607,,3,injected,pleca,PlecA inj,high res only ,EK head,3 months ,,,
-608,,3,injected,matrilin,Matrilin A inj ,high res only ,EK head,3 months ,,,
-609,,3,injected,matrilin,Matrilin A inj ,high res only ,EK head,3 months ,,,
-610,,3,injected,matrilin,Matrilin A inj ,high res only ,EK head,3 months ,,,
-611,,3,injected,matrilin,Matrilin A inj ,high res only ,EK head,3 months ,,,
-612,,3,injected,matrilin,Matrilin A inj ,high res only ,,3 months ,,,
+608,,3,injected,matrilin a,Matrilin A inj ,high res only ,EK head,3 months ,,,
+609,,3,injected,matrilin a,Matrilin A inj ,high res only ,EK head,3 months ,,,
+610,,3,injected,matrilin a,Matrilin A inj ,high res only ,EK head,3 months ,,,
+611,,3,injected,matrilin a,Matrilin A inj ,high res only ,EK head,3 months ,,,
+612,,3,injected,matrilin a,Matrilin A inj ,high res only ,,3 months ,,,
 613,,3,injected,vdra,VDRA inj,high res only ,,3 months ,,,
 614,,3,injected,vdra,VDRA inj,high res only ,,3 months ,,,
 615,,3,injected,vdra,VDRA inj,high res only ,,3 months ,,,
@@ -483,7 +483,7 @@ n,skip,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Va
 618,,3,injected,pleca,PlecA inj,high res only ,,3 months ,,,
 619,,3,injected,pleca,PlecA inj,high res only ,,3 months ,,,
 620,,3,injected,pleca,PlecA inj,high res only ,,3 months ,,,
-621,,3,injected,matrilin,Matrilin3 A inj ,high res only ,,3 months ,scanned with phantom,0.750605,2.5
+621,,3,injected,matrilin3 a,Matrilin3 A inj ,high res only ,,3 months ,scanned with phantom,0.750605,2.5
 622,,10,het,irf6,irf6 +/-,low res scanned with.  Phantom at first. Position,EK_622_627,10 months,scanned with phantom,0.750605,2.5
 623,,10,het,irf6,irf6 +/-,low res scanned with.  Phantom at first. Position,,10 months,scanned with phantom,0.750605,2.5
 624,,10,het,irf6,irf6 +/-,low res scanned with.  Phantom at first. Position,,10 months,scanned with phantom,0.750605,2.5

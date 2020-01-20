@@ -8,10 +8,11 @@ import cv2
 pd.set_option('display.max_rows', None)
 
 CTreader = CTreader()
+master = CTreader.mastersheet()
 
 for i in range(1):
-	ct, color = CTreader.read_dirty(i, r=(0,1000))
-	output, circles  = CTreader.find_tubes(color[50])
+	ct, color = CTreader.read_dirty(i, r=(0,1999))
+	output, circles  = CTreader.find_tubes(color[1000])
 
 	CTreader.view(ct) 
 
