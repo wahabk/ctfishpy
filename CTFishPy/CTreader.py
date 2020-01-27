@@ -82,6 +82,7 @@ class CTreader():
 
     def find_tubes(self, ct, minDistance = 200, 
         minRad = 50, maxRad = 150, thresh = [50, 100]):
+        
         output = ct.copy()
         ct = cv2.cvtColor(ct, cv2.COLOR_BGR2GRAY)
         min_thresh, max_thresh = thresh
@@ -93,7 +94,7 @@ class CTreader():
 
         if circles is None:
             print('[FishPy] No circles found :(')
-            return 
+            return
 
         else:
             # convert the (x, y) coordinates and radius of the circles to integers
@@ -105,10 +106,12 @@ class CTreader():
                 # corresponding to the center of the circle
                 cv2.circle(output, (x, y), r, (0, 0, 255), 2)
                 cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-            print('[FishPy] Tubes detected:', circles.shape[0])
-            return output, circles
             
-
+            print('[FishPy] Tubes detected:', circles.shape[0])
+            circle_dict =  {'labelled_img'  : output, 
+                            'circles'       : circles}
+            return circle_dict
+            
     def crop(self, ct, circles, pad = 0):
         CTs = []
         for x, y, r in circles:
