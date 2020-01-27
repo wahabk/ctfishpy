@@ -26,16 +26,7 @@ class IndexTracker(object):
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
 
-def findrows(df, col, value):
-    #Find all rows that have specified value in specified column
-    #e.g. find all rows that have 12 in column 'age'
-    return list(df.loc[df[col]==value].index.values)
 
-def trim(df, col, value):
-    #Trim df to e.g. fish that are 12 years old
-    index = findrows(df, col, value)
-    trimmed = df.drop(set(df.index) - set(index))
-    return trimmed
 
 
 

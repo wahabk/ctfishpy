@@ -15,6 +15,17 @@ class CTreader():
     def mastersheet(self):
         return pd.read_csv('./uCT_mastersheet.csv')
 
+    def findrows(self, df, col, value):
+        #Find all rows that have specified value in specified column
+        #e.g. find all rows that have 12 in column 'age'
+        return list(df.loc[df[col]==value].index.values)
+
+    def trim(self, df, col, value):
+        #Trim df to e.g. fish that are 12 years old
+        index = findrows(df, col, value)
+        trimmed = df.drop(set(df.index) - set(index))
+        return trimmed
+
     def read(self, fish):
         pass
 
@@ -80,8 +91,11 @@ class CTreader():
         circles = cv2.HoughCircles(ct, cv2.HOUGH_GRADIENT, dp=1.5, 
         minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
+        if circles is None:
+            print('[FishPy] No circles found :(')
+            return 
 
-        if circles is not None:
+        else:
             # convert the (x, y) coordinates and radius of the circles to integers
             circles = np.round(circles[0, :]).astype("int")
 
@@ -93,20 +107,19 @@ class CTreader():
                 cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
             print('[FishPy] Tubes detected:', circles.shape[0])
             return output, circles
+            
 
-        else:
-            print('[FishPy] No circles found :(')
-
-    def crop(self, ct, circles):
+    def crop(self, ct, circles, pad = 0):
         CTs = []
         for x, y, r in circles:
             c = []
             for slice_ in ct:
                 rectx = x-r
                 recty = y-r
-                cropped_slice = slice_[recty:(recty+2*r), rectx:(rectx+2*r)]
+                cropped_slice = slice_[recty-pad:(recty+2*r+pad), 
+                    rectx-pad:(rectx+2*r+pad)]
                 c.append(cropped_slice)
-            c = np.array(c)
+            c = np.array(c, dtype = np.uint8)
 
             CTs.append(c)
         return CTs

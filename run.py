@@ -1,59 +1,44 @@
-from matplotlib import pyplot as plt
-from CTFishPy.utility import IndexTracker
-import argparse
+from CTFishPy.CTreader import CTreader
+import CTFishPy.utility as utility
+import matplotlib.pyplot as plt
 from tqdm import tqdm
+import pandas as pd
 import numpy as np
 import cv2
+pd.set_option('display.max_rows', None)
 
-ct = []
-color = []
-slices_to_read = 250
+CTreader = CTreader()
+master = CTreader.mastersheet()
 
-for i in tqdm(range(1800,1900)):
-	x = cv2.imread('../../Data/uCT/low_res/EK_208_215/EK_208_215_'+(str(i).zfill(4))+'.tif')
-	color.append(x)
-	x = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
-	#x = cv2.GaussianBlur(x, (5,5), cv2.BORDER_DEFAULT)
-	ret, x = cv2.threshold(x, 50, 100, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+for i in range(9,10):
+	ct, color = CTreader.read_dirty(i, r=(1600,2000))
+	output, circles  = CTreader.find_tubes(color[0])
 
-	ct.append(x)
+	CTreader.view(ct) 
 
-ct = np.array(ct)
-color = np.array(color)
+	if output.any():
+		cv2.imshow('output', output)
+		cv2.waitKey()
 
-input_ = color[0].copy()
-resize = 0.4
-input_ = cv2.resize(input_, None, fx=resize, fy=resize)
-output = input_.copy()
-gray = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)
+cropped_cts = CTreader.crop(color, circles)
 
-# detect circles in the image
-circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, dp=1.2, minDist=40, minRadius=40) #param1=50, param2=30,
+for i in range(8):
+	#CTreader.view(cropped_ct)
+	output, circles = None, None
+	print(cropped_cts[i][0][0])
+	cv2.imshow('output', cropped_cts[i][50])
+	cv2.waitKey()
+	output, circles = CTreader.find_tubes(cropped_cts[i][50], minRad = 0, maxRad = 50)
+	if output is not None:
+		cv2.imshow('output', output)
+		cv2.waitKey()
+	output, circles = None, None
 
-print(circles)
-if circles is not None:
-	# convert the (x, y) coordinates and radius of the circles to integers
-	circles = np.round(circles[0, :]).astype("int")
 
-		# loop over the (x, y) coordinates and radius of the circles
-	for (x, y, r) in circles:
-		# draw the circle in the output image, then draw a rectangle
-		# corresponding to the center of the circle
-		cv2.circle(output, (x, y), r, (0, 0, 255), 2)
-		cv2.rectangle(output, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
 
-	cv2.imshow("output", output)
-	cv2.waitKey(0)
+#Rename folders using python os.rename
+#
 
-else:
-	print('No circles found :(')
+#cv2.imshow('output', cropped_cts[0][0])
+#cv2.waitKey()
 
-'''
-fig, ax = plt.subplots(1, 1)
-tracker = IndexTracker(ax, ct.T)
-fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
-plt.show()
-save = str(input('Save figure? '))
-if save:
-	fig.savefig('output/'+save+'.png')
-'''
