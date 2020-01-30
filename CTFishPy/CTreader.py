@@ -30,18 +30,18 @@ class CTreader():
         pass
 
     def read_dirty(self, file_number = None, r = (1,100), scale = 40, color = False):
-        path = '../../Data/uCT/low_res/'
+        path = '../../Data/HDD/uCT/low_res/'
         files = os.listdir(path)
         files = natsorted(files, alg=ns.IGNORECASE)
         files_df = pd.DataFrame(files)
-        files_df.to_csv('../../Data/uCT/filenames_low_res.csv', index = False, header = False)
+        files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
         if file_number == None:
 
             print(files)
             return
 
         file = files[file_number]
-        paths = next(os.walk('../../Data/uCT/low_res/'+file+''))[1]
+        paths = next(os.walk('../../Data/HDD/uCT/low_res/'+file+''))[1]
         
         # Find tif folder and if it doesnt exist read images in main folder
         tif = []
