@@ -3,8 +3,8 @@ import CTFishPy.utility as utility
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-from qtpy.QtWidgets import QMessageBox, QApplication, QWidget, QPushButton, QToolTip
-from qtpy.QtGui import QIcon, QFont
+from qtpy.QtWidgets import QMessageBox, QApplication, QWidget, QPushButton, QToolTip, QLabel
+from qtpy.QtGui import QFont, QPixmap
 
 import sys
 
@@ -14,37 +14,30 @@ def qthello():
 	button.show()
 	app.exec_()
 
-def emptywindow():
-	app = QApplication(sys.argv)
 
-	w = QWidget()
-	w.resize(500, 500)
-	w.move(500, 500)
-	w.setWindowTitle('CTFishPy')
-	w.show()
-
-	sys.exit(app.exec_())
-
-
-
-class iconnedwindow(QWidget):
+class window(QWidget):
 	
 	def __init__(self):
 		super().__init__()
 		self.initUI()
 
 	def initUI(self):
-		self.setToolTip('This is a <b>QWidget</b> widget')
+		#self.setGeometry(700, 700, 500, 500)
+		self.setWindowTitle('CTFishPy')
 
+
+
+		# Create widget
+		label = QLabel(self)
+		pixmap = QPixmap('zebrafish.png')
+		label.setPixmap(pixmap)
+		self.resize(pixmap.width(),pixmap.height())
+		
 		btn = QPushButton('Button', self)
 		btn.setToolTip('This is a <b>QPushButton</b> widget')
 		btn.resize(btn.sizeHint())
-		btn.move(50, 50)
+		btn.move(50, 200)
 
-		self.setGeometry(700, 700, 500, 500)
-		self.setWindowTitle('Iconned')
-		self.setWindowIcon(QIcon('~/Pictures/zebrafish.png'))
-		
 		self.show()
 
 	def closeEvent(self, event):
@@ -55,7 +48,7 @@ class iconnedwindow(QWidget):
 		if reply == QMessageBox.Yes:
 			event.accept()
 		else:
-			event.ignore()  
+			event.ignore()
 
 CTreader = CTreader()
 master = CTreader.mastersheet()
@@ -71,5 +64,5 @@ for i in range(0,1):
 		#cv2.waitKey()
 
 app = QApplication(sys.argv)
-ex = iconnedwindow()
+ex = window()
 sys.exit(app.exec_())
