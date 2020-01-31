@@ -12,3 +12,4 @@ def rename(og, new):
 
 
 
+#Rename folders using python os.rename
