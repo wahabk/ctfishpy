@@ -26,10 +26,6 @@ class IndexTracker(object):
         self.ax.set_ylabel('slice %s' % self.ind)
         self.im.axes.figure.canvas.draw()
 
-
-
-
-
 if __name__ == "__main__":
     #How to use:
     for i in tqdm(range(1800,1900)):

@@ -1,7 +1,7 @@
 from qtpy.QtWidgets import QMessageBox, QApplication, QWidget, QPushButton, QToolTip, QLabel
 from qtpy.QtGui import QFont, QPixmap, QImage
-from qtpy.QtCore import Qt, QTimer
 from CTFishPy.CTreader import CTreader
+from qtpy.QtCore import Qt, QTimer
 import CTFishPy.utility as utility
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +12,7 @@ class window(QWidget):
 
 	def __init__(self, img, circles):
 		super().__init__()
-		self.image = img
+		self.npimage = img
 		self.circles = circles
 		self.ordered_circles = []
 		self.slice = 0
@@ -26,7 +26,7 @@ class window(QWidget):
 		self.resize(self.pixmap.width(), self.pixmap.height())
 
 	def update(self):
-		self.image = self.np2qt(self.image[self.slice])
+		self.image = self.np2qt(self.npimage[self.slice])
 		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
 		self.label.setPixmap(self.pixmap)
 
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 	for i in range(0,1):
 		ct, color = CTreader.read_dirty(i, r=(1000,1200))
-		circle_dict  = CTreader.find_tubes(color[10])
+		circle_dict  = CTreader.find_tubes(color)
 
 	app = QApplication(sys.argv)
 	ex = window(color, circle_dict['circles'])
