@@ -1,5 +1,5 @@
 from CTFishPy.GUI.circle_order_labeller import circle_order_labeller
-from CTFishPy.GUI.mainwindow import mainwin
+
 from CTFishPy.CTreader import CTreader
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -22,12 +22,7 @@ for i in range(0,1):
 		cv2.imshow('output', circle_dict['labelled_img'])
 		cv2.waitKey()
 
-#ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
-#CTreader.view(numbered)
-
-mainwin(color)
+ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
+CTreader.view(numbered)
 
 
-
-
-#make sliders for threshold and dp

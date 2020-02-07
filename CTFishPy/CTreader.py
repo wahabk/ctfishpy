@@ -1,4 +1,4 @@
-from CTFishPy.GUI.view import view as guiview
+from . GUI.view import view as guiview
 from natsort import natsorted, ns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -13,22 +13,24 @@ class CTreader():
         pass
 
     def mastersheet(self):
-        return pd.read_csv('./uCT_mastersheet.csv')
+        self.mastersheet = pd.read_csv('./uCT_mastersheet.csv')
+        return self.mastersheet
         #to count use master['age'].value_counts()
 
-    def trim(self, df, col, value):#Trim df to e.g. fish that are 12 years old
+    def trim(self, col, value):#Trim df to e.g. fish that are 12 years old
         #Find all rows that have specified value in specified column
         #e.g. find all rows that have 12 in column 'age'
-        index = list(df.loc[df[col]==value].index.values)
+        m = self.mastersheet
+        index = list(m.loc[m[col]==value].index.values)
         #delete ones not in index
-        trimmed = df.drop(set(df.index) - set(index))
+        trimmed = m.drop(set(m.index) - set(index))
         return trimmed
 
     def read(self, fish):
         pass
         #func to read clean data
 
-    def read_dirty(self, file_number = None, r = (1,100), scale = 30, color = False):
+    def read_dirty(self, file_number = None, r = (1,100), scale = 40, color = False):
         path = '../../Data/HDD/uCT/low_res/'
         
         #find all dirty scan folders and save as csv in directory
@@ -53,11 +55,11 @@ class CTreader():
         if tif: tifpath = path+file+'/'+tif[0]+'/'
         else: tifpath = path+file+'/'
 
-
         ct = []
         ct_color = []
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
+            if i == 891: continue
             x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')         
             #use provided scale metric to downsize image
             height  = int(x.shape[0] * scale / 100)
@@ -80,11 +82,11 @@ class CTreader():
     def view(self, ct_array):
         guiview(ct_array)
 
-    def find_tubes(self, ct, minDistance = 200, minRad = 50, maxRad = 150, 
-        thresh = [50, 100], slice_to_detect = 0, dp = 1.2):
+    def find_tubes(self, ct, minDistance = 200, minRad = 0, maxRad = 150, 
+        thresh = [50, 100], slice_to_detect = 0, dp = 1.3):
         # Find fish tubes
         #output = ct.copy() # copy stack to label later
-        output = []
+        output = ct.copy()
 
         #Convert slice_to_detect to gray scale and threshold
         ct_slice_to_detect = cv2.cvtColor(ct[slice_to_detect], cv2.COLOR_BGR2GRAY)
@@ -105,14 +107,14 @@ class CTreader():
             circles = np.round(circles[0, :]).astype("int") # round up
 
             # loop over the (x, y) coordinates and radius of the circles
-            for i in ct:
+            for i in output:
                 for (x, y, r) in circles:
                     # draw the circle in the output image, then draw a rectangle
                     # corresponding to the center of the circle
                     cv2.circle(i, (x, y), r, (0, 0, 255), 2)
                     cv2.rectangle(i, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-                output.append(i)
-            output = np.array(output)
+                #output.append(i)
+            #output = np.array(output)
             
             print('[FishPy] Tubes detected:', circles.shape[0])
             circle_dict =  {'labelled_img'  : output[slice_to_detect],
@@ -144,6 +146,8 @@ class CTreader():
 
     def write_images(self):
         pass
+
+
 
 '''
 class Fish():

@@ -1,4 +1,4 @@
-from qtpy.QtWidgets import QMessageBox, QApplication, QWidget, QPushButton, QToolTip, QLabel
+from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel
 from qtpy.QtGui import QFont, QPixmap, QImage
 from qtpy.QtCore import Qt, QTimer
 from .. import CTreader
@@ -7,15 +7,14 @@ import numpy as np
 import cv2
 import sys
 
-class Window(QWidget):
+class MainWindow(QMainWindow):
 
-	def __init__(self, stack, skip = 10):
+	def __init__(self, stack):
 		super().__init__()
 		self.npstack = stack
 		self.slice = 0
-		self.label = QLabel(self)
+		#self.label = QLabel(self)
 		self.stack_size = stack.shape[0]-1
-		self.skip = skip
 
 		#check length of image shape to check if image is grayscale or color
 		if len(stack.shape) == 3: self.grayscale = True
@@ -26,10 +25,15 @@ class Window(QWidget):
 
 	def initUI(self):
 		#initialise UI
-		self.setWindowTitle('CTFishPy Viewer')
-		self.update()
-		self.resize(self.pixmap.width(), self.pixmap.height())
+		self.setWindowTitle('CTFishPy')
+		self.statusBar().showMessage('Status bar: Ready')
 
+		menubar = self.menuBar()
+		fileMenu = menubar.addMenu('&File')
+
+		self.resize(500, 700)
+		self.update()
+ 
 	def update(self):
 		#Update displayed image
 		self.image = self.np2qt(self.npstack[self.slice])
@@ -38,10 +42,10 @@ class Window(QWidget):
 
 	def wheelEvent(self, event):
 		#scroll through slices and go to beginning if reached max
-		self.slice = self.slice + int(event.angleDelta().y()/120)*self.skip
+		self.slice = self.slice + int(event.angleDelta().y()/120)*10
 		if self.slice > self.stack_size: 	self.slice = 0
 		if self.slice < 0: 					self.slice = self.stack_size
-		self.update()
+		#self.update()
 	
 	def keyPressEvent(self, event):
 		#close window if esc or q is pressed
@@ -59,8 +63,18 @@ class Window(QWidget):
 			bytesPerLine = 3 * width
 			return QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
 	
-def view(stack):
+
+def mainwin(stack):
 	app = QApplication(sys.argv)
-	win = Window(stack)
+	win = MainWindow(stack)
 	win.show()
 	app.exec_()
+
+
+if __name__ == "__main__":
+	CTreader = CTreader()
+
+	ct, color = CTreader.read_dirty(1, r=(0,20))
+	circle_dict  = CTreader.find_tubes(color)
+	
+	mainwin(ct)
