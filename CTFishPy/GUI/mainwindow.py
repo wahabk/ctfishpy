@@ -1,4 +1,4 @@
-from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel
+from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel, QVBoxLayout, QSlider
 from qtpy.QtGui import QFont, QPixmap, QImage
 from qtpy.QtCore import Qt, QTimer
 from .. import CTreader
@@ -19,17 +19,24 @@ class MainWindow(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		viewer = Viewer(self.npstack)
-		self.setCentralWidget(viewer)
+		layout = QVBoxLayout()
+		layout.addWidget(Viewer(self.npstack))
+		layout.addWidget(Slider())
+		
+		widget = QWidget()
+		widget.setLayout(layout)
+		self.setCentralWidget(widget)
 
 		menubar = self.menuBar()
 		fileMenu = menubar.addMenu('&File')
-		self.resize(viewer.pixmap.width(), viewer.pixmap.height()+200)
-	
+		#self.resize(viewer.pixmap.width(), viewer.pixmap.height()+200)
+		
 	def keyPressEvent(self, event):
 		#close window if esc or q is pressed
 		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q :
 			self.close()
+
+#https://stackoverflow.com/questions/34644808/set-vertical-alignment-of-qformlayout-qlabel
 
 class Viewer(QWidget):
 
@@ -77,6 +84,16 @@ class Viewer(QWidget):
 			bytesPerLine = 3 * width
 			return QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
 
+class Slider(QWidget):
+	def __init__(self):
+		super().__init__()
+		self.initUI()
+
+	def initUI(self):
+		sld = QSlider(Qt.Horizontal, self)
+		#sld.valueChanged.connect(lcd.display)
+
+		self.setGeometry(100, 100, 0, 0)
 
 
 def mainwin(stack):
