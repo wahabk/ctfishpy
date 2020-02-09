@@ -12,7 +12,7 @@ CTreader = CTreader()
 master = CTreader.mastersheet()
 
 for i in range(0,1):
-	ct, color = CTreader.read_dirty(i, r=(1000,1200), scale = 30)
+	ct, color = CTreader.read_dirty(i, r=(800,1200), scale = 40)
 	circle_dict  = CTreader.find_tubes(color)
 
 	#CTreader.view(ct) 
@@ -27,5 +27,4 @@ for i in range(0,1):
 
 mainwin(color)
 
-
-#make sliders for threshold and dp
+#add buttons and sequence oi detect circles then label
