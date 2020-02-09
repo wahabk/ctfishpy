@@ -106,7 +106,7 @@ class CTreader():
         minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
         if circles is None:
-            print('[FishPy] No circles found :(')
+            print('[CTFishPy] No circles found :(')
             return
 
         else:
@@ -123,7 +123,6 @@ class CTreader():
                 #output.append(i)
             #output = np.array(output)
             
-            print('[FishPy] Tubes detected:', circles.shape[0])
             circle_dict =  {'labelled_img'  : output[slice_to_detect],
                             'labelled_stack': output, 
                             'circles'      : circles}

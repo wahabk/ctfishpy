@@ -1,5 +1,5 @@
 from CTFishPy.GUI.circle_order_labeller import circle_order_labeller
-from CTFishPy.GUI.mainwindow import mainwin
+from CTFishPy.GUI.mainwindowcircle import mainwin
 from CTFishPy.CTreader import CTreader
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -12,7 +12,7 @@ CTreader = CTreader()
 master = CTreader.mastersheet()
 
 for i in range(0,1):
-	ct, color = CTreader.read_dirty(i, r=(1000,1900), scale = 30)
+	ct, color = CTreader.read_dirty(i, r=(1000,1200), scale = 30)
 	circle_dict  = CTreader.find_tubes(color)
 
 	#CTreader.view(ct) 
@@ -25,9 +25,7 @@ for i in range(0,1):
 #ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
 #CTreader.view(numbered)
 
-mainwin(circle_dict['labelled_stack'])
-
-
+mainwin(color)
 
 
 #make sliders for threshold and dp
