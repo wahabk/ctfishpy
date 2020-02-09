@@ -12,7 +12,7 @@ CTreader = CTreader()
 master = CTreader.mastersheet()
 
 for i in range(0,1):
-	ct, color = CTreader.read_dirty(i, r=(1800,1900))
+	ct, color = CTreader.read_dirty(i, r=(1000,1900), scale = 30)
 	circle_dict  = CTreader.find_tubes(color)
 
 	#CTreader.view(ct) 
@@ -25,7 +25,7 @@ for i in range(0,1):
 #ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
 #CTreader.view(numbered)
 
-mainwin(color)
+mainwin(circle_dict['labelled_stack'])
 
 
 

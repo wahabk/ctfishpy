@@ -39,6 +39,10 @@ class CTreader():
         files_df = pd.DataFrame(files) #change to df to save as csv
         files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
         
+        #get rid of weird mac files
+        for file in files:
+            if file.endswith('DS_Store'): files.remove(file)
+
         #if no file number was provided to read then print files list
         if file_number == None: 
             print(files)
@@ -46,20 +50,23 @@ class CTreader():
 
         #find all dirs in scan folder
         file = files[file_number]
-        paths = next(os.walk('../../Data/HDD/uCT/low_res/'+file+''))[1]
+        for path, dirs, files in os.walk('../../Data/HDD/uCT/low_res/'+file+''):
+            dirs = sorted(dirs)
+            break
+
         # Find tif folder and if it doesnt exist read images in main folder
         tif = []
-        for i in paths: 
+        for i in dirs: 
             if i.startswith('EK'):
                 tif.append(i)
         if tif: tifpath = path+file+'/'+tif[0]+'/'
-        else: tifpath = path+file+'/'
+        else: tifpath = path+'/'
 
         ct = []
         ct_color = []
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
-            if i == 891: continue
+            if i == 891: continue #skip this file
             x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')         
             #use provided scale metric to downsize image
             height  = int(x.shape[0] * scale / 100)
