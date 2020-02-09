@@ -1,4 +1,4 @@
-from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel, QVBoxLayout, QSlider
+from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel, QVBoxLayout, QSlider, QGridLayout
 from qtpy.QtGui import QFont, QPixmap, QImage
 from qtpy.QtCore import Qt, QTimer
 from .. import CTreader
@@ -18,18 +18,14 @@ class MainWindow(QMainWindow):
 		#initialise UI
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
-
-		layout = QVBoxLayout()
-		layout.addWidget(Viewer(self.npstack))
-		layout.addWidget(Slider())
 		
-		widget = QWidget()
-		widget.setLayout(layout)
-		self.setCentralWidget(widget)
+		viewer = Viewer(self.npstack)
+		self.setCentralWidget(viewer)
+		#widget.findChildren(QWidget)[0]
 
 		menubar = self.menuBar()
 		fileMenu = menubar.addMenu('&File')
-		#self.resize(viewer.pixmap.width(), viewer.pixmap.height()+200)
+		self.setGeometry(1100, 10, viewer.width(), viewer.height())
 		
 	def keyPressEvent(self, event):
 		#close window if esc or q is pressed
@@ -40,25 +36,35 @@ class MainWindow(QMainWindow):
 
 class Viewer(QWidget):
 
-	def __init__(self, stack, skip = 10):
+	def __init__(self, stack, stride = 1):
 		super().__init__()
 		self.npstack = stack
 		self.slice = 0
 		self.label = QLabel(self)
+
+		p = self.palette()
+		p.setColor(self.backgroundRole(), Qt.cyan)
+		self.setPalette(p)
+		self.setAutoFillBackground(True)
+
 		self.stack_size = stack.shape[0]-1
-		self.skip = skip
+		self.stride = stride
 
 		#check length of image shape to check if image is grayscale or color
 		if len(stack.shape) == 3: self.grayscale = True
 		elif len(stack.shape) == 4: self.grayscale = False
 		else: raise ValueError('[viewer] Cant tell if stack is color or grey scale')
-
+		self.initSlider()
 		self.initUI()
+
 
 	def initUI(self):
 		#initialise UI
 		self.update()
-		self.resize(self.pixmap.width(), self.pixmap.height())
+		self.slider.setGeometry(10, self.pixmap.height()+10, self.pixmap.width(), 50)
+		self.label.setMargin(10)
+		self.setGeometry(0, 0, self.pixmap.width()+20, (self.pixmap.height()+self.slider.height()*2))
+		self.slider.valueChanged.connect(self.valuechange)
 
 	def update(self):
 		#Update displayed image
@@ -68,9 +74,10 @@ class Viewer(QWidget):
 
 	def wheelEvent(self, event):
 		#scroll through slices and go to beginning if reached max
-		self.slice = self.slice + int(event.angleDelta().y()/120)*self.skip
+		self.slice = self.slice + int(event.angleDelta().y()/120)*self.stride
 		if self.slice > self.stack_size: 	self.slice = 0
 		if self.slice < 0: 					self.slice = self.stack_size
+		self.slider.setValue(self.slice)
 		self.update()
 
 	def np2qt(self, image):
@@ -83,17 +90,16 @@ class Viewer(QWidget):
 			height, width, channel = image.shape
 			bytesPerLine = 3 * width
 			return QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+	
+	def initSlider(self):
+		self.slider = QSlider(Qt.Horizontal, self)
+		self.slider.setMinimum(0)
+		self.slider.setMaximum(self.stack_size)
 
-class Slider(QWidget):
-	def __init__(self):
-		super().__init__()
-		self.initUI()
+	def valuechange(self):
+		self.slice = self.slider.value()
+		self.update()
 
-	def initUI(self):
-		sld = QSlider(Qt.Horizontal, self)
-		#sld.valueChanged.connect(lcd.display)
-
-		self.setGeometry(100, 100, 0, 0)
 
 
 def mainwin(stack):
