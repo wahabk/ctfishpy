@@ -11,7 +11,7 @@ pd.set_option('display.max_rows', None)
 CTreader = CTreader()
 master = CTreader.mastersheet()
 
-for i in range(1,2):
+for i in range(0,1):
 	ct, color = CTreader.read_dirty(i, r=(1000,1200), scale = 40)
 	circle_dict  = CTreader.find_tubes(color)
 
