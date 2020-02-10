@@ -59,7 +59,7 @@ class CTreader():
         for i in dirs: 
             if i.startswith('EK'):
                 tif.append(i)
-        if tif: tifpath = path+file+'/'+tif[0]+'/'
+        if tif: tifpath = path+'/'+tif[0]+'/'
         else: tifpath = path+'/'
 
         ct = []
@@ -106,7 +106,6 @@ class CTreader():
         minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
         if circles is None:
-            print('[CTFishPy] No circles found :(')
             return
 
         else:
@@ -125,7 +124,7 @@ class CTreader():
             
             circle_dict =  {'labelled_img'  : output[slice_to_detect],
                             'labelled_stack': output, 
-                            'circles'      : circles}
+                            'circles'       : circles}
             
             return circle_dict
             

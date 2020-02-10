@@ -1,6 +1,7 @@
 from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel, QVBoxLayout, QSlider, QGridLayout
-from qtpy.QtGui import QFont, QPixmap, QImage
+from qtpy.QtGui import QFont, QPixmap, QImage, QCursor
 from qtpy.QtCore import Qt, QTimer
+import qtpy.QtCore as QtCore
 from .. CTreader import CTreader
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,7 +19,7 @@ class MainWindow(QMainWindow):
 		#initialise UI
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
-		
+
 		viewer = Viewer(self.npstack)
 		self.setCentralWidget(viewer)
 		#widget.findChildren(QWidget)[0]
@@ -67,7 +68,7 @@ class Viewer(QWidget):
 		self.slider.setGeometry(10, self.pixmap.height()+10, self.pixmap.width(), 20)
 		self.detector.setGeometry(10, self.pixmap.height()+10+self.slider.height(), self.pixmap.width(), 20)
 		self.label.setMargin(10)
-		self.setGeometry(0, 0, self.pixmap.width()+20, self.pixmap.height()+self.slider.height()*2+self.detector.height()*2)
+		self.setGeometry(0, 0, self.pixmap.width()+20, self.pixmap.height()+20+self.slider.height()*2+self.detector.height()*2)
 		self.slider.valueChanged.connect(self.updateSlider)
 		self.detector.valueChanged.connect(self.updateDetector)
 
