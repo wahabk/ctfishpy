@@ -12,10 +12,8 @@ CTreader = CTreader()
 master = CTreader.mastersheet()
 
 for i in range(0,1):
-	ct, color = CTreader.read_dirty(i, r=(1000,1200), scale = 40)
+	ct, color = CTreader.read_dirty(i, r=(1800,1999), scale = 40)
 	circle_dict  = CTreader.find_tubes(color)
-
-	#CTreader.view(ct) 
 
 	if circle_dict['labelled_img'] is not None:
 		continue

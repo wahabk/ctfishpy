@@ -39,42 +39,62 @@ class Viewer(QWidget):
 
 	def __init__(self, stack, stride = 1):
 		super().__init__()
+		#init cariables
 		self.npstack = stack
-		self.slice = 0
 		self.ogstack = stack
-		self.label = QLabel(self)
+		self.stack_size = stack.shape[0]-1
+		self.stride = stride
+		self.slice = 0
 		self.dp = 1.3
+		self.circle_dict = []
+		self.locked = False
 
+		#set background colour to cyan
 		p = self.palette()
 		p.setColor(self.backgroundRole(), Qt.cyan)
 		self.setPalette(p)
 		self.setAutoFillBackground(True)
 
-		self.stack_size = stack.shape[0]-1
-		self.stride = stride
-
-		#check length of image shape to check if image is grayscale or color
-		if len(stack.shape) == 3: self.grayscale = True
-		elif len(stack.shape) == 4: self.grayscale = False
-		else: raise ValueError('[viewer] Cant tell if stack is color or grey scale')
-		self.initSlider()
-		self.initDetector()
 		self.initUI()
 
 
 	def initUI(self):
-		#initialise UI
-		self.update()
-		self.slider.setGeometry(10, self.pixmap.height()+10, self.pixmap.width(), 20)
-		self.detector.setGeometry(10, self.pixmap.height()+10+self.slider.height(), self.pixmap.width(), 20)
+		self.label = QLabel(self)
 		self.label.setMargin(10)
+		self.update()
+		self.initSliders()
 		self.setGeometry(0, 0, self.pixmap.width()+20, self.pixmap.height()+20+self.slider.height()*2+self.detector.height()*2)
+		
 		self.slider.valueChanged.connect(self.updateSlider)
 		self.detector.valueChanged.connect(self.updateDetector)
+		
+		self.b1 = QPushButton("Confirm slice", self)
+		self.b1.setCheckable(True)
+		self.b1.toggle()
+		self.b1.clicked.connect(self.lockSlice)
+		self.b1.move(30, 50)
+
+		b2 = QPushButton("Next step", self)
+		b2.move(150, 50)
+		b2.clicked.connect(self.Next)
+
+
+	def lockSlice(self):
+		if self.b1.isChecked():
+			self.locked = False
+		else:
+			self.locked = True
 
 	def update(self):
 		#Update displayed image
-		self.image = self.np2qt(self.npstack[self.slice])
+		if self.locked == False:
+			ctreader = CTreader()
+			self.circle_dict  = ctreader.find_tubes(self.ogstack, dp = self.dp)
+			if self.circle_dict: self.npstack = self.circle_dict['labelled_stack']
+			else: self.npstack = self.ogstack
+		
+		self.image = self.npstack[self.slice]
+		self.image = self.np2qt(self.image)
 		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
 		self.label.setPixmap(self.pixmap)
 
@@ -88,38 +108,43 @@ class Viewer(QWidget):
 
 	def np2qt(self, image):
 		#transform np cv2 image to qt format
-		ctreader = CTreader()
-		circle_dict  = ctreader.find_tubes(self.ogstack, dp = self.dp)
-		if circle_dict: self.npstack = circle_dict['labelled_stack']
-		else: self.npstack = self.ogstack
 
-		if self.grayscale == True:
-			height, width = image.shape
+		#check length of image shape to check if image is grayscale or color
+		if len(self.npstack.shape) == 3: grayscale = True
+		elif len(self.npstack.shape) == 4: grayscale = False
+		else: raise ValueError('[viewer] Cant tell if stack is color or grey scale')
+
+		if grayscale == True:
+			height, width = self.image.shape
 			bytesPerLine = width
-			return QImage(image.data, width, height, bytesPerLine, QImage.Format_Indexed8)
+			return QImage(self.image.data, width, height, bytesPerLine, QImage.Format_Indexed8)
 		else:
 			height, width, channel = image.shape
 			bytesPerLine = 3 * width
-			return QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+			return QImage(self.image.data, width, height, bytesPerLine, QImage.Format_RGB888)
 	
-	def initSlider(self):
+	def initSliders(self):
 		self.slider = QSlider(Qt.Horizontal, self)
 		self.slider.setMinimum(0)
 		self.slider.setMaximum(self.stack_size)
+		self.slider.setGeometry(10, self.pixmap.height()+10, self.pixmap.width(), 20)
 
+		self.detector = QSlider(Qt.Horizontal, self)
+		self.detector.setMinimum(100) # betweeen 100 and 200
+		self.detector.setMaximum(200) # -for decimal places
+		self.detector.setSingleStep(1)
+		self.detector.setGeometry(10, self.pixmap.height()+10+self.slider.height(), self.pixmap.width(), 20)
+		
 	def updateSlider(self):
 		self.slice = self.slider.value()
 		self.update()	
 
-	def initDetector(self):
-		self.detector = QSlider(Qt.Horizontal, self)
-		self.detector.setMinimum(100)
-		self.detector.setMaximum(200)
-		self.detector.setSingleStep(1)
-
 	def updateDetector(self):
-		self.dp = self.detector.value()/100
+		self.dp = self.detector.value()/100 # divide by 100 to get decimal points
 		self.update()
+
+	def Next(self):
+		self.close()
 
 def mainwin(stack):
 	app = QApplication(sys.argv)
