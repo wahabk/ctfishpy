@@ -50,7 +50,7 @@ class order_labeller(view.Window):
 		return stack
 
 	def get_order(self):
-		return self.ordered_circles, self.number_image(self.og_stack)
+		return np.array(self.ordered_circles), self.number_image(self.og_stack)
 
 
 def circle_order_labeller(labelled_img, circles):

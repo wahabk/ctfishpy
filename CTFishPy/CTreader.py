@@ -34,9 +34,9 @@ class CTreader():
         path = '../../Data/HDD/uCT/low_res/'
         
         #find all dirty scan folders and save as csv in directory
-        files = os.listdir(path)
-        files = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
-        files_df = pd.DataFrame(files) #change to df to save as csv
+        files       = os.listdir(path)
+        files       = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
+        files_df    = pd.DataFrame(files) #change to df to save as csv
         files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
         
         #get rid of weird mac files
@@ -73,24 +73,26 @@ class CTreader():
             width   = int(x.shape[1] * scale / 100)
             x = cv2.resize(x, (width, height), interpolation = cv2.INTER_AREA)     
             #convert image to gray and save both color and gray stack
-            x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
-            ct.append(x_gray)
+            #x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+            #ct.append(x_gray)
             ct_color.append(x)
-        ct = np.array(ct)
+        #ct = np.array(ct)
         ct_color = np.array(ct_color)
 
         # read xtekct
 
         #check if image is empty
-        if np.count_nonzero(ct) == 0:
+        if np.count_nonzero(ct_color) == 0:
             raise ValueError('Image is empty.')
-        return ct, ct_color #ct: (slice, x, y), color: (slice, x, y, 3)
+
+        metadata = {'path': path, 'scale' : scale}
+        return ct_color, metadata #ct: (slice, x, y), color: (slice, x, y, 3)
 
     def view(self, ct_array):
         guiview(ct_array)
 
     def find_tubes(self, ct, minDistance = 200, minRad = 0, maxRad = 150, 
-        thresh = [50, 100], slice_to_detect = 0, dp = 1.3):
+        thresh = [50, 100], slice_to_detect = 0, dp = 1.3, pad = 0):
         # Find fish tubes
         #output = ct.copy() # copy stack to label later
         output = ct.copy()
@@ -109,8 +111,11 @@ class CTreader():
             return
 
         else:
+            # add pad value to radii
+
             # convert the (x, y) coordinates and radius of the circles to integers
             circles = np.round(circles[0, :]).astype("int") # round up
+            circles[:,2] = circles[:,2] + pad
 
             # loop over the (x, y) coordinates and radius of the circles
             for i in output:
@@ -119,40 +124,37 @@ class CTreader():
                     # corresponding to the center of the circle
                     cv2.circle(i, (x, y), r, (0, 0, 255), 2)
                     cv2.rectangle(i, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-                #output.append(i)
-            #output = np.array(output)
+
             
-            circle_dict =  {'labelled_img'  : output[slice_to_detect],
-                            'labelled_stack': output, 
-                            'circles'       : circles}
-            
+
+            circle_dict  =  {'labelled_img'  : output[slice_to_detect],
+                             'labelled_stack': output, 
+                             'circles'       : circles}
             return circle_dict
             
     def crop(self, ct, circles, pad = 0):
         #this is so ugly :(
         #crop ct stack to circles provided in order
-        CTs = []
+        cropped_CTs = []
         for x, y, r in circles:
-            c = []
+            cropped_stack = []
             for slice_ in ct:
                 rectx = x - r
                 recty = y - r
                 cropped_slice =  slice_[
                     recty - pad : (recty + 2*r + pad), 
-                    rectx - pad : (rectx + 2*r + pad)
-                    ]#      x1  :  x2
-                c.append(cropped_slice)
-            c = np.array(c, dtype = np.uint8)
-            CTs.append(c)
-        return CTs
+                    rectx - pad : (rectx + 2*r + pad)]
+                    #       x1  :  x2
+                cropped_stack.append(cropped_slice)
+            cropped_stack = np.array(cropped_stack, dtype = np.uint8)
+            cropped_CTs.append(cropped_stack)
+        return cropped_CTs
 
     def write_metadata(self):
         pass
 
     def write_images(self):
         pass
-
-
 
 '''
 class Fish():
