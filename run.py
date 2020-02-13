@@ -23,30 +23,27 @@ def saveCrop(ordered_circles, metadata):
 def readCrop(number):
 	files = pd.read_csv('../../Data/HDD/uCT/filenames_low_res.csv', header = None)
 	files = files.values.tolist()
-
 	crop_path = '../../Data/HDD/uCT/low_res/'+files[number][0]+'/crop_data.json'
-	print(crop_path)
-	crop_data = pd.read_csv(crop_path) # READ JSON
-	crop_data = crop_data.values.tolist()
-	print(crop_data)
+	with open(crop_path) as f:
+		crop_data = json.load(f)
+	return crop_data
 
 CTreader = CTreader()
 master = CTreader.mastersheet()
 
-'''
 for i in range(0,1):
-	ct, stack_metadata = CTreader.read_dirty(i, r=(900,1100), scale = 40)
+	ct, stack_metadata = CTreader.read_dirty(i, r=(1000,1100), scale = 40)
 	circle_dict = CTreader.find_tubes(ct)
+
+'''
 circle_dict = detectTubes(ct)
 ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
 CTreader.view(numbered)
 saveCrop(ordered_circles, stack_metadata)
-
 '''
+#import pdb; pdb.set_trace()
+crop_data = readCrop(0)
 
-
-
-
-readCrop(0)
-
-#add buttons and sequence of detect circles then label
+cropped_cts = CTreader.crop(ct, crop_data['ordered_circles'])
+for c in cropped_cts: print(c.shape)
+for i in range(1, 5): CTreader.view(cropped_cts[i])

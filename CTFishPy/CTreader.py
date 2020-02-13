@@ -30,7 +30,8 @@ class CTreader():
         pass
         #func to read clean data
 
-    def read_dirty(self, file_number = None, r = (1,100), scale = 40, color = False):
+    def read_dirty(self, file_number = None, r = (1,100), 
+        scale = 40, color = False):
         path = '../../Data/HDD/uCT/low_res/'
         
         #find all dirty scan folders and save as csv in directory
@@ -132,19 +133,21 @@ class CTreader():
                              'circles'       : circles}
             return circle_dict
             
-    def crop(self, ct, circles, pad = 0):
-        #this is so ugly :(
+    def crop(self, ct, circles, pad = 0, scale = [40, 40]):
+        #this is so ugly :(              scale = [from,to]
         #crop ct stack to circles provided in order
+        scale_factor = scale[1]/scale[0]
         cropped_CTs = []
         for x, y, r in circles:
             cropped_stack = []
             for slice_ in ct:
                 rectx = x - r
                 recty = y - r
-                cropped_slice =  slice_[
-                    recty - pad : (recty + 2*r + pad), 
-                    rectx - pad : (rectx + 2*r + pad)]
-                    #       x1  :  x2
+                cropped_slice =  slice_[ 
+                    rectx : (rectx + 2*r),
+                    recty : (recty + 2*r),
+                          : ]
+                    # x1  :  x2
                 cropped_stack.append(cropped_slice)
             cropped_stack = np.array(cropped_stack, dtype = np.uint8)
             cropped_CTs.append(cropped_stack)
