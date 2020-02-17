@@ -1,5 +1,6 @@
 from . GUI.view import view as guiview
 from natsort import natsorted, ns
+from qtpy.QtCore import QSettings
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import pandas as pd
@@ -81,6 +82,12 @@ class CTreader():
         ct_color = np.array(ct_color)
 
         # read xtekct
+        xtekctpath = path+'/'+file+'.xtekct'
+        xtekct = QSettings(xtekctpath, QSettings.IniFormat)
+
+        x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
+        y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
+        z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
 
         #check if image is empty
         if np.count_nonzero(ct_color) == 0:
@@ -137,6 +144,9 @@ class CTreader():
         #this is so ugly :(              scale = [from,to]
         #crop ct stack to circles provided in order
         scale_factor = scale[1]/scale[0]
+        print(circles)
+        circles = [[int(x*scale_factor), int(y*scale_factor), int(r*scale_factor)] for x, y, r in circles]
+        print(circles)
         cropped_CTs = []
         for x, y, r in circles:
             cropped_stack = []
@@ -144,14 +154,32 @@ class CTreader():
                 rectx = x - r
                 recty = y - r
                 cropped_slice =  slice_[ 
-                    rectx : (rectx + 2*r),
                     recty : (recty + 2*r),
+                    rectx : (rectx + 2*r),
                           : ]
                     # x1  :  x2
                 cropped_stack.append(cropped_slice)
             cropped_stack = np.array(cropped_stack, dtype = np.uint8)
             cropped_CTs.append(cropped_stack)
         return cropped_CTs
+
+    def saveCrop(self, ordered_circles, metadata):
+        crop_data = {
+            'ordered_circles'   : ordered_circles.tolist(),
+            'scale'             : metadata['scale'],
+            'path'              : metadata['path']
+        }
+        jsonpath = metadata['path']+'/crop_data.json'
+        with open(jsonpath, 'w') as o:
+            json.dump(crop_data, o)
+
+    def readCrop(self, number):
+        files = pd.read_csv('../../Data/HDD/uCT/filenames_low_res.csv', header = None)
+        files = files.values.tolist()
+        crop_path = '../../Data/HDD/uCT/low_res/'+files[number][0]+'/crop_data.json'
+        with open(crop_path) as f:
+            crop_data = json.load(f)
+        return crop_data
 
     def write_metadata(self):
         pass
