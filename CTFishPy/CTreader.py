@@ -2,6 +2,7 @@ from . GUI.view import view as guiview
 from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 import matplotlib.pyplot as plt
+from pathlib import Path
 from tqdm import tqdm
 import pandas as pd
 import numpy as np 
@@ -68,32 +69,40 @@ class CTreader():
         ct_color = []
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
-            if i == 891: continue #skip this file
+            #if i == 891: continue # skip this file
             x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')         
-            #use provided scale metric to downsize image
+            # use provided scale metric to downsize image
             height  = int(x.shape[0] * scale / 100)
             width   = int(x.shape[1] * scale / 100)
             x = cv2.resize(x, (width, height), interpolation = cv2.INTER_AREA)     
-            #convert image to gray and save both color and gray stack
-            #x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
-            #ct.append(x_gray)
+            # convert image to gray and save both color and gray stack
+            # x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
+            # ct.append(x_gray)
             ct_color.append(x)
-        #ct = np.array(ct)
+        # ct = np.array(ct)
         ct_color = np.array(ct_color)
+
+        # check if image is empty
+        if np.count_nonzero(ct_color) == 0:
+            raise ValueError('Image is empty.')
 
         # read xtekct
         xtekctpath = path+'/'+file+'.xtekct'
-        xtekct = QSettings(xtekctpath, QSettings.IniFormat)
 
+        if not Path(xtekctpath).is_file():
+            print ("[CTFishPy] XtekCT file not found. ")
+        
+        xtekct = QSettings(xtekctpath, QSettings.IniFormat)
         x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
         y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
         z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
 
-        #check if image is empty
-        if np.count_nonzero(ct_color) == 0:
-            raise ValueError('Image is empty.')
+        metadata = {'path': path, 
+                    'scale' : scale,
+                    'x_voxel_size' : x_voxelsize,
+                    'y_voxel_size' : y_voxelsize,
+                    'z_voxel_size' : z_voxelsize}
 
-        metadata = {'path': path, 'scale' : scale}
         return ct_color, metadata #ct: (slice, x, y), color: (slice, x, y, 3)
 
     def view(self, ct_array):
@@ -140,14 +149,15 @@ class CTreader():
                              'circles'       : circles}
             return circle_dict
             
-    def crop(self, ct, circles, pad = 0, scale = [40, 40]):
-        #this is so ugly :(              scale = [from,to]
-        #crop ct stack to circles provided in order
+    def crop(self, ct, circles, scale = [40, 40]):
+        # this is so ugly :(             scale = [from,to]
+        # crop ct stack to circles provided in order
+        
+        # find scale factor of scale at which cropped and scale of current image
         scale_factor = scale[1]/scale[0]
-        print(circles)
         circles = [[int(x*scale_factor), int(y*scale_factor), int(r*scale_factor)] for x, y, r in circles]
-        print(circles)
         cropped_CTs = []
+        
         for x, y, r in circles:
             cropped_stack = []
             for slice_ in ct:

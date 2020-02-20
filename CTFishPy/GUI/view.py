@@ -50,6 +50,8 @@ class Window(QWidget):
 
 	def np2qt(self, image):
 		#transform np cv2 image to qt format
+		cv2.putText(image, str(self.slice), (10,50), cv2.FONT_HERSHEY_SIMPLEX, 
+			2, (255,255,255), 2, cv2.LINE_AA)
 		if self.grayscale == True:
 			height, width = image.shape
 			bytesPerLine = width

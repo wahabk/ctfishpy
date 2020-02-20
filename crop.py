@@ -10,9 +10,6 @@ import csv
 
 pd.set_option('display.max_rows', None)
 
-
-
-
 CTreader = CTreader()
 master = CTreader.mastersheet()
 '''

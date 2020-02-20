@@ -11,31 +11,42 @@ CTreader = CTreader()
 master = CTreader.mastersheet()
 
 for i in range(0,1):
-	ct, color = CTreader.read_dirty(i, r=(18,1900), scale = 20)
-	circle_dict  = CTreader.find_tubes(color, dp = 1.35, 
-		minDistance = 20)
+	ct, stack_metadata = CTreader.read_dirty(i, r=(0,1999), scale = 40)
+	circle_dict  = CTreader.find_tubes(ct)
 
 	#CTreader.view(ct) 
 
-	if circle_dict['labelled_img'] is not None:
-		continue
-		cv2.imshow('output', circle_dict['labelled_img'])
-		cv2.waitKey()
-
 ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
-CTreader.view(numbered)
-
 cropped_cts = CTreader.crop(ct, ordered_circles)
 
-for c in cropped_cts:
-	c = np.mean(np.mean(c, axis = 1), axis = 1)
+i=0
+c = cropped_cts[i]
+c = np.mean(np.mean(np.mean(c, axis = 1), axis = 1), axis = 1)
+plt.subplot(4, 1, i+1)
+plt.plot(np.arange(c.shape[0]), c, color='green')
+plt.ylabel("Pixel intensity")
+plt.title("Average pixel intensity of each slice 0")
 
-	plt.bar(np.arange(c.shape[0]), c, color='green')
-	plt.xlabel("CT slice")
-	plt.ylabel("Pixel intensity")
-	plt.title("Average pixel intensity of each slice")
-	plt.show()
-	plt.close()
+i=1
+c = cropped_cts[i]
+c = np.mean(np.mean(np.mean(c, axis = 1), axis = 1), axis = 1)
+plt.subplot(4, 1, i+1)
+plt.plot(np.arange(c.shape[0]), c, color='green')
+plt.ylabel("Pixel intensity")
 
+i=2
+c = cropped_cts[i]
+c = np.mean(np.mean(np.mean(c, axis = 1), axis = 1), axis = 1)
+plt.subplot(4, 1, i+1)
+plt.plot(np.arange(c.shape[0]), c, color='green')
+plt.ylabel("Pixel intensity")
 
+i=3
+c = cropped_cts[i]
+c = np.mean(np.mean(np.mean(c, axis = 1), axis = 1), axis = 1)
+plt.subplot(4, 1, i+1)
+plt.plot(np.arange(c.shape[0]), c, color='green')
+plt.xlabel("CT slice")
+plt.ylabel("Pixel intensity")
 
+plt.show()

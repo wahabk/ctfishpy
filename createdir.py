@@ -15,22 +15,14 @@ def makedir(dirName):
 	else:    
 		print("Already exists.", end="\r")
 
-
-metadata = {	
-	'N':   None, 
-	'Skip':   None, 
-	'Age':   None, 
-	'Genotype':   None, 
-	'Strain':   None, 
-	'Name':   None, 
-	'Re-uCT scan':   None,
-	'Comments':   None, 
-	'Age(old)':   None, 
-	'Phantom':   None, 
-	'Scaling Value':   None, 
-	'Arb Value':   None
+metadata = {
+	'N':   		None, 
+	'Skip':  	None, 
+	'Age':   	None, 
+	'Genotype': None, 
+	'Strain':   None,
+	'Name':   	None,
 }
-
 
 for i in range(40, 639):
 	path = '../../Data/uCT/low_res_clean/' + str(i).zfill(3) + '/'
