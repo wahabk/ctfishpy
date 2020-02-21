@@ -191,10 +191,21 @@ class CTreader():
             crop_data = json.load(f)
         return crop_data
 
-    def write_metadata(self):
+    def write_metadata(self, n, metadata):
         pass
+        metadata = {
+            'N'          : None, 
+            'Skip'       : None, 
+            'Age'        : None, 
+            'Genotype'   : None,
+            'Strain'     : None,
+            'Name'       : None,
+            'VoxelSizeX' : None,
+            'VoxelSizeY' : None,
+            'VoxelSizeZ' : None
+        }
 
-    def write_images(self):
+    def write_clean(self, n, ct):
         pass
 
 '''
