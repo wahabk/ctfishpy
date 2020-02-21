@@ -2,7 +2,7 @@ from . GUI.view import view as guiview
 from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 import matplotlib.pyplot as plt
-from pathlib import Path
+from pathlib2 import Path
 from tqdm import tqdm
 import pandas as pd
 import numpy as np 
@@ -65,12 +65,16 @@ class CTreader():
         if tif: tifpath = path+'/'+tif[0]+'/'
         else: tifpath = path+'/'
 
+        tifpath = Path(tifpath)
+        files = sorted(tifpath.iterdir())
+        images = [str(f) for f in files if f.suffix == '.tif']
+
         ct = []
         ct_color = []
         print('[FishPy] Reading uCT scan')
         for i in tqdm(range(*r)):
             #if i == 891: continue # skip this file
-            x = cv2.imread(tifpath+file+'_'+(str(i).zfill(4))+'.tif')         
+            x = cv2.imread(images[i])         
             # use provided scale metric to downsize image
             height  = int(x.shape[0] * scale / 100)
             width   = int(x.shape[1] * scale / 100)
@@ -87,7 +91,9 @@ class CTreader():
             raise ValueError('Image is empty.')
 
         # read xtekct
-        xtekctpath = path+'/'+file+'.xtekct'
+        path = Path(path) # change str path to pathlib format
+        files = path.iterdir()
+        xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
 
         if not Path(xtekctpath).is_file():
             print ("[CTFishPy] XtekCT file not found. ")
@@ -124,9 +130,7 @@ class CTreader():
         circles = cv2.HoughCircles(ct_slice_to_detect, cv2.HOUGH_GRADIENT, dp=dp, 
         minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
-        if circles is None:
-            return
-
+        if circles is None: return
         else:
             # add pad value to radii
 
@@ -141,8 +145,6 @@ class CTreader():
                     # corresponding to the center of the circle
                     cv2.circle(i, (x, y), r, (0, 0, 255), 2)
                     cv2.rectangle(i, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-
-            
 
             circle_dict  =  {'labelled_img'  : output[slice_to_detect],
                              'labelled_stack': output, 
@@ -194,9 +196,9 @@ class CTreader():
     def write_metadata(self, n, metadata):
         pass
         metadata = {
-            'N'          : None, 
-            'Skip'       : None, 
-            'Age'        : None, 
+            'N'          : None,
+            'Skip'       : None,
+            'Age'        : None,
             'Genotype'   : None,
             'Strain'     : None,
             'Name'       : None,
