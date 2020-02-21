@@ -16,8 +16,8 @@ for i in range(0,1):
 
 	#CTreader.view(ct) 
 
-ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
-cropped_cts = CTreader.crop(ct, ordered_circles)
+#ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])
+cropped_cts = CTreader.crop(ct, circle_dict['circles'])
 
 i=0
 c = cropped_cts[i]
@@ -50,3 +50,15 @@ plt.xlabel("CT slice")
 plt.ylabel("Pixel intensity")
 
 plt.show()
+
+halves = []
+for c in cropped_cts:
+	# average intensity of pixels for every slice
+	c = np.mean(np.mean(np.mean(c, axis = 1), axis = 1), axis = 1)
+	# find peak brightness index
+	peak = np.where(c == np.amax(c))[0][0]
+	print(peak)
+	first_half = np.average(c[0 : peak])
+	second_half = np.average(c[peak : 1999])
+	halves.append([first_half, second_half])
+for h in halves: print(h)
