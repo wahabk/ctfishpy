@@ -1,4 +1,4 @@
-from . GUI.view import view as guiview
+from . GUI.mainviewer import mainViewer
 from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 import matplotlib.pyplot as plt
@@ -6,6 +6,7 @@ from pathlib2 import Path
 from tqdm import tqdm
 import pandas as pd
 import numpy as np 
+import json
 import csv
 import cv2
 import os
@@ -32,8 +33,8 @@ class CTreader():
         pass
         #func to read clean data
 
-    def read_dirty(self, file_number = None, r = (1,100), 
-        scale = 40, color = False):
+    def read_dirty(self, file_number = None, r = None, 
+        scale = 40):
         path = '../../Data/HDD/uCT/low_res/'
         
         #find all dirty scan folders and save as csv in directory
@@ -41,7 +42,17 @@ class CTreader():
         files       = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
         files_df    = pd.DataFrame(files) #change to df to save as csv
         files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
-        
+        fish_nums = []
+        for f in files:
+            nums = [int(i) for i in f.split('_') if i.isdigit()]
+            if len(nums) == 2:
+                start = nums[0]
+                end = nums[1]+1
+                nums = list(range(start, end))
+            fish_nums.append(nums)
+        self.fish_order_nums = fish_nums#[[files[i], fish_nums[i]] for i in range(0, len(files))]
+        self.files = files
+
         #get rid of weird mac files
         for file in files:
             if file.endswith('DS_Store'): files.remove(file)
@@ -70,24 +81,29 @@ class CTreader():
         images = [str(f) for f in files if f.suffix == '.tif']
 
         ct = []
-        ct_color = []
         print('[FishPy] Reading uCT scan')
-        for i in tqdm(range(*r)):
-            #if i == 891: continue # skip this file
-            x = cv2.imread(images[i])         
-            # use provided scale metric to downsize image
-            height  = int(x.shape[0] * scale / 100)
-            width   = int(x.shape[1] * scale / 100)
-            x = cv2.resize(x, (width, height), interpolation = cv2.INTER_AREA)     
-            # convert image to gray and save both color and gray stack
-            # x_gray = cv2.cvtColor(x, cv2.COLOR_BGR2GRAY)
-            # ct.append(x_gray)
-            ct_color.append(x)
-        # ct = np.array(ct)
-        ct_color = np.array(ct_color)
+        if r:
+            for i in tqdm(range(*r)):
+                slice_ = cv2.imread(images[i])         
+                # use provided scale metric to downsize image
+                height  = int(slice_.shape[0] * scale / 100)
+                width   = int(slice_.shape[1] * scale / 100)
+                slice_ = cv2.resize(slice_, (width, height), interpolation = cv2.INTER_AREA)     
+                ct.append(slice_)
+            ct = np.array(ct)
+
+        else:
+            for i in tqdm(images):
+                slice_ = cv2.imread(i)         
+                # use provided scale metric to downsize image
+                height  = int(slice_.shape[0] * scale / 100)
+                width   = int(slice_.shape[1] * scale / 100)
+                slice_ = cv2.resize(slice_, (width, height), interpolation = cv2.INTER_AREA)     
+                ct.append(slice_)
+            ct = np.array(ct)
 
         # check if image is empty
-        if np.count_nonzero(ct_color) == 0:
+        if np.count_nonzero(ct) == 0:
             raise ValueError('Image is empty.')
 
         # read xtekct
@@ -95,24 +111,25 @@ class CTreader():
         files = path.iterdir()
         xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
 
+        # check if xtekct exists
         if not Path(xtekctpath).is_file():
-            print ("[CTFishPy] XtekCT file not found. ")
+            raise Exception("[CTFishPy] XtekCT file not found. ")
         
         xtekct = QSettings(xtekctpath, QSettings.IniFormat)
         x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
         y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
         z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
 
-        metadata = {'path': path, 
+        metadata = {'path': str(path), 
                     'scale' : scale,
                     'x_voxel_size' : x_voxelsize,
                     'y_voxel_size' : y_voxelsize,
                     'z_voxel_size' : z_voxelsize}
 
-        return ct_color, metadata #ct: (slice, x, y), color: (slice, x, y, 3)
+        return ct, metadata #ct: (slice, x, y, 3)
 
     def view(self, ct_array):
-        guiview(ct_array)
+        mainViewer(ct_array)
 
     def find_tubes(self, ct, minDistance = 200, minRad = 0, maxRad = 150, 
         thresh = [50, 100], slice_to_detect = 0, dp = 1.3, pad = 0):
@@ -175,14 +192,19 @@ class CTreader():
             cropped_CTs.append(cropped_stack)
         return cropped_CTs
 
-    def saveCrop(self, ordered_circles, metadata):
+    def saveCrop(self, number, ordered_circles, metadata):
         crop_data = {
+            'n'                 : number,
             'ordered_circles'   : ordered_circles.tolist(),
             'scale'             : metadata['scale'],
             'path'              : metadata['path']
         }
+
         jsonpath = metadata['path']+'/crop_data.json'
         with open(jsonpath, 'w') as o:
+            json.dump(crop_data, o)
+        backuppath = f'./output/Crops/{number}_crop_data.json'
+        with open(backuppath, 'w') as o:
             json.dump(crop_data, o)
 
     def readCrop(self, number):
@@ -207,36 +229,24 @@ class CTreader():
             'VoxelSizeZ' : None
         }
 
-    def write_clean(self, n, ct):
-        pass
+    def write_clean(self, n, cropped_cts, metadata):
+        order = self.fish_order_nums[n]
+        if len(order) != len(cropped_cts): raise Exception('Not the right number of cropped_fish provided')
 
-'''
-class Fish():
-    def init(self, ct, metadata):
-        pass
-        self.ct = ct
-        self.number  = metadata['number']
-        self.genotype   = metadata['genotype']
-        self.age        = metadata['age']
-        self.x_size  = metadata['x_size']
-        self.y_size  = metadata['y_size']
-        self.z_size  = metadata['z_size']
+        for o in range(0, len(order)):
+            path = f'../../Data/HDD/uCT/low_res_clean/{str(order[o]).zfill(3)}/'
+            tifpath = path + 'reconstructed_tifs/'
+            metapath = path + 'metadata.json'
 
-metadata = {
-'n':   None, 
-'skip':   None, 
-'age':   None, 
-'genotype':   None, 
-'strain':   None, 
-'name':   None, 
-'re-uCT scan':   None,
-'Comments':   None, 
-'age(old)':   None, 
-'Phantom':   None, 
-'Scaling Value':   None, 
-'Arb Value:   None'
-}
+            ct = cropped_cts[o]
 
-'''
-
+            i = 0
+            for img in ct:
+                filename = tifpath+f'{order[o]}_{str(i).zfill(4)}.png'
+                if not img.all(): #fix this
+                    print('skipped an image because its empty')
+                    continue
+                ret = cv2.imwrite(filename, img, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                if not ret: raise Exception('image not saved, directory doesnt exist')
+                i = i + 1
 

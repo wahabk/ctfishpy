@@ -1,5 +1,5 @@
 from qtpy.QtWidgets import QApplication
-from .. import CTreader
+from .. CTreader import CTreader
 from . import view
 import numpy as np
 import cv2
