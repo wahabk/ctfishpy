@@ -11,7 +11,7 @@ import csv
 CTreader = CTreader()
 
 for i in range(0,64):
-	ct, stack_metadata = CTreader.read_dirty(i, r = (900, 1100))
+	ct, stack_metadata = CTreader.read_dirty(i, r = None, scale = 40)
 	circle_dict = detectTubes(ct)
 	CTreader.view(ct)
 	ordered_circles, numbered = circle_order_labeller(circle_dict['labelled_stack'], circle_dict['circles'])

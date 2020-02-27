@@ -11,7 +11,7 @@ import csv
 CTreader = CTreader()
 
 for i in range(0,64):
-	ct, stack_metadata = CTreader.read_dirty(i, r = (900,1100), scale = 40)
+	ct, stack_metadata = CTreader.read_dirty(i, r = None, scale = 40)
 
 	crop_data = CTreader.readCrop(i)
 	scale = [crop_data['scale'], stack_metadata['scale']]
