@@ -36,6 +36,9 @@ class CTreader():
         pass
         # func to read clean data
 
+    def view(self, ct_array):
+        mainViewer(ct_array)
+
     def read_dirty(self, file_number = None, r = None, 
         scale = 40):
         path = '../../Data/HDD/uCT/low_res/'
@@ -84,7 +87,7 @@ class CTreader():
         images = [str(f) for f in files if f.suffix == '.tif']
 
         ct = []
-        print('[FishPy] Reading uCT scan')
+        print('[CTFishPy] Reading uCT scans')
         if r:
             for i in tqdm(range(*r)):
                 slice_ = cv2.imread(images[i])     
@@ -131,9 +134,6 @@ class CTreader():
 
         return ct, metadata # ct: (slice, x, y, 3)
 
-    def view(self, ct_array):
-        mainViewer(ct_array)
-
     def find_tubes(self, ct, minDistance = 200, minRad = 0, maxRad = 150, 
         thresh = [50, 100], slice_to_detect = 0, dp = 1.3, pad = 0):
         # Find fish tubes
@@ -179,33 +179,58 @@ class CTreader():
         scale_factor = scale[1]/scale[0]
         circles = [[int(x*scale_factor), int(y*scale_factor), int(r*scale_factor)] for x, y, r in circles]
         cropped_CTs = []
-        
+
+        ctx = ct.shape[2]
+        cty = ct.shape[1]
+
         for x, y, r in circles:
             cropped_stack = []
-            for np_slice in ct:
-                rectx = x - r
-                recty = y - r
-                '''
-                cropped_slice =  np_slice[ 
-                    recty : (recty + 2*r),
-                    rectx : (rectx + 2*r),
-                          : ]
-                    # x1  :  x2
-                '''
-                pil_slice = Image.fromarray(np_slice.astype('uint8'), 'RGB')
-                cropped_pil_slice = pil_slice.crop((rectx, recty, (rectx + 2*r), (recty + 2*r)))
-                cropped_slice = np.array(cropped_pil_slice)
 
+            crop_length = 2*r
+            rectx, recty = [], []
+            rectx.append(x - r)
+            rectx.append(rectx[0] + crop_length)
+            recty.append(y - r)
+            recty.append(recty[0] + crop_length)
+            
+            # if statements to shift crop inside ct window
+            if rectx[0] < 0:
+                shiftx = rectx[0]
+                rectx[0] = 0
+                rectx[1] = rectx[1] - shiftx
+
+            if rectx[1] > ctx:
+                shiftx = rectx[1] - ctx
+                rectx[1] = ctx
+                rectx[0] = rectx[0] + shiftx
+
+            if recty[0] < 0:
+                shifty = recty[0]
+                recty[0] = 0
+                recty[1] = recty[1] - shifty
+
+            if recty[1] > cty:
+                shifty = recty[1] - cty
+                recty[1] = cty
+                recty[0] = recty[0] + shifty
+
+            for np_slice in ct:
+                cropped_slice =  np_slice[
+                    recty[0] : recty[1],
+                    rectx[0] : rectx[1],
+                             : ]
+                    # x1  :  x2
                 cropped_stack.append(cropped_slice)
             cropped_stack = np.array(cropped_stack, dtype = np.uint8)
             cropped_CTs.append(cropped_stack)
         return cropped_CTs
 
-    def saveCrop(self, number, ordered_circles, metadata):
+    def saveCrop(self, n, ordered_circles, metadata):
         fishnums = np.arange(40,639)
-        number = fishnums[number]
+        number = fishnums[n]
+        order = self.fish_order_nums[n]
         crop_data = {
-            'n'                 : int(number),
+            'n'                 : f'{order[0]}-{order[len(order)-1]}',
             'ordered_circles'   : ordered_circles.tolist(),
             'scale'             : metadata['scale'],
             'path'              : metadata['path']
@@ -214,7 +239,7 @@ class CTreader():
         jsonpath = metadata['path']+'/crop_data.json'
         with open(jsonpath, 'w') as o:
             json.dump(crop_data, o)
-        backuppath = f'./output/Crops/{number}_crop_data.json'
+        backuppath = f'./output/Crops/{order[0]}-{order[len(order)-1]}_crop_data.json'
         with open(backuppath, 'w') as o:
             json.dump(crop_data, o)
 
@@ -256,16 +281,18 @@ class CTreader():
     def write_clean(self, n, cropped_cts, metadata):
         order = self.fish_order_nums[n]
         if len(order) != len(cropped_cts): raise Exception('Not all/too many fish cropped')
-
         mastersheet = pd.read_csv('./uCT_mastersheet.csv')
 
+        print(f'[CTFishPy] Writing cropped CT scans')
         for o in range(0, len(order)): # for each fish of number o
             path = f'../../Data/HDD/uCT/low_res_clean/{str(order[o]).zfill(3)}/'
             tifpath = path + 'reconstructed_tifs/'
             metapath = path + 'metadata.json'
+
             ct = cropped_cts[o]
             fish = mastersheet.loc[mastersheet['n'] == 100].to_dict()
             weird_fix = list(fish['age'].keys())[0]
+            
             input_metadata = {
                 'Skip'          : fish['skip'][weird_fix],
                 'Age'           : fish['age'][weird_fix],
@@ -290,4 +317,5 @@ class CTreader():
                 ret = cv2.imwrite(filename, img, [cv2.IMWRITE_PNG_COMPRESSION, 0])
                 if not ret: raise Exception('image not saved, directory doesnt exist')
                 i = i + 1
+                print(f'[Fish {order[o]}, slice:{i}/{len(ct)}]', end="\r")
 

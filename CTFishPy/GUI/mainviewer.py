@@ -42,7 +42,7 @@ class Viewer(QWidget):
 		self.stride = stride
 		self.slice = 0
 		self.parent = parent
-		self.min_thresh = 50
+		self.min_thresh = 0
 		self.max_thresh = 150
 
 		#set background colour to cyan
