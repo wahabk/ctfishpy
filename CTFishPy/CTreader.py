@@ -1,14 +1,11 @@
 from . GUI.mainviewer import mainViewer
 from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
-import matplotlib.pyplot as plt
 from pathlib2 import Path
 from tqdm import tqdm
-from PIL import Image
 import pandas as pd
 import numpy as np 
 import json
-import csv
 import cv2
 import os
 
