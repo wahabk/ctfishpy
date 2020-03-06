@@ -32,8 +32,6 @@ class MainWindow(QMainWindow):
 		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q :
 			self.close()
 
-#https://stackoverflow.com/questions/34644808/set-vertical-alignment-of-qformlayout-qlabel
-
 class Viewer(QWidget):
 
 	def __init__(self, stack, stride = 1):

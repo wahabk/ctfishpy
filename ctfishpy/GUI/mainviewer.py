@@ -51,11 +51,11 @@ class Viewer(QWidget):
 		self.setPalette(p)
 		self.setAutoFillBackground(True)
 
+		self.label = QLabel(self)
+		self.label.setMargin(10)
 		self.initUI()
 
 	def initUI(self):
-		self.label = QLabel(self)
-		self.label.setMargin(10)
 		self.update()
 		self.initSliders()
 		self.setGeometry(0, 0, self.pixmap.width()+20, self.pixmap.height()+20+self.slider.height()*2+self.min_thresh_slider.height()*2+self.max_thresh_slider.height()*2)

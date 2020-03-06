@@ -2,7 +2,7 @@ from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToo
 from qtpy.QtGui import QFont, QPixmap, QImage, QCursor
 from qtpy.QtCore import Qt, QTimer
 import qtpy.QtCore as QtCore
-from .. CTreader import CTreader
+from .. Lumpfish import Lumpfish
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -89,8 +89,8 @@ class Viewer(QWidget):
 		# Update displayed image
 		# detect circles if unloacked
 		if self.locked == False:
-			ctreader = CTreader()
-			self.circle_dict  = ctreader.find_tubes(self.ogstack, dp = self.dp, slice_to_detect = self.slice, pad = self.pad)
+			lump = Lumpfish()
+			self.circle_dict  = lump.find_tubes(self.ogstack, dp = self.dp, slice_to_detect = self.slice, pad = self.pad)
 			if self.circle_dict: self.npstack = self.circle_dict['labelled_stack']
 			else: self.npstack = self.ogstack
 		
