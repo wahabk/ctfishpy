@@ -1,10 +1,9 @@
 from ctfishpy.GUI.circle_order_labeller import circle_order_labeller
 from ctfishpy.GUI.tubeDetector import detectTubes
-from ctfishpy.CTreader import CTreader
-from ctfishpy.Lumpfish import Lumpfish
+import ctfishpy
 
-CTreader = CTreader()
-lump = Lumpfish()
+CTreader = ctfishpy.CTreader()
+lump = ctfishpy.Lumpfish()
 
 for i in range(58,64):
 	print(i)

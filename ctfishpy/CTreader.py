@@ -28,7 +28,11 @@ class CTreader():
 
     def read(self, fish):
         pass
-        # func to read clean data
+
+        return ct, stack_metadata
+
+
+
 
     def view(self, ct_array):
         mainViewer(ct_array)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "CTFishPy"
-version = "0.1.0"
+version = "0.0.1"
 description = "Python project for analysis of zebrafish CT data using deep learning."
 authors = ["Abdelwahab Kawafi <a.kawafi@bristol.ac.uk>"]
 
@@ -14,6 +14,7 @@ opencv-contrib-python = "^4.2.0"
 matplotlib = "^3.2.0"
 numpy = "^1.18.1"
 pandas = "^1.0.1"
+pathlib2 = "^2.3.5"
 
 [tool.poetry.dev-dependencies]
 
