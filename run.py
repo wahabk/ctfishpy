@@ -8,6 +8,6 @@ lump = ctfishpy.Lumpfish()
 ctreader = ctfishpy.CTreader()
 
 for i in range(0,64):
-	ct, stack_metadata = lump.read_dirty(i, r = (0,400))
+	ct, stack_metadata = lump.read_tiff(i, r = (0,400))
 	ctreader.view(ct)
 

@@ -1,4 +1,5 @@
 from ctfishpy.Lumpfish import Lumpfish
+from ctfishpy.CTreader import CTreader
 import gc
 
 gc.collect()
@@ -19,7 +20,7 @@ rest: ¯|_(ツ)_/¯
 for i in range(0,64):
 	if i in ignore: continue
 	print('\n', i, '\n')
-	ct, stack_metadata = lump.read_dirty(i, r = None, scale = 80)
+	ct, stack_metadata = lump.read_tiff(i, r = None)
 
 	crop_data = lump.readCrop(i)
 	scale = [crop_data['scale'], stack_metadata['scale']]

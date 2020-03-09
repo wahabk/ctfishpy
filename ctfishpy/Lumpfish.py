@@ -3,6 +3,7 @@ from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
 from tqdm import tqdm
+import tifffile as tiff
 import pandas as pd
 import numpy as np 
 import json
@@ -18,6 +19,92 @@ class Lumpfish():
     def mastersheet(self):
         return pd.read_csv('./uCT_mastersheet.csv')
         #to count use master['age'].value_counts()
+
+    def read_tiff(self, file_number = None, r = None):
+        path = '../../Data/HDD/uCT/low_res/'
+        
+        # find all dirty scan folders and save as csv in directory
+        files      = os.listdir(path)
+        files      = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
+        files_df    = pd.DataFrame(files) #change to df to save as csv
+        files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
+        fish_nums = []
+        for f in files:
+            nums = [int(i) for i in f.split('_') if i.isdigit()]
+            if len(nums) == 2:
+                start = nums[0]
+                end = nums[1]+1
+                nums = list(range(start, end))
+            fish_nums.append(nums)
+        self.fish_order_nums = fish_nums#[[files[i], fish_nums[i]] for i in range(0, len(files))]
+        self.files = files
+
+        # get rid of weird mac files
+        for file in files:
+            if file.endswith('DS_Store'): files.remove(file)
+
+        # if no file number was provided to read then print files list
+        if file_number == None: 
+            print(files)
+            return
+
+        #f ind all dirs in scan folder
+        file = files[file_number]
+        for path, dirs, files in os.walk('../../Data/HDD/uCT/low_res/'+file+''):
+            dirs = sorted(dirs)
+            break
+
+        # Find tif folder and if it doesnt exist read images in main folder
+        tif = []
+        for i in dirs: 
+            if i.startswith('EK'):
+                tif.append(i)
+        if tif: tifpath = path+'/'+tif[0]+'/'
+        else: tifpath = path+'/'
+
+        tifpath = Path(tifpath)
+        files = sorted(tifpath.iterdir())
+        images = [str(f) for f in files if f.suffix == '.tif']
+
+        ct = []
+        print('[CTFishPy] Reading uCT scans')
+        if r:
+            for i in tqdm(range(*r)):
+                tiffslice = tiff.imread(images[i])
+                ct.append(tiffslice)
+            ct = np.array(ct)
+
+        else:
+            for i in tqdm(images):
+                tiffslice = tiff.imread(i)
+                ct.append(tiffslice)
+            ct = np.array(ct)
+
+        # check if image is empty
+        if np.count_nonzero(ct) == 0:
+            raise ValueError('Image is empty.')
+
+        # read xtekct
+        path = Path(path) # change str path to pathlib format
+        files = path.iterdir()
+        xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
+
+        # check if xtekct exists
+        if not Path(xtekctpath).is_file():
+            raise Exception("[CTFishPy] XtekCT file not found. ")
+        
+        xtekct = QSettings(xtekctpath, QSettings.IniFormat)
+        x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
+        y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
+        z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
+
+        metadata = {'path': str(path), 
+                    'scale' : scale,
+                    'x_voxel_size' : x_voxelsize,
+                    'y_voxel_size' : y_voxelsize,
+                    'z_voxel_size' : z_voxelsize}
+
+        return ct, metadata # ct: (slice, x, y, 3)
 
     def read_dirty(self, file_number = None, r = None, 
         scale = 40):
@@ -203,6 +290,8 @@ class Lumpfish():
                 cropped_stack.append(cropped_slice)
             cropped_stack = np.array(cropped_stack, dtype = np.uint8)
             cropped_CTs.append(cropped_stack)
+            cropped_stack = None
+            cropped_slice = None
         return cropped_CTs
 
     def saveCrop(self, n, ordered_circles, metadata):
@@ -294,7 +383,7 @@ class Lumpfish():
             for img in ct: # for each slice
                 filename = tifpath+f'{str(order[o]).zfill(3)}_{str(i).zfill(4)}.png'
                 if img.size == 0: raise Exception(f'cropped image is empty at fish: {o+1} slice: {i+1}')
-                ret = cv2.imwrite(filename, img, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+                ret = tiff.imwrite(filename, img)
                 if not ret: raise Exception('image not saved, directory doesnt exist')
                 i = i + 1
                 print(f'[Fish {order[o]}, slice:{i}/{len(ct)}]', end="\r")
