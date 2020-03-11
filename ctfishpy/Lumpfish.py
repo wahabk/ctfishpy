@@ -12,7 +12,7 @@ import os
 
 class Lumpfish():
     
-    def init(self):
+    def __init__(self):
         self.mastersheet = pd.read_csv('./uCT_mastersheet.csv')
         self.fishnums = np.arange(40,639)
 
