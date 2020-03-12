@@ -20,7 +20,7 @@ rest: ¯|_(ツ)_/¯
 for i in range(0,64):
 	if i in ignore: continue
 	print('\n', i, '\n')
-	ct, stack_metadata = lump.read_tiff(i, r = None)
+	ct, stack_metadata = lump.read_tiff(i, r = (0,100), scale = 100)
 
 	crop_data = lump.readCrop(i)
 	scale = [crop_data['scale'], stack_metadata['scale']]

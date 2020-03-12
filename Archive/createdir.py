@@ -15,19 +15,19 @@ def makedir(dirName):
 		print("Already exists.", end="\r")
 
 metadata = {
-	'Number'	: None,
-    'Skip'      : None,
-    'Age'       : None,
-    'Genotype'  : None,
-    'Strain'    : None,
-    'Name'      : None,
-    'VoxelSizeX': None,
-    'VoxelSizeY': None,
-    'VoxelSizeZ': None,
-    'Comments'  : None,
-    'Phantom'   : None,
-    'Scaling Value'  : None,
-    'Arb Value' : None,
+	'Number'		: None,
+    'Skip'      	: None,
+    'Age'       	: None,
+    'Genotype'  	: None,
+    'Strain'    	: None,
+    'Name'      	: None,
+    'VoxelSizeX'	: None,
+    'VoxelSizeY'	: None,
+    'VoxelSizeZ'	: None,
+    'Comments'  	: None,
+    'Phantom'   	: None,
+    'Scaling Value' : None,
+    'Arb Value' 	: None,
 }
 
 for i in range(40, 639):

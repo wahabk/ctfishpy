@@ -20,13 +20,13 @@ class Lumpfish():
         return pd.read_csv('./uCT_mastersheet.csv')
         #to count use master['age'].value_counts()
 
-    def read_tiff(self, file_number = None, r = None):
+    def read_tiff(self, file_number = None, r = None, scale = 40):
         path = '../../Data/HDD/uCT/low_res/'
         
         # find all dirty scan folders and save as csv in directory
         files      = os.listdir(path)
         files      = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
-        files_df    = pd.DataFrame(files) #change to df to save as csv
+        files_df   = pd.DataFrame(files) #change to df to save as csv
         files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
         fish_nums = []
         for f in files:
@@ -67,7 +67,7 @@ class Lumpfish():
         images = [str(f) for f in files if f.suffix == '.tif']
 
         ct = []
-        print('[CTFishPy] Reading uCT scans')
+        print(f'[CTFishPy] Reading uCT scans: {file}')
         if r:
             for i in tqdm(range(*r)):
                 tiffslice = tiff.imread(images[i])
@@ -282,13 +282,17 @@ class Lumpfish():
                 recty[0] = recty[0] + shifty
 
             for np_slice in ct:
-                cropped_slice =  np_slice[
-                    recty[0] : recty[1],
-                    rectx[0] : rectx[1],
-                             : ]
-                    # x1  :  x2
+                if len(np_slice.shape) == 2:
+                    cropped_slice =  np_slice[
+                        recty[0] : recty[1],
+                        rectx[0] : rectx[1]]
+                if len(np_slice.shape) == 3:
+                    cropped_slice =  np_slice[
+                        recty[0] : recty[1],
+                        rectx[0] : rectx[1]
+                                 :         ]
                 cropped_stack.append(cropped_slice)
-            cropped_stack = np.array(cropped_stack, dtype = np.uint8)
+            cropped_stack = np.array(cropped_stack)
             cropped_CTs.append(cropped_stack)
             cropped_stack = None
             cropped_slice = None
@@ -335,17 +339,22 @@ class Lumpfish():
         }
         '''
         #n = self.fishnums[n]
-        fishpath = f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/'
-        jsonpath = fishpath + 'metadata.json'
+        fishpath = Path(f'../../Data/HDD/uCT/low_res_clean_test/{str(n).zfill(3)}/')
+        jsonpath = fishpath / 'metadata.json'
+        jsonpath.touch()
 
+        '''
+        # old stuff to dynamically add metadata to existing files
         with open(jsonpath) as f:
             metadata = json.load(f)
 
         for key in list(input.keys()):
             metadata[key] = input[key]
+        '''
 
+        # just dump input for now
         with open(jsonpath, 'w') as o:
-            json.dump(metadata, o)
+            json.dump(input, o)
 
     def write_clean(self, n, cropped_cts, metadata):
         order = self.fish_order_nums[n]
@@ -354,9 +363,13 @@ class Lumpfish():
 
         print(f'[CTFishPy] Writing cropped CT scans')
         for o in range(0, len(order)): # for each fish of number o
-            path = f'../../Data/HDD/uCT/low_res_clean/{str(order[o]).zfill(3)}/'
-            tifpath = path + 'reconstructed_tifs/'
-            metapath = path + 'metadata.json'
+            path = Path(f'../../Data/HDD/uCT/low_res_clean_test/{str(order[o]).zfill(3)}/')
+
+            if not path.exists() : path.mkdir()
+
+            tifpath = path / 'reconstructed_tifs/'
+            metapath = path / 'metadata.json'
+            if not tifpath.exists() : tifpath.mkdir()
 
             ct = cropped_cts[o]
             fish = mastersheet.loc[mastersheet['n'] == 100].to_dict()
@@ -381,9 +394,10 @@ class Lumpfish():
 
             i = 0
             for img in ct: # for each slice
-                filename = tifpath+f'{str(order[o]).zfill(3)}_{str(i).zfill(4)}.png'
+                filename = tifpath / f'{str(order[o]).zfill(3)}_{str(i).zfill(4)}.tiff'
                 if img.size == 0: raise Exception(f'cropped image is empty at fish: {o+1} slice: {i+1}')
-                ret = tiff.imwrite(filename, img)
+                ret = True
+                tiff.imwrite(str(filename), img)
                 if not ret: raise Exception('image not saved, directory doesnt exist')
                 i = i + 1
                 print(f'[Fish {order[o]}, slice:{i}/{len(ct)}]', end="\r")

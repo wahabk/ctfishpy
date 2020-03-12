@@ -1,5 +1,6 @@
 from . GUI.mainviewer import mainViewer
 from pathlib2 import Path
+import tifffile as tiff
 from tqdm import tqdm
 import pandas as pd
 import numpy as np 
@@ -26,13 +27,35 @@ class CTreader():
         trimmed = m.drop(set(m.index) - set(index))
         return trimmed
 
-    def read(self, fish):
-        pass
+    def read(self, fish, r = None):
+        fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(fish).zfill(3) 
+        tifpath = fishpath / 'reconstructed_tifs'
+        metadatapath = fishpath / 'metadata.json'
+
+        metadatafile = metadatapath.open()
+        stack_metadata = json.load(metadatafile)
+        metadatafile.close()
+
+        images = list(tifpath.iterdir())
+        images = [str(i) for i in tifpath.iterdir()]
+
+        ct = []
+        print('[CTFishPy] Reading uCT scans')
+        if r:
+            for i in tqdm(range(*r)):
+                #tiffslice = tiff.imread(images[i])
+                tiffslice = cv2.imread(images[i]) 
+                ct.append(tiffslice)
+            ct = np.array(ct)
+
+        else:
+            for i in tqdm(images):
+                #tiffslice = tiff.imread(i)
+                tiffslice = cv2.imread(i)
+                ct.append(tiffslice)
+            ct = np.array(ct)
 
         return ct, stack_metadata
-
-
-
 
     def view(self, ct_array):
         mainViewer(ct_array)
