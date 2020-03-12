@@ -35,6 +35,8 @@ class Lumpfish():
                 start = nums[0]
                 end = nums[1]+1
                 nums = list(range(start, end))
+            else:
+                nums = [i for i in nums]
             fish_nums.append(nums)
         self.fish_order_nums = fish_nums#[[files[i], fish_nums[i]] for i in range(0, len(files))]
         self.files = files
@@ -115,6 +117,7 @@ class Lumpfish():
         files      = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
         files_df    = pd.DataFrame(files) #change to df to save as csv
         files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
+        
         fish_nums = []
         for f in files:
             nums = [int(i) for i in f.split('_') if i.isdigit()]
@@ -361,7 +364,7 @@ class Lumpfish():
         if len(order) != len(cropped_cts): raise Exception('Not all/too many fish cropped')
         mastersheet = pd.read_csv('./uCT_mastersheet.csv')
 
-        print(f'[CTFishPy] Writing cropped CT scans')
+        print(f'[CTFishPy] Writing cropped CT scans {order}')
         for o in range(0, len(order)): # for each fish of number o
             path = Path(f'../../Data/HDD/uCT/low_res_clean_test/{str(order[o]).zfill(3)}/')
 

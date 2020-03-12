@@ -7,7 +7,9 @@ gc.collect()
 CTreader = CTreader()
 lump = Lumpfish()
 
-ignore = [27, 29, 43, 47, 54, 56, 57, 59, 60, 62]
+ignore = [47, 54, 56, 57, 59, 60, 62]
+
+skip = [27]
 
 '''
 27 hires
@@ -18,9 +20,9 @@ rest: ¯|_(ツ)_/¯
 '''
 
 for i in range(0,64):
-	if i in ignore: continue
+	#if i in ignore or i in skip: continue
 	print('\n', i, '\n')
-	ct, stack_metadata = lump.read_tiff(i, r = (0,100), scale = 100)
+	ct, stack_metadata = lump.read_tiff(i, r = (0,10), scale = 100)
 
 	crop_data = lump.readCrop(i)
 	scale = [crop_data['scale'], stack_metadata['scale']]

@@ -5,9 +5,11 @@ import ctfishpy
 CTreader = ctfishpy.CTreader()
 lump = ctfishpy.Lumpfish()
 
-for i in range(58,64):
+ignore = [29, 43, 47, 54, 56, 57, 59, 60, 62]
+
+for i in ignore: #range(58,64):
 	print(i)
-	ct, stack_metadata = lump.read_dirty(i, r = (0,10), scale = 40)
+	ct, stack_metadata = lump.read_dirty(i, r = None, scale = 40)
 	circle_dict = detectTubes(ct)
 	CTreader.view(ct)
 	ordered_circles, numbered = circle_order_labeller(

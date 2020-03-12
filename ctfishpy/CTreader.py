@@ -3,11 +3,10 @@ from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
 import pandas as pd
-import numpy as np 
+import numpy as np
 import json
 import cv2
-import os
-
+        
 class CTreader():
     def __init__(self):
         self.mastersheet = pd.read_csv('./uCT_mastersheet.csv')
