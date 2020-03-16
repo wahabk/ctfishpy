@@ -10,7 +10,8 @@ class mainView(QMainWindow):
 
 	def __init__(self, stack):
 		super().__init__()
-		self.stack = stack
+		self.stack = stack.astype('uint8')
+		print(self.stack)
 		self.initUI()
 
 	def initUI(self):
@@ -65,10 +66,10 @@ class Viewer(QWidget):
 		self.max_thresh_slider.valueChanged.connect(self.update_max_thresh)
 
 	def update(self):
-		gray = cv2.cvtColor(self.ogstack[self.slice], cv2.COLOR_BGR2GRAY)
-		ret, self.image  = cv2.threshold(gray, 
+		ret, self.image  = cv2.threshold(self.ogstack[self.slice], 
 			self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
 		
+		#self.image = self.ogstack[self.slice]
 		# transform image to qimage and set pixmap
 		self.image = self.np2qt(self.image)
 		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
@@ -108,13 +109,13 @@ class Viewer(QWidget):
 
 		self.min_thresh_slider = QSlider(Qt.Horizontal, self)
 		self.min_thresh_slider.setMinimum(0) # betweeen 100 and 200
-		self.min_thresh_slider.setMaximum(100) # -for decimal places
+		self.min_thresh_slider.setMaximum(150) # -for decimal places
 		self.min_thresh_slider.setSingleStep(1)
 		self.min_thresh_slider.setGeometry(10, self.pixmap.height()+10+self.slider.height(), self.pixmap.width(), 20)
 		
 		self.max_thresh_slider = QSlider(Qt.Horizontal, self)
 		self.max_thresh_slider.setMinimum(100)
-		self.max_thresh_slider.setMaximum(200)
+		self.max_thresh_slider.setMaximum(255)
 		self.max_thresh_slider.setSingleStep(1)
 		self.max_thresh_slider.setGeometry(10, self.pixmap.height()+10+self.slider.height()+self.min_thresh_slider.height(), self.pixmap.width(), 20)
 
