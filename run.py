@@ -12,4 +12,3 @@ for i in range(40,64):
 	ct, stack_metadata = ctreader.read(i, r = (0, 10))
 
 	ctreader.view(ct)
-

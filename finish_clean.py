@@ -1,28 +1,15 @@
-from ctfishpy.Lumpfish import Lumpfish
-from ctfishpy.CTreader import CTreader
+from ctfishpy
 import gc
 
-gc.collect()
+CTreader = ctfishpy.CTreader()
+lump = ctfishpy.Lumpfish()
 
-CTreader = CTreader()
-lump = Lumpfish()
-
-ignore = [47, 54, 56, 57, 59, 60, 62]
-
-skip = [27]
-
-'''
-27 hires
-29 didn't work
-43 can't tell
-56, 57, 60, not constructed
-rest: ¯|_(ツ)_/¯
-'''
+skip = [27, 54]
 
 for i in range(0,64):
-	#if i in ignore or i in skip: continue
+	if i in skip: continue
 	print('\n', i, '\n')
-	ct, stack_metadata = lump.read_tiff(i, r = (0,10), scale = 100)
+	ct, stack_metadata = lump.read_tiff(i, r = None, scale = 100)
 
 	crop_data = lump.readCrop(i)
 	scale = [crop_data['scale'], stack_metadata['scale']]

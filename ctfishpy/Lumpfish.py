@@ -9,6 +9,7 @@ import numpy as np
 import json
 import cv2
 import os
+import gc
 
 class Lumpfish():
     
@@ -69,7 +70,7 @@ class Lumpfish():
         images = [str(f) for f in files if f.suffix == '.tif']
 
         ct = []
-        print(f'[CTFishPy] Reading uCT scans: {file}')
+        print(f'[CTFishPy] Reading uCT scan: {file}')
         if r:
             for i in tqdm(range(*r)):
                 tiffslice = tiff.imread(images[i])
@@ -152,12 +153,13 @@ class Lumpfish():
         if tif: tifpath = path+'/'+tif[0]+'/'
         else: tifpath = path+'/'
 
+        print('tifpath:', tifpath)
         tifpath = Path(tifpath)
         files = sorted(tifpath.iterdir())
         images = [str(f) for f in files if f.suffix == '.tif']
 
         ct = []
-        print('[CTFishPy] Reading uCT scans')
+        print('[CTFishPy] Reading uCT scan')
         if r:
             for i in tqdm(range(*r)):
                 slice_ = cv2.imread(images[i])     
@@ -342,7 +344,7 @@ class Lumpfish():
         }
         '''
         #n = self.fishnums[n]
-        fishpath = Path(f'../../Data/HDD/uCT/low_res_clean_test/{str(n).zfill(3)}/')
+        fishpath = Path(f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/')
         jsonpath = fishpath / 'metadata.json'
         jsonpath.touch()
 
@@ -361,12 +363,14 @@ class Lumpfish():
 
     def write_clean(self, n, cropped_cts, metadata):
         order = self.fish_order_nums[n]
+        print(f'order {len(order)}, number of circles: {len(cropped_cts)}')
+        print(order)
         if len(order) != len(cropped_cts): raise Exception('Not all/too many fish cropped')
         mastersheet = pd.read_csv('./uCT_mastersheet.csv')
 
         print(f'[CTFishPy] Writing cropped CT scans {order}')
         for o in range(0, len(order)): # for each fish of number o
-            path = Path(f'../../Data/HDD/uCT/low_res_clean_test/{str(order[o]).zfill(3)}/')
+            path = Path(f'../../Data/HDD/uCT/low_res_clean/{str(order[o]).zfill(3)}/')
 
             if not path.exists() : path.mkdir()
 
@@ -379,6 +383,7 @@ class Lumpfish():
             weird_fix = list(fish['age'].keys())[0]
             
             input_metadata = {
+                'number'        : order[o],
                 'Skip'          : fish['skip'][weird_fix],
                 'Age'           : fish['age'][weird_fix],
                 'Genotype'      : fish['genotype'][weird_fix],
@@ -404,3 +409,5 @@ class Lumpfish():
                 if not ret: raise Exception('image not saved, directory doesnt exist')
                 i = i + 1
                 print(f'[Fish {order[o]}, slice:{i}/{len(ct)}]', end="\r")
+            ct = None
+            gc.collect()

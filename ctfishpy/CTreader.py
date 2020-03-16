@@ -16,11 +16,10 @@ class CTreader():
         return pd.read_csv('./uCT_mastersheet.csv')
         #to count use master['age'].value_counts()
 
-    def trim(self, col, value):
+    def trim(self, m,col, value):
         # Trim df to e.g. fish that are 12 years old
         # Find all rows that have specified value in specified column
         # e.g. find all rows that have 12 in column 'age'
-        m = self.mastersheet
         index = list(m.loc[m[col]==value].index.values)
         # delete ones not in index
         trimmed = m.drop(set(m.index) - set(index))

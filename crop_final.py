@@ -5,9 +5,8 @@ import ctfishpy
 CTreader = ctfishpy.CTreader()
 lump = ctfishpy.Lumpfish()
 
-ignore = [29, 43, 47, 54, 56, 57, 59, 60, 62]
 
-for i in ignore: #range(58,64):
+for i in range(62,63):
 	print(i)
 	ct, stack_metadata = lump.read_dirty(i, r = None, scale = 40)
 	circle_dict = detectTubes(ct)
