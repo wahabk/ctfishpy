@@ -58,3 +58,12 @@ class CTreader():
 
     def view(self, ct_array):
         mainViewer(ct_array)
+
+
+    def read_labels(self, path):
+        pass
+
+    def write_labels(self, path):
+        pass
+
+
