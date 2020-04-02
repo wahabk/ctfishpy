@@ -11,7 +11,6 @@ class mainView(QMainWindow):
 	def __init__(self, stack):
 		super().__init__()
 		self.stack = stack.astype('uint8')
-		print(self.stack)
 		self.initUI()
 
 	def initUI(self):

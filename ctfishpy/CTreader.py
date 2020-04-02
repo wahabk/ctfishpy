@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import json
 import cv2
+import h5py
         
 class CTreader():
     def __init__(self):
@@ -59,8 +60,13 @@ class CTreader():
     def view(self, ct_array):
         mainViewer(ct_array)
 
+    def read_labels(self, labelpath):
+        f = h5py.File(labelpath, 'r')
+        label = np.array(f['t0']['channel0'])
+        return label
 
-    def read_labels(self, path):
+    def label(self, ct, label):
+        # change color of pixels if labelled
         pass
 
     def write_labels(self, path):
