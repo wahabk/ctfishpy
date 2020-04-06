@@ -1,4 +1,4 @@
-from . GUI.mainviewer import mainViewer
+from .GUI import mainviewer
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
@@ -14,7 +14,8 @@ class CTreader():
         self.fishnums = np.arange(40,639)
 
     def mastersheet(self):
-        return pd.read_csv('./uCT_mastersheet.csv')
+        m = pd.read_csv('./uCT_mastersheet.csv')
+        return m
         #to count use master['age'].value_counts()
 
     def trim(self, m,col, value):
@@ -57,10 +58,10 @@ class CTreader():
 
         return ct, stack_metadata
 
-    def view(self, ct_array):
-        mainViewer(ct_array)
+    def view(self, ct_array, thresh = False):
+        mainviewer.mainViewer(ct_array, thresh)
 
-    def read_labels(self, labelpath):
+    def read_label(self, labelpath):
         f = h5py.File(labelpath, 'r')
         label = np.array(f['t0']['channel0'])
         return label
@@ -69,7 +70,7 @@ class CTreader():
         # change color of pixels if labelled
         pass
 
-    def write_labels(self, path):
+    def get_train_directories(self, numbers, labels):
         pass
 
 

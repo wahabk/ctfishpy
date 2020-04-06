@@ -8,8 +8,9 @@ import sys
 
 class mainView(QMainWindow):
 
-	def __init__(self, stack):
+	def __init__(self, stack, thresh):
 		super().__init__()
+		self.thresh = thresh
 		self.stack = stack.astype('uint8')
 		self.initUI()
 
@@ -18,7 +19,7 @@ class mainView(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.viewer = Viewer(self.stack, parent = self)
+		self.viewer = Viewer(self.stack, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.viewer)
 		#widget.findChildren(QWidget)[0]
 
@@ -34,9 +35,10 @@ class mainView(QMainWindow):
 
 class Viewer(QWidget):
 
-	def __init__(self, stack, stride = 10, parent = None):
+	def __init__(self, stack, stride = 10, parent = None, thresh = False):
 		super().__init__()
 		#init cariables
+		if np.max(stack) == 1: stack = stack*255 #fix labels
 		self.ogstack = stack
 		self.stack_size = stack.shape[0]-1
 		self.stride = stride
@@ -44,6 +46,7 @@ class Viewer(QWidget):
 		self.parent = parent
 		self.min_thresh = 0
 		self.max_thresh = 150
+		self.thresh = thresh
 
 		#set background colour to cyan
 		p = self.palette()
@@ -65,8 +68,10 @@ class Viewer(QWidget):
 		self.max_thresh_slider.valueChanged.connect(self.update_max_thresh)
 
 	def update(self):
-		ret, self.image  = cv2.threshold(self.ogstack[self.slice], 
-			self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
+		if self.thresh:
+			ret, self.image  = cv2.threshold(self.ogstack[self.slice], 
+				self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
+		else: self.image = self.ogstack[self.slice]
 		
 		#self.image = self.ogstack[self.slice]
 		# transform image to qimage and set pixmap
@@ -131,9 +136,9 @@ class Viewer(QWidget):
 		self.update()
 
 
-def mainViewer(stack):
+def mainViewer(stack, thresh):
 	app = QApplication(sys.argv)
-	win = mainView(stack)
+	win = mainView(stack, thresh)
 	win.show()
 	app.exec_()
 	return
