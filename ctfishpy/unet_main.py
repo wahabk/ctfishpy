@@ -11,7 +11,7 @@ data_gen_args = dict(rotation_range=0.2,
                     horizontal_flip=True,
                     fill_mode='nearest')
 
-myGenerator = trainGenerator(2,'data/membrane/train','image','label',data_gen_args,save_to_dir = None)
+myGenerator = trainGenerator(200,'data/membrane/train','image','label',data_gen_args,save_to_dir = None)
 
 '''
 trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_color_mode = "grayscale",
@@ -21,7 +21,7 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
 
 model = unet()
 model_checkpoint = ModelCheckpoint('unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
-model.fit_generator(myGenerator, steps_per_epoch = 300, epochs = 1, callbacks = [model_checkpoint])
+model.fit_generator(myGenerator, steps_per_epoch = 100, epochs = 1, callbacks = [model_checkpoint])
 
 testGene = testGenerator("data/membrane/test")
 results = model.predict_generator(testGene, 30, verbose = 1) # read about this one

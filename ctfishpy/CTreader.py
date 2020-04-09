@@ -62,8 +62,10 @@ class CTreader():
         mainviewer.mainViewer(ct_array, thresh)
 
     def read_label(self, labelpath):
+        print('[CTFishPy] Reading labels...')
         f = h5py.File(labelpath, 'r')
         label = np.array(f['t0']['channel0'])
+        print('Labels ready.')
         return label
 
     def label(self, ct, label):

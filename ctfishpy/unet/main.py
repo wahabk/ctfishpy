@@ -11,7 +11,8 @@ data_gen_args = dict(rotation_range=0.2,
                     horizontal_flip=True,
                     fill_mode='nearest')
 
-myGenerator = trainGenerator(2,'data/membrane/train','image','label',data_gen_args,save_to_dir = None)
+myGenerator = trainGenerator(2, 'data/membrane/train','image','label', data_gen_args, save_to_dir = None)
+
 
 '''
 trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_color_mode = "grayscale",
@@ -25,4 +26,4 @@ model.fit_generator(myGenerator, steps_per_epoch = 300, epochs = 1, callbacks = 
 
 testGene = testGenerator("data/membrane/test")
 results = model.predict_generator(testGene, 30, verbose = 1) # read about this one
-saveResult("data/membrane/test", results)
+saveResult("output/model/", results)
