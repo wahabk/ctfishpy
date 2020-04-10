@@ -58,8 +58,8 @@ class CTreader():
 
         return ct, stack_metadata
 
-    def view(self, ct_array, thresh = False):
-        mainviewer.mainViewer(ct_array, thresh)
+    def view(self, ct_array, thresh = False, label = None):
+        mainviewer.mainViewer(ct_array, thresh, label)
 
     def read_label(self, labelpath):
         print('[CTFishPy] Reading labels...')

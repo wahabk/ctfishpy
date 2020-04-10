@@ -6,6 +6,7 @@ import skimage.io as io
 import skimage.transform as trans
 import matplotlib.pyplot as plt
 import ctfishpy
+import gc
 
 def DataGenie(batch_size, aug_dict, image_color_mode = "grayscale",
                 mask_color_mode = "grayscale", target_size = (256,256)):
@@ -48,22 +49,33 @@ datagen = ImageDataGenerator(**data_gen_args)
 labelpath = '../../Data/HDD/uCT/Labels/Otolith1/040.h5'
 ctreader = ctfishpy.CTreader()
 
-ct, stack_metadata = ctreader.read(40, r = (1400,1600))
+ct, stack_metadata = ctreader.read(40, r = None)#(1400,1600))
 label = ctreader.read_label(labelpath)
 
 ct = ct[:,:,:,np.newaxis] # add final axis to show datagen its grayscale
-d = datagen.flow(ct, 
+d = datagen.flow(ct,
+    y = label, 
     batch_size = 100,
-    save_to_dir = 'output/Keras/',
+    #save_to_dir = 'output/Keras/',
     save_prefix = 'dataGenie',
     seed = 420
     )
 
-count = 0
-for x_batch in d:
+ct = None
+gc.collect()
+
+for x_batch, y_batch in d:
     print(x_batch.shape)
     print(x_batch.dtype)
+    print(y_batch.shape)
+    print(y_batch.dtype)
+
+    ct = np.squeeze(x_batch, axis = 3)
+    print(ct.shape)
+    ctreader.view(ct, thresh = True)
+
     break
+
 
 
 
