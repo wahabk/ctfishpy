@@ -14,7 +14,10 @@ class mainView(QMainWindow):
 		self.label = label
 		# convert 16 bit grayscale to 8 bit
 		# by mapping the data range to 0 - 255
-		self.stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
+		if stack.dtype == 'uint16':
+			self.stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
+		else:
+			self.stack = stack
 		self.stack_length = self.stack.shape[0]
 
 		self.initUI()

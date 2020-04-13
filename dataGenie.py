@@ -8,28 +8,7 @@ import matplotlib.pyplot as plt
 import ctfishpy
 import gc
 
-def DataGenie(batch_size, aug_dict, image_color_mode = "grayscale",
-                mask_color_mode = "grayscale", target_size = (256,256)):
-    image_datagen = ImageDataGenerator(**aug_dict)
-    mask_datagen = ImageDataGenerator(**aug_dict)
 
-
-    fish_numbers = [40, 41, 42]
-    ctreader = CTreader()
-    fish = ctreader.read(fish_numbers[0])
-
-    i = 0
-    while(True):
-        
-        batch_images = []
-        batch_masks = []
-
-        if number_images == batch_size:
-            break
-
-        train_generator = zip(image_generator, mask_generator)
-        for (img,mask) in train_generator:
-            yield (img,mask)
 
 
 
@@ -70,7 +49,7 @@ for x_batch, y_batch in d:
     print(y_batch.shape)
     print(y_batch.dtype)
 
-    ct = np.squeeze(x_batch, axis = 3)
+    ct = np.squeeze(x_batch, axis = 3) # remove last weird axis
     print(ct.shape)
     ctreader.view(ct)
 
@@ -79,3 +58,25 @@ for x_batch, y_batch in d:
 
 
 
+def DataGenie(batch_size, aug_dict, image_color_mode = "grayscale",
+                mask_color_mode = "grayscale", target_size = (256,256)):
+    image_datagen = ImageDataGenerator(**aug_dict)
+    mask_datagen = ImageDataGenerator(**aug_dict)
+
+
+    fish_numbers = [40, 41, 42]
+    ctreader = CTreader()
+    fish = ctreader.read(fish_numbers[0])
+
+    i = 0
+    while(True):
+        
+        batch_images = []
+        batch_masks = []
+
+        if number_images == batch_size:
+            break
+
+        train_generator = zip(image_generator, mask_generator)
+        for (img,mask) in train_generator:
+            yield (img,mask)
