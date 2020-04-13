@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import sys
-
+ 
 class Window(QWidget):
 
 	def __init__(self, stack, skip = 10):

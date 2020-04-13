@@ -11,8 +11,12 @@ class mainView(QMainWindow):
 	def __init__(self, stack, thresh, label):
 		super().__init__()
 		self.thresh = thresh
-		self.stack = stack.astype('uint8')
 		self.label = label
+		# convert 16 bit grayscale to 8 bit
+		# by mapping the data range to 0 - 255
+		self.stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
+		self.stack_length = self.stack.shape[0]
+
 		self.initUI()
 
 
@@ -34,16 +38,19 @@ class mainView(QMainWindow):
 		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q :
 			self.close()
 
+	def updateStatusBar(self, slice_ = 0):
+		self.statusBar().showMessage(f'{slice_}/{self.stack_length}')
+
 
 class Viewer(QWidget):
 
-	def __init__(self, stack, stride = 10, parent = None, thresh = False, label = False):
+	def __init__(self, stack, stride = 1, parent = None, thresh = False, label = False):
 		super().__init__()
 
 		# init variables
 		if np.max(stack) == 1: stack = stack*255 #fix labels
 		self.ogstack = stack
-		self.stack_size = stack.shape[0]-1
+		self.stack_size = stack.shape[0]
 		self.stride = stride
 		self.slice = 0
 		self.parent = parent
@@ -51,6 +58,7 @@ class Viewer(QWidget):
 		self.max_thresh = 150
 		self.thresh = thresh
 		self.label = label
+		self.pad = 20
 
 		# label stack
 		if self.label is not None:
@@ -58,7 +66,10 @@ class Viewer(QWidget):
 			# unpack images to convert each one to grayscale
 			self.ogstack = np.array([np.stack((img,)*3, axis=-1) for img in self.ogstack])
 			# change pixels to red if in label
-			self.ogstack[label == 1, 0] = 255
+			self.ogstack[label == 1, :] = [255, 0, 0]
+
+		if self.ogstack.shape[0] == self.ogstack.shape[1]: self.is_single_image = True
+		else: self.is_single_image = False
 
 		# set background colour to cyan
 		p = self.palette()
@@ -71,41 +82,54 @@ class Viewer(QWidget):
 		self.initUI()
 
 	def initUI(self):
+		pad = self.pad
 		self.update()
-		self.initSlider()
-		self.slider.valueChanged.connect(self.updateSlider)
+		if self.is_single_image == False:
+			self.initSlider()
+			self.slider.valueChanged.connect(self.updateSlider)
+			self.setGeometry(0, 0, 
+			self.pixmap.width() + pad, 
+			self.pixmap.height() + pad + self.slider.height()*2 + pad)
+
+		elif self.is_single_image: 
+			self.setGeometry(0, 0, 
+			self.pixmap.width() + pad, 
+			self.pixmap.height() + pad*3)
 
 		if self.thresh == True: 
 			self.initThresholdSliders()
 			self.setGeometry(0, 0, 
-				self.pixmap.width() + 20, 
-				self.pixmap.height()+ 20 + self.slider.height()*2 + self.min_thresh_slider.height()*2 + self.max_thresh_slider.height()*2)
+				self.pixmap.width() + pad, 
+				self.pixmap.height()+ pad + self.slider.height()*2 + self.min_thresh_slider.height()*2 + self.max_thresh_slider.height()*2)
 			self.min_thresh_slider.valueChanged.connect(self.update_min_thresh)
 			self.max_thresh_slider.valueChanged.connect(self.update_max_thresh)
 
-		else: 
-			self.setGeometry(0, 0, 
-			self.pixmap.width() + 20, 
-			self.pixmap.height() + 20 + self.slider.height()*2 + 20)
+		
 			
+		
 
 	def update(self):
+
+		if self.slice > self.stack_size-1: 	self.slice = 0
+		if self.slice < 0: 					self.slice = self.stack_size-1
+		
 		if self.thresh:
 			ret, self.image  = cv2.threshold(self.ogstack[self.slice], 
 				self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
+		elif self.is_single_image == True: self.image = self.ogstack
 		else: self.image = self.ogstack[self.slice]
-		
-		#self.image = self.ogstack[self.slice]
+
 		# transform image to qimage and set pixmap
 		self.image = self.np2qt(self.image)
 		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
 		self.qlabel.setPixmap(self.pixmap)
 
 	def wheelEvent(self, event):
+		if self.is_single_image: return
 		#scroll through slices and go to beginning if reached max
 		self.slice = self.slice + int(event.angleDelta().y()/120)*self.stride
-		if self.slice > self.stack_size: 	self.slice = 0
-		if self.slice < 0: 					self.slice = self.stack_size
+		if self.slice > self.stack_size-1: 	self.slice = 0
+		if self.slice < 0: 					self.slice = self.stack_size-1
 		self.slider.setValue(self.slice)
 		self.update()
 
@@ -116,16 +140,18 @@ class Viewer(QWidget):
 		if len(image.shape) == 2: grayscale = True
 		elif len(image.shape) == 3: grayscale = False
 		else: raise ValueError('[Viewer] Cant tell if stack is color or grayscale, weird shape :/')
+		if self.is_single_image: grayscale = False
+
 
 		# convert npimage to qimage depending on color mode
 		if grayscale == True:
 			height, width = self.image.shape
 			bytesPerLine = width
-			return QImage(self.image.data, width, height, bytesPerLine, QImage.Format_Indexed8)
+			return QImage(image.data, width, height, bytesPerLine, QImage.Format_Indexed8)
 		else:
 			height, width, channel = image.shape
 			bytesPerLine = 3 * width
-			return QImage(self.image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+			return QImage(image.data, width, height, bytesPerLine, QImage.Format_RGB888)
 
 	def initSlider(self):
 		self.slider = QSlider(Qt.Horizontal, self)
@@ -133,6 +159,10 @@ class Viewer(QWidget):
 		self.slider.setMaximum(self.stack_size)
 		self.slider.setGeometry(10, self.pixmap.height()+10, self.pixmap.width(), 20)
 
+	def updateSlider(self):
+		self.slice = self.slider.value()
+		self.update()
+		self.parent.updateStatusBar(self.slice)
 
 	def initThresholdSliders(self):
 		self.min_thresh_slider = QSlider(Qt.Horizontal, self)
@@ -146,10 +176,6 @@ class Viewer(QWidget):
 		self.max_thresh_slider.setMaximum(255)
 		self.max_thresh_slider.setSingleStep(1)
 		self.max_thresh_slider.setGeometry(10, self.pixmap.height()+10+self.slider.height()+self.min_thresh_slider.height(), self.pixmap.width(), 20)
-
-	def updateSlider(self):
-		self.slice = self.slider.value()
-		self.update()
 
 	def update_min_thresh(self):
 		self.min_thresh = self.min_thresh_slider.value() # divide by 100 to get decimal points

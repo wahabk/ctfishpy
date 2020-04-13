@@ -72,7 +72,7 @@ for x_batch, y_batch in d:
 
     ct = np.squeeze(x_batch, axis = 3)
     print(ct.shape)
-    ctreader.view(ct, thresh = True)
+    ctreader.view(ct)
 
     break
 
