@@ -8,10 +8,6 @@ import matplotlib.pyplot as plt
 import ctfishpy
 import gc
 
-
-
-
-
 data_gen_args = dict(rotation_range=180,
                     width_shift_range=0.05,
                     height_shift_range=0.05,
@@ -22,7 +18,8 @@ data_gen_args = dict(rotation_range=180,
                     fill_mode='constant',
                     cval = 0)
 
-datagen = ImageDataGenerator(**data_gen_args)
+imagegen = ImageDataGenerator(**data_gen_args)
+maskgen = ImageDataGenerator(**data_gen_args)
 
 #g = dataGenie(batch_size = 2, data_gen_args, save_to_dir = None)
 labelpath = '../../Data/HDD/uCT/Labels/Otolith1/040.h5'
@@ -32,8 +29,15 @@ ct, stack_metadata = ctreader.read(40, r = None)#(1400,1600))
 label = ctreader.read_label(labelpath)
 
 ct = ct[:,:,:,np.newaxis] # add final axis to show datagen its grayscale
-d = datagen.flow(ct,
-    y = label, 
+label = label[:,:,:,np.newaxis]
+
+image_generator = imagegen.flow(ct[1360:1380],
+    batch_size = 100,
+    #save_to_dir = 'output/Keras/',
+    save_prefix = 'dataGenie',
+    seed = 420
+    )
+mask_generator = maskgen.flow(label[1360:1380], 
     batch_size = 100,
     #save_to_dir = 'output/Keras/',
     save_prefix = 'dataGenie',
@@ -43,17 +47,17 @@ d = datagen.flow(ct,
 ct = None
 gc.collect()
 
-for x_batch, y_batch in d:
-    print(x_batch.shape)
-    print(x_batch.dtype)
-    print(y_batch.shape)
-    print(y_batch.dtype)
+datagen = zip(image_generator, mask_generator)
 
-    ct = np.squeeze(x_batch, axis = 3) # remove last weird axis
-    print(ct.shape)
-    ctreader.view(ct)
+for x_batch, y_batch in datagen:
+    #print(x_batch.shape)
+    #print(y_batch.shape)
+    x_batch = np.squeeze(x_batch.astype('uint16'), axis = 3) # remove last weird axis
+    y_batch = np.squeeze(y_batch.astype('uint8'), axis = 3) # remove last weird axis
 
-    break
+    ctreader.view(x_batch, label = y_batch)
+
+    #break
 
 
 

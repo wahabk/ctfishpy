@@ -7,7 +7,7 @@ import numpy as np
 import json
 import cv2
 import h5py
-        
+
 class CTreader():
     def __init__(self):
         self.mastersheet = pd.read_csv('./uCT_mastersheet.csv')
