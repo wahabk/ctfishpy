@@ -8,7 +8,7 @@ import sys
 
 class mainView(QMainWindow):
 
-	def __init__(self, stack, thresh, label):
+	def __init__(self, stack, label = None, thresh = False):
 		super().__init__()
 		self.thresh = thresh
 		self.label = label
@@ -28,7 +28,7 @@ class mainView(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.viewer = Viewer(self.stack, parent = self, thresh = self.thresh, label = self.label)
+		self.viewer = Viewer(self.stack, label = self.label, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.viewer)
 		#widget.findChildren(QWidget)[0]
 
@@ -47,7 +47,7 @@ class mainView(QMainWindow):
 
 class Viewer(QWidget):
 
-	def __init__(self, stack, stride = 1, parent = None, thresh = False, label = False):
+	def __init__(self, stack, label = None, thresh = False, stride = 1, parent = None):
 		super().__init__()
 
 		# init variables
@@ -116,7 +116,7 @@ class Viewer(QWidget):
 		if self.slice > self.stack_size-1: 	self.slice = 0
 		if self.slice < 0: 					self.slice = self.stack_size-1
 		
-		if self.thresh:
+		if self.thresh == True:
 			ret, self.image  = cv2.threshold(self.ogstack[self.slice], 
 				self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
 		elif self.is_single_image == True: self.image = self.ogstack
@@ -189,9 +189,9 @@ class Viewer(QWidget):
 		self.update()
 
 
-def mainViewer(stack, thresh, label):
+def mainViewer(stack, label, thresh):
 	app = QApplication(sys.argv)
-	win = mainView(stack, thresh, label)
+	win = mainView(stack, label, thresh)
 	win.show()
 	app.exec_()
 	return
