@@ -10,15 +10,13 @@ import h5py
 
 class CTreader():
     def __init__(self):
-        self.mastersheet = pd.read_csv('./uCT_mastersheet.csv')
+        self.master = pd.read_csv('./uCT_mastersheet.csv')
         self.fishnums = np.arange(40,639)
 
     def mastersheet(self):
-        m = pd.read_csv('./uCT_mastersheet.csv')
-        return m
-        #to count use master['age'].value_counts()
+        return self.master
 
-    def trim(self, m,col, value):
+    def trim(self, m, col, value):
         # Trim df to e.g. fish that are 12 years old
         # Find all rows that have specified value in specified column
         # e.g. find all rows that have 12 in column 'age'
@@ -26,6 +24,9 @@ class CTreader():
         # delete ones not in index
         trimmed = m.drop(set(m.index) - set(index))
         return trimmed
+
+    def list_numbers(self, m):
+        return list(m.loc[:]['n'])
 
     def read(self, fish, r = None):
         fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(fish).zfill(3) 

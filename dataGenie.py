@@ -20,8 +20,8 @@ def DataGenie(batch_size, data_gen_args, labelpath, fish_nums = None):
 
     ct = np.array([cv2.resize(slice_, (256,256)) for slice_ in ct])
     label = np.array([cv2.resize(slice_, (256,256)) for slice_ in label])
-    ct = ct[:,:,:,np.newaxis] # add final axis to show datagen its grayscale
-    label = label[:,:,:,np.newaxis]
+    ct      = ct[:,:,:,np.newaxis] # add final axis to show datagen its grayscale
+    label   = label[:,:,:,np.newaxis]
 
     image_generator = imagegen.flow(ct[1360:1380],
         batch_size = batch_size,
