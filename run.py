@@ -24,4 +24,3 @@ for fish in sample:
 	ct, stack_metadata = ctreader.read(fish)
 	ctreader.view(ct)
 
-#366 is hires
