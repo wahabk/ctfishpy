@@ -42,7 +42,7 @@ class CTreader():
         images.sort()
 
         ct = []
-        print('[CTFishPy] Reading uCT scans')
+        print(f'[CTFishPy] Reading uCT scan. Fish: {fish}')
         if r:
             for i in tqdm(range(*r)):
                 tiffslice = tiff.imread(images[i])
