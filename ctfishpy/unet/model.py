@@ -7,7 +7,15 @@ from keras.models import *
 from keras.layers import *
 from keras.optimizers import *
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from keras import backend as keras
+import tensorflow as tf
+from keras import backend as k
+
+
+def dice_loss(y_true, y_pred):
+  numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=-1)
+  denominator = tf.reduce_sum(y_true + y_pred, axis=-1)
+
+  return 1 - (numerator + 1) / (denominator + 1)
 
 def unet(pretrained_weights = None, input_size = (256,256,1)):
     inputs = Input(input_size)
@@ -53,10 +61,12 @@ def unet(pretrained_weights = None, input_size = (256,256,1)):
 
     model = Model(input = inputs, output = conv10)
 
-    model.compile(optimizer = Adam(lr = 1e-4), loss = 'binary_crossentropy', metrics = ['accuracy']) # Adam is the optimiser
+    model.compile(optimizer = Adam(lr = 1e-4), loss = dice_loss, metrics = ['accuracy']) # Adam is the optimiser
     # change optimizer if doing instance segmentation
     
     model.summary() #this was commented out
+
+    print(model)
 
     if(pretrained_weights):
     	model.load_weights(pretrained_weights)
