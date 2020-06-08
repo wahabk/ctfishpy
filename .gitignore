@@ -2,3 +2,5 @@
 ./__pycache__/
 ./CTFishPy/__pycache/
 ./.DS_Store
+output/Model
+.hdf5
