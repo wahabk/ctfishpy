@@ -73,7 +73,4 @@ class CTreader():
         # change color of pixels if labelled
         pass
 
-    def get_train_directories(self, numbers, labels):
-        pass
-
 
