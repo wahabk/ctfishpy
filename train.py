@@ -30,7 +30,7 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
 '''
 
 model = unet()
-model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
+model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
 model.fit_generator(datagenie, steps_per_epoch = 8, epochs = 1, callbacks = [model_checkpoint])
 
 #testGene = testGenerator("data/membrane/test")

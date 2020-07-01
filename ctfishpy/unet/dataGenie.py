@@ -56,30 +56,30 @@ def DataGenie(batch_size, data_gen_args, fish_nums = None):
                 for x_batch, y_batch in datagen:
                     yield (x_batch, y_batch)
 
+if name == '__main__':
+    data_gen_args = dict(rotation_range=180,
+                        width_shift_range=0.05,
+                        height_shift_range=0.05,
+                        shear_range=0.2,
+                        zoom_range=0.1,
+                        horizontal_flip=True,
+                        vertical_flip = True,
+                        fill_mode='constant',
+                        cval = 0)
+    batch_size = 100
 
-data_gen_args = dict(rotation_range=180,
-                    width_shift_range=0.05,
-                    height_shift_range=0.05,
-                    shear_range=0.2,
-                    zoom_range=0.1,
-                    horizontal_flip=True,
-                    vertical_flip = True,
-                    fill_mode='constant',
-                    cval = 0)
-batch_size = 100
+    datagenie = DataGenie(  batch_size = batch_size,
+                            data_gen_args = data_gen_args,
+                            fish_nums = sample)
 
-datagenie = DataGenie(  batch_size = batch_size,
-                        data_gen_args = data_gen_args,
-                        fish_nums = sample)
+    # ctreader = ctfishpy.CTreader()
 
-# ctreader = ctfishpy.CTreader()
+    # for x_batch, y_batch in datagenie:
+    #     #print(x_batch.shape)
+    #     #print(y_batch.shape)
+    #     x_batch = fixFormat(x_batch)  # remove last weird axis
+    #     y_batch = fixFormat(y_batch, label = True)  # remove last weird axis
 
-# for x_batch, y_batch in datagenie:
-#     #print(x_batch.shape)
-#     #print(y_batch.shape)
-#     x_batch = fixFormat(x_batch)  # remove last weird axis
-#     y_batch = fixFormat(y_batch, label = True)  # remove last weird axis
+    #     ctreader.view(x_batch, label = y_batch)
 
-#     ctreader.view(x_batch, label = y_batch)
-
-#     #break
+    #     #break
