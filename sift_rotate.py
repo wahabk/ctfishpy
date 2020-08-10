@@ -53,6 +53,10 @@ def plot_list_of_3_images(list):
     plt.clf()
     plt.close()
 
+def resize(img, percent=100):
+	width = int(img.shape[1] * percent / 100)
+	height = int(img.shape[0] * percent / 100)
+	return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
 
 ct, stack_metadata = ctreader.read(40)
 thresh = thresh_stack(ct, 150)
@@ -70,9 +74,9 @@ x2 ,y2 ,z2 = get_max_projections(thresh41)
 aspects41 = np.array([x2, y2, z2])
 # plot_list_of_3_images(aspects41)
 
-temp = aspects40[0]
-query = aspects41[0]
-
+scale = 75
+temp = resize(aspects40[0], scale)
+query = resize(aspects41[0], scale)
 
 ct = None
 gc.collect()
@@ -97,9 +101,11 @@ for m,n in matches:
     if m.distance < 0.7*n.distance:
         good.append(m)
 
-MIN_MATCH_COUNT = 2
+MIN_MATCH_COUNT = 4
 
-if len(good) > MIN_MATCH_COUNT:
+print(f'found {len(good)} matches.')
+
+if len(good) >= MIN_MATCH_COUNT:
     src_pts = np.float32([temp_kp [m.queryIdx].pt for m in good]).reshape(-1,1,2)
     dst_pts = np.float32([query_kp [m.trainIdx].pt for m in good]).reshape(-1,1,2)
 
@@ -141,7 +147,7 @@ def readJSON(jsonpath):
 tfmpath = 'output/sift_tfm.json'
 saveJSON(M.tolist(), tfmpath)
 tfm = readJSON(tfmpath)
-
+ 
 
 print('warping perspectives')
 new_x = cv2.warpPerspective(aspects41[0], M, (500,500)) 

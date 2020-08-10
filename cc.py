@@ -9,6 +9,7 @@ import gc
 import json, codecs
 
 
+
 ct, stack_metadata = ctreader.read(40)
 thresh = thresh_stack(ct, 150)
 # ctreader.view(thresh)
