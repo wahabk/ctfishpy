@@ -1,12 +1,12 @@
 import ctfishpy
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 import cv2
-from sklearn.decomposition import PCA
-ctreader = ctfishpy.CTreader()
 import gc
 import json, codecs
+from math import atan2, cos, sin, sqrt, pi
+
+ctreader = ctfishpy.CTreader()
 
 def to8bit(stack):
 	if stack.dtype == 'uint16':
@@ -66,56 +66,121 @@ def readJSON(jsonpath):
 	obj = json.loads(obj_text)
 	return np.array(obj)
 
-threshold = 100
+threshold = 150
 ct, stack_metadata = ctreader.read(40)
 thresh40 = thresh_stack(ct, threshold)
 # ctreader.view(thresh)
-x, y, z = get_max_projections(thresh40)
+x, y, z = get_max_projections(ct)
 aspects40 = np.array([x, y, z])
 # plot_list_of_3_images(aspects40)
+
 ct = None
 gc.collect()
 
 ct, stack_metadata = ctreader.read(41)
 thresh41 = thresh_stack(ct, threshold)
 # ctreader.view(thresh41)
-x2 ,y2 ,z2 = get_max_projections(thresh41)
+x2 ,y2 ,z2 = get_max_projections(ct)
 aspects41 = np.array([x2, y2, z2])
-# plot_list_of_3_images(aspects41)
+#plot_list_of_3_images(aspects41)
 
 scale = 75
 temp = resize(aspects40[0], scale)
 query = resize(aspects41[0], scale)
+temp = to8bit(temp)
+query = to8bit(query)
 
-cv2.imshow('', temp)
-cv2.waitKey()
-cv2.imshow('', query)
-cv2.waitKey()
-cv2.destroyAllWindows()
+
+# cv2.imshow('', temp)
+# cv2.waitKey()
+# cv2.imshow('', query)
+# cv2.waitKey()
+# cv2.destroyAllWindows()
 
 ct = None
 gc.collect()
 
-
+print(temp)
+print(temp.shape)
 fish = [temp, query]
-#n_components=0.80 means it will return the Eigenvectors that have the 80% of the variation in the dataset
-fish_pca = PCA(n_components=0.8)
-fish_pca.fit(fish)
-
-ax.imshow(fish_pca.components_[i], cmap=”gray”)
-
-tfmpath = 'output/sift_tfm.json'
-saveJSON(M.tolist(), tfmpath)
-tfm = readJSON(tfmpath)
-
-plt.show()
 
 
 
-# tfmpath = 'output/sift_tfm.json'
-# saveJSON(M.tolist(), tfmpath)
-# tfm = readJSON(tfmpath)
+def drawAxis(img, p_, q_, colour, scale):
+    p = list(p_)
+    q = list(q_)
+    ## [visualization1]
+    angle = atan2(p[1] - q[1], p[0] - q[0]) # angle in radians
+    hypotenuse = sqrt((p[1] - q[1]) * (p[1] - q[1]) + (p[0] - q[0]) * (p[0] - q[0]))
 
-# print('warping perspectives')
-# new_x = cv2.warpPerspective(aspects41[0], M, (500,500)) 
-# ctreader.view(new_x)
+    # Here we lengthen the arrow by a factor of scale
+    q[0] = p[0] - scale * hypotenuse * cos(angle)
+    q[1] = p[1] - scale * hypotenuse * sin(angle)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+
+    # create the arrow hooks
+    p[0] = q[0] + 9 * cos(angle + pi / 4)
+    p[1] = q[1] + 9 * sin(angle + pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+
+    p[0] = q[0] + 9 * cos(angle - pi / 4)
+    p[1] = q[1] + 9 * sin(angle - pi / 4)
+    cv2.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv2.LINE_AA)
+    ## [visualization1]
+
+def getOrientation(pts, img):
+    ## [pca]
+    # Construct a buffer used by the pca analysis
+    sz = len(pts)
+    data_pts = np.empty((sz, 2), dtype=np.float64)
+    for i in range(data_pts.shape[0]):
+        data_pts[i,0] = pts[i,0,0]
+        data_pts[i,1] = pts[i,0,1]
+
+    # Perform PCA analysis
+    mean = np.empty((0))
+    mean, eigenvectors, eigenvalues = cv2.PCACompute2(data_pts, mean)
+
+    # Store the center of the object
+    cntr = (int(mean[0,0]), int(mean[0,1]))
+    ## [pca]
+
+    ## [visualization]
+    # Draw the principal components
+    cv2.circle(img, cntr, 3, (255, 0, 255), 2)
+    p1 = (cntr[0] + 0.02 * eigenvectors[0,0] * eigenvalues[0,0], cntr[1] + 0.02 * eigenvectors[0,1] * eigenvalues[0,0])
+    p2 = (cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0])
+    drawAxis(img, cntr, p1, (0, 255, 0), 1)
+    drawAxis(img, cntr, p2, (255, 255, 0), 5)
+
+    angle = atan2(eigenvectors[0,1], eigenvectors[0,0]) # orientation in radians
+    ## [visualization]
+
+    return angle
+
+
+src = temp
+_, bw = cv2.threshold(src, 50, 150, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+cv2.imshow('', bw)
+cv2.waitKey()
+
+## [contours]
+# Find all the contours in the thresholded image
+contours, _ = cv2.findContours(bw, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+
+for i, c in enumerate(contours):
+    # Calculate the area of each contour
+    area = cv2.contourArea(c)
+    # Ignore contours that are too small or too large
+    if area < 1e2 or 1e5 < area:
+        continue
+
+    # Draw each contour only for visualisation purposes
+    cv2.drawContours(src, contours, i, (0, 0, 255), 2)
+    # Find the orientation of each shape
+    print(getOrientation(c, src))
+## [contours]
+
+cv2.imshow('output', src)
+cv2.waitKey()
+
