@@ -69,8 +69,49 @@ class CTreader():
         print('Labels ready.')
         return label
 
-    def label(self, ct, label):
-        # change color of pixels if labelled
-        pass
+    def to8bit(self, img):
+        '''
+        Change img from 16bit to 8bit
+        '''
+        if img.dtype == 'uint16':
+            new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8) 
+            return new_img
+        else:
+            print('Stack already 8 bit!')
+            return stack
 
+    def thresh_stack(self, stack, thresh_8):
+        '''
+        Threshold CT stack in 16 bits using numpy because it's faster
+        provide threshold in 8bit since it's more intuitive then convert to 16
+        '''
 
+        thresh_16 = thresh_8 * (65535/255)
+
+        thresholded = []
+        for slice_ in stack:
+            new_slice = (slice_ > thresh_16) * slice_
+            thresholded.append(new_slice)
+        return np.array(thresholded)
+
+    def saveJSON(self, nparray, jsonpath):
+        json.dump(nparray, codecs.open(jsonpath, 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True, indent=4) ### this saves the array in .json format
+
+    def readJSON(self, jsonpath):
+        obj_text = codecs.open(jsonpath, 'r', encoding='utf-8').read()
+        obj = json.loads(obj_text)
+        return np.array(obj)
+
+    def get_max_projections(self, stack):
+        '''
+        return x, y, x which represent axial, saggital, and coronal max projections
+        '''
+        x = np.max(stack, axis=0)
+        y = np.max(stack, axis=1)
+        z = np.max(stack, axis=2)
+        return [x, y, z]
+
+    def resize(self, img, percent=100):
+        width = int(img.shape[1] * percent / 100)
+        height = int(img.shape[0] * percent / 100)
+        return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
