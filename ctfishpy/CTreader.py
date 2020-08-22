@@ -1,4 +1,5 @@
 from .GUI import mainviewer
+from .GUI import spinner
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
@@ -59,8 +60,11 @@ class CTreader():
 
         return ct, stack_metadata
 
-    def view(self, ct_array, label = None, thresh = False):
-        mainviewer.mainViewer(ct_array, label, thresh)
+    def view(self, ct, label = None, thresh = False):
+        mainviewer.mainViewer(ct, label, thresh)
+
+    def spin(self, img, label = None, thresh = True):
+        return spinner.spinner(img, label, thresh)
 
     def read_label(self, labelpath):
         print('[CTFishPy] Reading labels...')
@@ -115,3 +119,5 @@ class CTreader():
         width = int(img.shape[1] * percent / 100)
         height = int(img.shape[0] * percent / 100)
         return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
+
+

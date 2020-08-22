@@ -21,18 +21,26 @@ labelpath = lambda f : f'../../Data/HDD/uCT/Labels/Otolith1/{f}.h5'
 # 	ct = None
 # 	gc.collect()
 
-ct1, stack_metadata = ctreader.read(40)
+# ct1, stack_metadata = ctreader.read(40)
 
-ct2, stack_metadata = ctreader.read(41)
-print(type(ct2))
-ct3, stack_metadata = ctreader.read(42)
-ct4, stack_metadata = ctreader.read(43)
-ct5, stack_metadata = ctreader.read(44)
-ct6, stack_metadata = ctreader.read(45)
-ctreader.view(ct6)
-ct7, stack_metadata = ctreader.read(46)
-ctreader.view(ct7)
+# ct2, stack_metadata = ctreader.read(41)
+# print(type(ct2))
+# ct3, stack_metadata = ctreader.read(42)
+# ct4, stack_metadata = ctreader.read(43)
+# ct5, stack_metadata = ctreader.read(44)
+# ct6, stack_metadata = ctreader.read(45)
+# ctreader.view(ct6)
+# ct7, stack_metadata = ctreader.read(46)
+# ctreader.view(ct7)
 
-ct8, stack_metadata = ctreader.read(47)
-ctreader.view(ct8)
+# ct8, stack_metadata = ctreader.read(47)
+# ctreader.view(ct8)
 
+ct, metadata = ctreader.read(40)
+
+projection = ctreader.get_max_projections(ct)[0]
+
+angle = ctreader.spin(projection)
+print(projection.shape)
+
+print(angle)
