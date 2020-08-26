@@ -73,24 +73,31 @@ def PCA(stack, threshold = 150, scale = 75):
     img = ctreader.resize(projections[0], scale)
     img = ctreader.to8bit(img)
     color = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    cv2.imshow('', img)
+    cv2.imshow('raw projection', img)
     cv2.waitKey()
     cv2.destroyAllWindows()
 
-    ret, bw = cv2.threshold(img, 50, 150, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    cv2.imshow('', bw)
-    cv2.waitKey()
-
+    ret, bw = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY) #| cv2.THRESH_OTSU)
+    blur = cv2.GaussianBlur(bw, (77,77), 0)
+    cv2.imshow('thresholded then blurred', blur)
+    cv2.waitKey(27)
+    cv2.imwrite('output/pcastep1.png', img)
+    cv2.imwrite('output/pcastep2.png', bw)
+    cv2.imwrite('output/pcastep3.png', blur)
+    cv2.imwrite('output/pcastep4.png', color)
     ## [contours]
     # Find all the contours in the thresholded image
-    contours, _ = cv2.findContours(bw, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+    contours, _ = cv2.findContours(blur, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
     
+
+
     for i, c in enumerate(contours):
         # Calculate the area of each contour
         area = cv2.contourArea(c)
+        print(area)
         areas.append(area)
         # Ignore contours that are too small or too large
-        min_size = 10000
+        min_size = 5000
         if area < min_size:
             continue
 
@@ -99,12 +106,16 @@ def PCA(stack, threshold = 150, scale = 75):
         # Find the orientation of each shape
         angle = getOrientation(c, color)
 
-        rotated = rotate_image(color, angle+90)
+        rotated = rotate_image(color, angle+180)
 
     ## [contours]
 
     cv2.imshow('output', rotated)
+    cv2.imwrite('output/pcarotated.png', rotated)
     cv2.waitKey()
 
-ct, stack_metadata = ctreader.read(56)
-angle = PCA(ct)
+
+for i in range(40,100):
+    ct, stack_metadata = ctreader.read(i)
+    #Add gaussian blur to combine otoliths
+    angle = PCA(ct, threshold=150)
