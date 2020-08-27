@@ -136,3 +136,5 @@ dmypy.json
 
 output/Model
 .hdf5
+.Data/
+
