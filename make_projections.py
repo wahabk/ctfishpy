@@ -18,10 +18,12 @@ made = [int(path.stem) for path in projections.iterdir() if path.is_file() and p
 made.sort()
 nums = [x for x in nums if x not in made]
 nums.sort()
-
 print(nums)
 
+skip = [401, 403]
+
 for fish in nums:
+	if fish in skip: continue
 	ct, stack_metadata = ctreader.read(fish)
 	x, y, z = ctreader.get_max_projections(ct)
 	cv2.imwrite(f'Data/projections/x/{fish}.png', x)
