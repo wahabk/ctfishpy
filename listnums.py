@@ -55,13 +55,21 @@ dz = data.flatten()
 
 cs = ['r', 'g', 'b'] * ly
 
-ax.bar3d(xpos,ypos,zpos, dx, dy, dz, color=cs)
+ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=cs)
 
-#sh()
+ax.tick_params(axis='both', which='major', labelsize=14)
+
 ax.w_xaxis.set_ticklabels(column_names)
+# for tick in ax.w_xaxis.get_major_ticks():
+#     tick.label.set_fontsize(12)
 ax.w_yaxis.set_ticklabels(row_names)
-ax.set_xlabel('Genotype')
-ax.set_ylabel('Age')
-ax.set_zlabel('Occurrence')
+# for tick in ax.w_yaxis.get_major_ticks():
+#     tick.label.set_fontsize(12)
+
+ax.set_xlabel('Genotype', fontsize=20, labelpad=20)
+ax.set_ylabel('Age', fontsize=20, labelpad=20)
+ax.set_zlabel('Occurrence', fontsize=20, labelpad=20)
+
+
 
 plt.show()
