@@ -66,10 +66,20 @@ class CTreader():
     def spin(self, img, label = None, thresh = True):
         return spinner.spinner(img, label, thresh)
 
-    def read_label(self, labelpath):
+    def read_label(self, labelPath):
+        '''
+        Read and return hdf5 label files 
+
+        TODO Automatically find labelPaths stored in .Data/Labels/organ/fishnums
+
+        '''
+        
         print('[CTFishPy] Reading labels...')
-        f = h5py.File(labelpath, 'r')
+
+        # Use h5py module to read labelpath and extract pure numpy array
+        f = h5py.File(labelPath, 'r') 
         label = np.array(f['t0']['channel0'])
+        f.close()
         print('Labels ready.')
         return label
 
