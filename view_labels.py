@@ -6,7 +6,7 @@ import cv2
 
 ctreader = ctfishpy.CTreader()
 
-labelpath = '../../Data/HDD/uCT/Labels/Otolith1/040.h5'
+labelpath = '../../Data/HDD/uCT/Labels/Otolith1/40.h5'
 
 label = ctreader.read_label(labelpath)
 #ctreader.view(label)

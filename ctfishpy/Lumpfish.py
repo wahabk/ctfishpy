@@ -10,6 +10,7 @@ import json
 import cv2
 import os
 import gc
+import h5py
 
 class Lumpfish():
     
@@ -361,6 +362,14 @@ class Lumpfish():
         with open(jsonpath, 'w') as o:
             json.dump(input, o)
 
+    def append_metadata(self, n, inputDict):
+        metadataPath = f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/metadata.json'
+        with open(metadataPath) as f:
+            data = json.load(f)
+        data.update(inputDict)
+        with open(metadataPath, 'w') as f:
+            json.dump(data, f)
+
     def write_clean(self, n, cropped_cts, metadata):
         order = self.fish_order_nums[n]
         print(f'order {len(order)}, number of circles: {len(cropped_cts)}')
@@ -411,3 +420,10 @@ class Lumpfish():
                 print(f'[Fish {order[o]}, slice:{i}/{len(ct)}]', end="\r")
             ct = None
             gc.collect()
+
+    def write_label(self, labelPath, label):
+        with h5py.File(labelPath, 'w') as f:
+            f.create_dataset('t0', data=label)
+        
+        print('Labels ready.')
+        return label

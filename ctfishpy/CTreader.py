@@ -29,7 +29,7 @@ class CTreader():
     def list_numbers(self, m):
         return list(m.loc[:]['n'])
 
-    def read(self, fish, r = None):
+    def read(self, fish, r=None, align=True):
         fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(fish).zfill(3) 
         tifpath = fishpath / 'reconstructed_tifs'
         metadatapath = fishpath / 'metadata.json'
@@ -47,14 +47,18 @@ class CTreader():
         if r:
             for i in tqdm(range(*r)):
                 tiffslice = tiff.imread(images[i])
-                #tiffslice = cv2.imread(images[i]) 
+                ctreader.view(tiffslice)
+                if align == True: 
+                    tiffslice = self.rotate_image(tiffslice, stack_metadata['angle'])
+                    ctreader.view(tiffslice)
                 ct.append(tiffslice)
             ct = np.array(ct)
 
         else:
             for i in tqdm(images):
                 tiffslice = tiff.imread(i)
-                #tiffslice = cv2.imread(i)
+                if align == True: 
+                    tiffslice = self.rotate_image(tiffslice, stack_metadata['angle'])
                 ct.append(tiffslice)
             ct = np.array(ct)
 
@@ -91,8 +95,8 @@ class CTreader():
             new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8) 
             return new_img
         else:
-            print('Stack already 8 bit!')
-            return stack
+            print('image already 8 bit!')
+            return img
 
     def thresh_stack(self, stack, thresh_8):
         '''
@@ -106,6 +110,7 @@ class CTreader():
         for slice_ in stack:
             new_slice = (slice_ > thresh_16) * slice_
             thresholded.append(new_slice)
+            
         return np.array(thresholded)
 
     def saveJSON(self, nparray, jsonpath):
@@ -130,4 +135,9 @@ class CTreader():
         height = int(img.shape[0] * percent / 100)
         return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
 
+    def rotate_image(self, image, angle):
+        image_center = tuple(np.array(image.shape[1::-1]) / 2)
+        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+        result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+        return result
 

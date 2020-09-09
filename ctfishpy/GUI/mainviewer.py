@@ -51,7 +51,7 @@ class Viewer(QWidget):
 		super().__init__()
 
 		# init variables
-		if np.max(stack) == 1: stack = stack*255 #fix labels
+		if np.max(stack) == 1: stack = stack*255 #fix labels so you can view them if are main stack
 		self.ogstack = stack
 		self.stack_size = stack.shape[0]
 		self.stride = stride
@@ -146,7 +146,6 @@ class Viewer(QWidget):
 		elif len(image.shape) == 3: grayscale = False
 		else: raise ValueError('[Viewer] Cant tell if stack is color or grayscale, weird shape :/')
 		if self.is_single_image: grayscale = True
-
 
 		# convert npimage to qimage depending on color mode
 		if grayscale == True:

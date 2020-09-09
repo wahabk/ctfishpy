@@ -8,6 +8,7 @@ from math import atan2, cos, sin, sqrt, pi, degrees
 
 ctreader = ctfishpy.CTreader()
 
+# https://docs.opencv.org/3.4/d1/dee/tutorial_introduction_to_pca.html
 def drawAxis(img, p_, q_, colour, scale):
     p = list(p_)
     q = list(q_)
@@ -66,56 +67,61 @@ def rotate_image(image, angle):
   result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
   return result
 
-areas = []
 
-def PCA(stack, threshold = 150, scale = 75):
-    projections = ctreader.get_max_projections(stack)
-    img = ctreader.resize(projections[0], scale)
-    img = ctreader.to8bit(img)
-    color = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
-    cv2.imshow('raw projection', img)
+def PCA(projection, threshold = 150, scale = 75):
+    color = ctreader.resize(projection, scale)
+
+    cv2.imshow('raw projection', color)
     cv2.waitKey()
     cv2.destroyAllWindows()
 
-    ret, bw = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY) #| cv2.THRESH_OTSU)
-    blur = cv2.GaussianBlur(bw, (77,77), 0)
+    ret, thresh = cv2.threshold(color, 200, 255, cv2.THRESH_BINARY) #| cv2.THRESH_OTSU)
+    bw = cv2.cvtColor(thresh, cv2.COLOR_RGB2GRAY)
+    cv2.imshow('thresholded then blurred', bw)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+    
+    blur_kernel = 43
+    blur = cv2.GaussianBlur(bw, (blur_kernel, blur_kernel), 0)
     cv2.imshow('thresholded then blurred', blur)
-    cv2.waitKey(27)
-    cv2.imwrite('output/pcastep1.png', img)
-    cv2.imwrite('output/pcastep2.png', bw)
-    cv2.imwrite('output/pcastep3.png', blur)
-    cv2.imwrite('output/pcastep4.png', color)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+    #ret, blur = cv2.threshold(blur, 50, 255, cv2.THRESH_BINARY) #| cv2.THRESH_OTSU)
+    cv2.imshow('thresholded then blurred', blur)
+    cv2.waitKey()
+    cv2.destroyAllWindows()
+
+    # cv2.imwrite('output/pcastep1.png', img)
+    # cv2.imwrite('output/pcastep2.png', bw)
+    # cv2.imwrite('output/pcastep3.png', blur)
+    # cv2.imwrite('output/pcastep4.png', color)
     ## [contours]
     # Find all the contours in the thresholded image
+
     contours, _ = cv2.findContours(blur, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
-    
+    areas = [cv2.contourArea(c) for c in contours]
+    i = areas.index(max(areas))
+    # Draw each contour only for visualisation purposes
+    cv2.drawContours(color, contours, i, (0, 0, 255), 2)
+    # Find the orientation of each shape
+    angle = getOrientation(contours[i], color)
 
-
-    for i, c in enumerate(contours):
-        # Calculate the area of each contour
-        area = cv2.contourArea(c)
-        print(area)
-        areas.append(area)
-        # Ignore contours that are too small or too large
-        min_size = 5000
-        if area < min_size:
-            continue
-
-        # Draw each contour only for visualisation purposes
-        cv2.drawContours(color, contours, i, (0, 0, 255), 2)
-        # Find the orientation of each shape
-        angle = getOrientation(c, color)
-
-        rotated = rotate_image(color, angle+180)
+    rotated = rotate_image(color, angle+180)
 
     ## [contours]
-
     cv2.imshow('output', rotated)
     cv2.imwrite('output/pcarotated.png', rotated)
     cv2.waitKey()
+    cv2.destroyAllWindows()
+    return angle
 
-
-for i in range(40,100):
-    ct, stack_metadata = ctreader.read(i)
-    #Add gaussian blur to combine otoliths
-    angle = PCA(ct, threshold=150)
+if __name__ == "__main__":   
+    ctreader = ctfishpy.CTreader()
+    lumpfish = ctfishpy.Lumpfish()
+    for i in [40, 76, 81, 85, 88, 218, 222, 236, 298, 425]:
+        projection = cv2.imread(f'Data/projections/x/{i}.png')
+        #Add gaussian blur to combine otoliths
+        angle = PCA(projection, threshold=150)
+        print(angle)
+        angleDict = {'angle': angle}
+        lumpfish.append_metadata(i, angleDict)
