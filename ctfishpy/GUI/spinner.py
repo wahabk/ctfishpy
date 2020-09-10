@@ -6,18 +6,20 @@ import numpy as np
 import cv2
 import sys
 
-def rotate_image(image, angle):
-  image_center = tuple(np.array(image.shape[1::-1]) / 2)
-  rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-  result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-  return result
+def rotate_image(image, angle, center=None):
+	image_center = tuple(np.array(image.shape[1::-1]) / 2)
+	if center: image_center = center
+	rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+	result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+	return result
 
 class mainViewer(QMainWindow):
 
-	def __init__(self, stack, label = None, thresh = False):
+	def __init__(self, stack, center, label = None, thresh = False):
 		super().__init__()
 		self.thresh = thresh
 		self.label = label
+		self.center = center
 		# convert 16 bit grayscale to 8 bit
 		# by mapping the data range to 0 - 255
 		if stack.dtype == 'uint16':
@@ -34,7 +36,7 @@ class mainViewer(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.spinner = Spinner(self.stack, label = self.label, parent = self, thresh = self.thresh)
+		self.spinner = Spinner(self.stack, center=self.center, label = self.label, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.spinner)
 		#widget.findChildren(QWidget)[0]
 
@@ -53,7 +55,7 @@ class mainViewer(QMainWindow):
 
 class Spinner(QWidget):
 
-	def __init__(self, stack, label = None, thresh = False, stride = 1, parent = None):
+	def __init__(self, stack, center, label = None, thresh = False, stride = 1, parent = None):
 		super().__init__()
 
 		# init variables
@@ -124,9 +126,10 @@ class Spinner(QWidget):
 		if self.angle > self.max_angle-1: 	self.angle = 0
 		if self.angle < 0: 					self.angle = self.max_angle-1
 		
-		ret, self.threshed_image  = cv2.threshold(self.og_image, 
-				self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
-		self.image = rotate_image(self.threshed_image, self.angle)
+		self.image = rotate_image(self.og_image, self.angle)
+		if self.thresh == True: 
+			ret, self.image  = cv2.threshold(self.image, 
+			self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
 
 		# transform image to qimage and set pixmap
 		self.image = self.np2qt(self.image)
@@ -193,9 +196,9 @@ class Spinner(QWidget):
 		self.update()
 
 
-def spinner(stack, label, thresh):
+def spinner(stack, center, label, thresh):
 	app = QApplication(sys.argv)
-	win = mainViewer(stack, label, thresh)
+	win = mainViewer(stack, center, label, thresh)
 	win.show()
 	app.exec_()
 	return win.spinner.angle

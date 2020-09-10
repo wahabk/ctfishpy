@@ -422,8 +422,8 @@ class Lumpfish():
             gc.collect()
 
     def write_label(self, labelPath, label):
-        with h5py.File(labelPath, 'w') as f:
-            f.create_dataset('t0', data=label)
-        
+        hf = h5py.File(labelPath)
+        hf.create_dataset('t0', data=label)
+        hf.close()
         print('Labels ready.')
         return label

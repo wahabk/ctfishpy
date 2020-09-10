@@ -29,14 +29,12 @@ class CTreader():
     def list_numbers(self, m):
         return list(m.loc[:]['n'])
 
-    def read(self, fish, r=None, align=True):
+    def read(self, fish, r=None, align=False):
         fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(fish).zfill(3) 
         tifpath = fishpath / 'reconstructed_tifs'
         metadatapath = fishpath / 'metadata.json'
 
-        metadatafile = metadatapath.open()
-        stack_metadata = json.load(metadatafile)
-        metadatafile.close()
+        stack_metadata = self.read_metadata(fish)
 
         #images = list(tifpath.iterdir())
         images = [str(i) for i in tifpath.iterdir()]
@@ -64,11 +62,22 @@ class CTreader():
 
         return ct, stack_metadata
 
+    def read_metadata(self, n):
+        '''
+        Return metadata dictionary from each fish json
+        '''
+        fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(n).zfill(3) 
+        metadatapath = fishpath / 'metadata.json'
+        with metadatapath.open() as metadatafile:
+            stack_metadata = json.load(metadatafile)
+        return stack_metadata
+
     def view(self, ct, label = None, thresh = False):
         mainviewer.mainViewer(ct, label, thresh)
 
-    def spin(self, img, label = None, thresh = True):
-        return spinner.spinner(img, label, thresh)
+    def spin(self, img, center, label = None, thresh = False):
+        angle = spinner(img, center, label, thresh)
+        return angle
 
     def read_label(self, labelPath):
         '''
@@ -98,6 +107,13 @@ class CTreader():
             print('image already 8 bit!')
             return img
 
+    def rotate_image(self, image, angle, center=None):
+        image_center = tuple(np.array(image.shape[1::-1]) / 2)
+        if center: image_center = center
+        rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+        result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
+        return result
+
     def thresh_stack(self, stack, thresh_8):
         '''
         Threshold CT stack in 16 bits using numpy because it's faster
@@ -125,6 +141,7 @@ class CTreader():
         '''
         return x, y, x which represent axial, saggital, and coronal max projections
         '''
+        #import pdb; pdb.set_trace()
         x = np.max(stack, axis=0)
         y = np.max(stack, axis=1)
         z = np.max(stack, axis=2)

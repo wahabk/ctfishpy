@@ -57,12 +57,12 @@ def makeTemplate(labelsList, scanList, roiSize):
 	for i, ct in enumerate(scanList):
 		otolith = crop3D(ct, cropList[i])
 		ctreader = ctfishpy.CTreader()
+		
 		otolith = ctreader.thresh_stack(otolith, 150)
 		otolithList.append(otolith)
 
 	otolithArray = np.array(otolithList)
 	template = np.array(np.average(otolithArray, 0), dtype='uint16')
-	
 	return template
 
 
@@ -74,13 +74,14 @@ if __name__ == "__main__":
 	scanList = []
 	_list = [40, 76, 81, 85, 88] #,218, 222, 236, 298, 425]
 	for fish in _list:
-		ct, metadata = ctreader.read(fish)
+		ct, metadata = ctreader.read(fish, align=True)
 		label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{fish}.h5')
 		labelsList.append(label)
 		scanList.append(ct)
 
 	template = makeTemplate(labelsList, scanList, roiSize = 125)
-	lumpfish.write_label('Data/Labels/CC/otolith_template.hdf5', template)
 	ctreader.view(template)
+	lumpfish.write_label('./Data/Labels/CC/otolith_template.hdf5', template)
+
 
 #/home/wahab/Data/HDD/uCT/Labels/Otolith1
