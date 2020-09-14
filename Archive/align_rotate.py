@@ -36,4 +36,4 @@ for fish in nums:
 	metadata['angle'] = angle
 	metadata['center'] = center
 	print(angle)
-	lumpfish.write_metadata(fish, metadata)
+	#lumpfish.write_metadata(fish, metadata)

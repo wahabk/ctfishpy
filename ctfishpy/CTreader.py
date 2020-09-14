@@ -79,7 +79,7 @@ class CTreader():
         angle = spinner(img, center, label, thresh)
         return angle
 
-    def read_label(self, labelPath):
+    def read_label(self, labelPath, align=False, n=None, manual=True):
         '''
         Read and return hdf5 label files 
 
@@ -91,8 +91,15 @@ class CTreader():
 
         # Use h5py module to read labelpath and extract pure numpy array
         f = h5py.File(labelPath, 'r') 
-        label = np.array(f['t0']['channel0'])
+        
+        if manual: label = np.array(f['t0']['channel0'])
+        else: 
+            label = np.array(f['t0'])
         f.close()
+        if align: 
+            stack_metadata = self.read_metadata(n)
+            label = [self.rotate_image(i, stack_metadata['angle']) for i in label]
+            label = np.array(label)
         print('Labels ready.')
         return label
 
