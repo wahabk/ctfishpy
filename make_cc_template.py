@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
 	template = makeTemplate(labelsList, scanList, roiSize = 255)
 	templatePath = './Data/Labels/CC/otolith_template_10.hdf5'
-	lumpfish.write_label(templatePath, template)
+	#lumpfish.write_label(templatePath, template)
 	template = ctreader.read_label(templatePath, manual=False)
 	ctreader.view(template)
 
