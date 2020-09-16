@@ -22,7 +22,7 @@ print(nums)
 
 
 for fish in nums:
-	ct, stack_metadata = ctreader.read(fish, align+True)
+	ct, stack_metadata = ctreader.read(fish, align=True)
 	x, y, z = ctreader.get_max_projections(ct)
 	cv2.imwrite(f'Data/projections/x/{fish}.png', x)
 	cv2.imwrite(f'Data/projections/y/{fish}.png', y)

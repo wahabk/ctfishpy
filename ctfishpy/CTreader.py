@@ -136,6 +136,18 @@ class CTreader():
             
         return np.array(thresholded)
 
+    def thresh_img(self, img, thresh_8, is_16bit=False):
+        '''
+        Threshold CT img in 16 bits using numpy because it's faster
+        provide threshold in 8bit since it's more intuitive then convert to 16
+        '''
+
+        thresh_16 = thresh_8 * (65535/255)
+        if is_16bit: thresh = thresh_16
+        if is_16bit: thresh = thresh_8
+        new_img = (img > thresh) * img
+        return new_img
+
     def saveJSON(self, nparray, jsonpath):
         json.dump(nparray, codecs.open(jsonpath, 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True, indent=4) ### this saves the array in .json format
 
