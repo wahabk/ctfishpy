@@ -8,6 +8,7 @@ import numpy as np
 import json
 import cv2
 import h5py
+import codecs
 
 class CTreader():
     def __init__(self):
