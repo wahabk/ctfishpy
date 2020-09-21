@@ -69,20 +69,20 @@ def makeTemplate(labelsList, scanList, roiSize):
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	lumpfish = ctfishpy.Lumpfish()
-	
-	labelsList = []
-	scanList = []
-	_list = [40, 76, 81, 85, 88, 218, 222, 236, 298, 425]
-	for fish in _list:
-		ct, metadata = ctreader.read(fish, align=True)
-		label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{fish}.h5', align=True, n=fish)
-
-		labelsList.append(label)
-		scanList.append(ct)
-
-	template = makeTemplate(labelsList, scanList, roiSize = 255)
 	templatePath = './Data/Labels/CC/otolith_template_10.hdf5'
-	#lumpfish.write_label(templatePath, template)
+
+	# labelsList = []
+	# scanList = []
+	# _list = [40, 76, 81, 85, 88, 218, 222, 236, 298, 425]
+	# for fish in _list:
+	# 	ct, metadata = ctreader.read(fish, align=True)
+	# 	label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{fish}.h5', align=True, n=fish)
+
+	# 	labelsList.append(label)
+	# 	scanList.append(ct)
+
+	# template = makeTemplate(labelsList, scanList, roiSize = 255)
+	# #lumpfish.write_label(templatePath, template)
 	template = ctreader.read_label(templatePath, manual=False)
 	ctreader.view(template)
 

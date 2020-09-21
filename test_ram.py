@@ -12,15 +12,6 @@ ctreader = ctfishpy.CTreader()
 labelpath = lambda f : f'../../Data/HDD/uCT/Labels/Otolith1/{f}.h5'
 sample = [40, 76, 81, 85, 88, 218, 222, 236, 298, 425]
 
-for fish in sample:
-	ct, stack_metadata = ctreader.read(fish, r = (500, 1500))
-	label = ctreader.read_label(labelpath(fish))
-	label = label[500:1500]
-	ctreader.view(ct, label = label)
-	label = None
-	ct = None
-	gc.collect()
-
 ct1, stack_metadata = ctreader.read(40)
 
 ct2, stack_metadata = ctreader.read(41)

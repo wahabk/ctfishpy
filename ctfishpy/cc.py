@@ -23,31 +23,8 @@ def find_max_value_coords(x):
 	x_y_coords =  [indices[0][0], indices[1][0]]
 	return x_y_coords
 
-def crop_around_center3d(array, center=None, roiSize=50):
-	l = int(roiSize/2)
-	if center:
-		z, x, y  = center
-		array = array[z-l:z+l, x-l:x+l, y-l:y+l]
-	else:
-		t = int(template.shape[0]/2)
-		center = [t, t, t]
-		z, x, y  = center
-		array = array[z-l:z+l, x-l:x+l, y-l:y+l]
-	return array
 
-def crop_around_center2d(array, center=None, roiSize=100):
-	l = int(roiSize/2)
-	if center:
-		x, y  = center
-		array = array[x-l:x+l, y-l:y+l]
-	else:
-		t = int(array.shape[0]/2)
-		center = [t, t]
-		x, y  = center
-		array = array[x-l:x+l, y-l:y+l]
-	return array
-
-def cc(projections, template, thresh, roiSize):
+def cc(n, template, thresh, roiSize):
 	'''
 	Cross correlate a ct scan against a template and return center
 	
@@ -57,10 +34,12 @@ def cc(projections, template, thresh, roiSize):
 	IMVIP 2019: Irish Machine Vision & Image Processing, August 28-30. 
 	doi:10.21427/8fgf-y086
 	'''
+	ctreader = ctfishpy.CTreader()
+	projections = ctreader.get_max_projections(n)
 	projections = [cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in projections]
 	projections = [ctreader.thresh_img(i, thresh, True) for i in projections]
-	template = crop_around_center3d(template, roiSize=roiSize)
-	template_projections = ctreader.get_max_projections(template)
+	template = ctreader.crop_around_center3d(template, roiSize=roiSize)
+	template_projections = ctreader.make_max_projections(template)
 
 	_min = 1
 	_max = -1
@@ -128,11 +107,11 @@ if __name__ == "__main__":
 		
 		center, error = cc(projections, template, thresh=200, roiSize=50)
 		center.pop(0)
-		otolith = crop_around_center2d(x, center = center, roiSize=255)
+		otolith = ctreader.crop_around_center2d(x, center = center, roiSize=255)
 
-		# print(otolith.shape)
-		# cv2.imshow('', otolith)
-		# cv2.waitKey(0)
+		print(otolith.shape)
+		cv2.imshow('', otolith)
+		cv2.waitKey(0)
 
 		errors.append(int(error))
 	errors = np.array(errors)

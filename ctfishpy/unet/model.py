@@ -1,3 +1,4 @@
+# https://github.com/zhixuhao/unet
 import numpy as np 
 import os
 import skimage.io as io
@@ -9,7 +10,12 @@ from keras.optimizers import *
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 import tensorflow as tf
 from keras import backend as k
-
+device_name = tf.test.gpu_device_name()
+if not device_name:
+  raise SystemError('GPU device not found')
+print(f'Found GPU at: {device_name}')
+with tf.device("gpu:0"):
+   print("tf.keras code in this scope will run on GPU")
 
 def dice_loss(y_true, y_pred):
   numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=-1)
@@ -61,12 +67,12 @@ def unet(pretrained_weights = None, input_size = (256,256,1)):
 
     model = Model(input = inputs, output = conv10)
 
-    model.compile(optimizer = Adam(lr = 1e-4), loss = dice_loss, metrics = ['accuracy']) # Adam is the optimiser
+    model.compile(optimizer = Adam(lr = 1e-4), loss = 'binary_crossentropy', metrics = ['accuracy']) # Adam is the optimiser
     # change optimizer if doing instance segmentation
     
-    model.summary() #this was commented out
+    # model.summary() #this was commented out
 
-    print(model)
+    # print(model)
 
     if(pretrained_weights):
     	model.load_weights(pretrained_weights)
