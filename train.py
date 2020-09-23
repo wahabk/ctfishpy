@@ -1,4 +1,4 @@
-from ctfishpy.unet.model import *
+from ctfishpy.unet.model import unet, Unet2
 from ctfishpy.dataGenie import *
 import os
 import time
@@ -6,6 +6,8 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 import datetime
 import matplotlib.pyplot as plt
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+
 
 data_gen_args = dict(rotation_range=0,
                     width_shift_range=5,
@@ -39,7 +41,8 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
 #                                                  histogram_freq = 1,
 #                                                  profile_batch = '500,520')
 
-model = unet()
+unet2 = Unet2()
+model = unet2.get_unet()  #unet()
 model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
 history = model.fit_generator(datagenie, steps_per_epoch = steps_per_epoch, epochs = epochs, callbacks = [model_checkpoint])
 
