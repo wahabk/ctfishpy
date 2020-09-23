@@ -43,7 +43,7 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
 
 unet2 = Unet2()
 model = unet2.get_unet()  #unet()
-model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
+model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 0, save_best_only = True)
 history = model.fit_generator(datagenie, steps_per_epoch = steps_per_epoch, epochs = epochs, callbacks = [model_checkpoint])
 
 # summarize history for accuracy
