@@ -3,7 +3,8 @@ from ctfishpy.dataGenie import *
 import os
 import time
 timestr = time.strftime("%Y%m%d-%H%M%S")
-
+import datetime
+import matplotlib.pyplot as plt
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 data_gen_args = dict(rotation_range=0,
@@ -17,9 +18,9 @@ data_gen_args = dict(rotation_range=0,
                     cval = 0)
 
 sample = [76, 40, 81, 85, 88, 218, 222, 236, 298, 425]
-batch_size = 10
-steps_per_epoch = 1
-epochs = 1
+batch_size = 20
+steps_per_epoch = 8
+epochs = 2
 
 datagenie = DataGenie(  batch_size = batch_size,
                         data_gen_args = data_gen_args,
@@ -32,11 +33,11 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
                     flag_multi_class = False,num_class = 2,save_to_dir = None,target_size = (256,256),seed = 1)
 '''
 
-logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+# logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
-tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
-                                                 histogram_freq = 1,
-                                                 profile_batch = '500,520')
+# tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
+#                                                  histogram_freq = 1,
+#                                                  profile_batch = '500,520')
 
 model = unet()
 model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
