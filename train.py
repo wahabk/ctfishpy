@@ -32,11 +32,11 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
                     flag_multi_class = False,num_class = 2,save_to_dir = None,target_size = (256,256),seed = 1)
 '''
 
-logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+# logs = "logs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 
-tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
-                                                 histogram_freq = 1,
-                                                 profile_batch = '500,520')
+# tboard_callback = tf.keras.callbacks.TensorBoard(log_dir = logs,
+#                                                  histogram_freq = 1,
+#                                                  profile_batch = '500,520')
 
 model = unet()
 model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)

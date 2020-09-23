@@ -10,12 +10,12 @@ from keras.optimizers import *
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 import tensorflow as tf
 from keras import backend as k
-device_name = tf.test.gpu_device_name()
-if not device_name:
-  raise SystemError('GPU device not found')
-print(f'Found GPU at: {device_name}')
-with tf.device("gpu:0"):
-   print("tf.keras code in this scope will run on GPU")
+# device_name = tf.test.gpu_device_name()
+# if not device_name:
+#   raise SystemError('GPU device not found')
+# print(f'Found GPU at: {device_name}')
+# with tf.device("gpu:0"):
+#    print("tf.keras code in this scope will run on GPU")
 
 def dice_loss(y_true, y_pred):
   numerator = 2 * tf.reduce_sum(y_true * y_pred, axis=-1)
