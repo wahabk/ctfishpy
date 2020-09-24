@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from .GUI import mainviewer
 from .GUI import spinner
 from pathlib2 import Path
@@ -9,7 +10,6 @@ import json
 import cv2
 import h5py
 import codecs
-from dotenv import load_dotenv
 import os
 
 
@@ -37,9 +37,14 @@ class CTreader():
 		return trimmed
 
 	def list_numbers(self, m):
+		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]['n'])
 
 	def read(self, fish, r=None, align=False):
+		'''
+		Main function to read zebrafish from local dataset path specified in .env
+		'''
+
 		fishpath = self.dataset_path / str(fish).zfill(3) 
 		tifpath = fishpath / 'reconstructed_tifs'
 		metadatapath = fishpath / 'metadata.json'
@@ -84,9 +89,15 @@ class CTreader():
 		return stack_metadata
 
 	def view(self, ct, label = None, thresh = False):
+		'''
+		Main viewer using PyQt5
+		'''
 		mainviewer.mainViewer(ct, label, thresh)
 
 	def spin(self, img, center, label = None, thresh = False):
+		'''
+		Manual spinner made to align fish
+		'''
 		angle = spinner(img, center, label, thresh)
 		return angle
 
@@ -126,6 +137,10 @@ class CTreader():
 			return img
 
 	def rotate_image(self, image, angle, center=None):
+		'''
+		Rotate images properly using cv2.warpAffine 
+		since it provides more control eg over center
+		'''
 		image_center = tuple(np.array(image.shape[1::-1]) / 2)
 		if center: image_center = center
 		rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
@@ -160,16 +175,23 @@ class CTreader():
 		return new_img
 
 	def saveJSON(self, nparray, jsonpath):
+		'''
+		Just a quick way to save nparrays as json
+		'''
 		json.dump(nparray, codecs.open(jsonpath, 'w', encoding='utf-8'), separators=(',', ':'), sort_keys=True, indent=4) ### this saves the array in .json format
 
 	def readJSON(self, jsonpath):
+		'''
+		Just a quick way to read nparrays as json
+		'''
 		obj_text = codecs.open(jsonpath, 'r', encoding='utf-8').read()
 		obj = json.loads(obj_text)
 		return np.array(obj)
 
 	def get_max_projections(self, n):
 		'''
-		return x, y, x which represent axial, saggital, and coronal max projections
+		Return x, y, z which represent axial, saggital, and coronal max projections
+		This reads them instead of generating them
 		'''
 		#import pdb; pdb.set_trace()
 		x = cv2.imread(f'Data/projections/x/{n}.png')
@@ -179,7 +201,7 @@ class CTreader():
 
 	def make_max_projections(self, stack):
 		'''
-		return x, y, x which represent axial, saggital, and coronal max projections
+		Make x, y, z which represent axial, saggital, and coronal max projections
 		'''
 		#import pdb; pdb.set_trace()
 		x = np.max(stack, axis=0)
@@ -192,25 +214,28 @@ class CTreader():
 		height = int(img.shape[0] * percent / 100)
 		return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
 
-	def rotate_image(self, image, angle):
-		image_center = tuple(np.array(image.shape[1::-1]) / 2)
-		rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-		result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-		return result
-
 	def crop_around_center3d(self, array, center=None, roiSize=50, roiZ=None):
+		'''
+		Crop around the center of 3d array
+		You can specify the center of crop if you want
+		Also possible to set different ROI size for XY and Z
+		'''
+		
 		l = int(roiSize/2)
 		if roiZ: zl = int(roiZ/2)
 		else: zl = l
 		if center == None:
 			c = int(array.shape[0]/2)
 			center = [c, c, c]
-
 		z, x, y  = center
 		array = array[z-zl:z+zl, x-l:x+l, y-l:y+l]
 		return array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):
+		'''
+		I have to crop a lot of images so this is a handy utility function
+		If you don't provide a center of rotation this will rotate around nominal center
+		'''
 		l = int(roiSize/2)
 		if center == None:
 			t = int(array.shape[0]/2)
