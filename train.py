@@ -20,9 +20,9 @@ data_gen_args = dict(rotation_range=0,
                     cval = 0)
 
 sample = [76, 40, 81, 85, 88, 218, 222, 236, 298, 425]
-batch_size = 20
-steps_per_epoch = 8
-epochs = 2
+batch_size = 10
+steps_per_epoch = 2
+epochs = 1
 
 datagenie = DataGenie(  batch_size = batch_size,
                         data_gen_args = data_gen_args,

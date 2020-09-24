@@ -9,11 +9,17 @@ import json
 import cv2
 import h5py
 import codecs
+from dotenv import load_dotenv
+
 
 class CTreader():
 	def __init__(self):
+		# Use a local .env file to set where dataset is on current machine
+		# This .env file is not uploaded by git
+		load_dotenv()
+		self.dataset_path = Path(os.getenv('DATASET_PATH'))
 		self.master = pd.read_csv('./uCT_mastersheet.csv')
-		self.fishnums = np.arange(40,639)
+		self.fish_nums = [int(path.stem) for path in self.dataset_path.iterdir() if path.is_dir()]
 
 	def mastersheet(self):
 		return self.master
@@ -31,7 +37,7 @@ class CTreader():
 		return list(m.loc[:]['n'])
 
 	def read(self, fish, r=None, align=False):
-		fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(fish).zfill(3) 
+		fishpath = self.dataset_path / str(fish).zfill(3) 
 		tifpath = fishpath / 'reconstructed_tifs'
 		metadatapath = fishpath / 'metadata.json'
 
@@ -66,7 +72,7 @@ class CTreader():
 		'''
 		Return metadata dictionary from each fish json
 		'''
-		fishpath = Path.home() / 'Data' / 'HDD' / 'uCT' / 'low_res_clean' / str(n).zfill(3) 
+		fishpath = self.dataset_path / str(fish).zfill(3) 
 		metadatapath = fishpath / 'metadata.json'
 		with metadatapath.open() as metadatafile:
 			stack_metadata = json.load(metadatafile)
