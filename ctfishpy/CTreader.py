@@ -10,6 +10,7 @@ import cv2
 import h5py
 import codecs
 from dotenv import load_dotenv
+import os
 
 
 class CTreader():
@@ -19,7 +20,9 @@ class CTreader():
 		load_dotenv()
 		self.dataset_path = Path(os.getenv('DATASET_PATH'))
 		self.master = pd.read_csv('./uCT_mastersheet.csv')
-		self.fish_nums = [int(path.stem) for path in self.dataset_path.iterdir() if path.is_dir()]
+		nums = [int(path.stem) for path in self.dataset_path.iterdir() if path.is_dir()]
+		nums.sort()
+		self.fish_nums = nums
 
 	def mastersheet(self):
 		return self.master
@@ -40,6 +43,9 @@ class CTreader():
 		fishpath = self.dataset_path / str(fish).zfill(3) 
 		tifpath = fishpath / 'reconstructed_tifs'
 		metadatapath = fishpath / 'metadata.json'
+		with open('ctfishpy/angles.json', 'r') as fp:
+			angles = json.load(fp)
+		angle = angles[str(fish)]
 
 		stack_metadata = self.read_metadata(fish)
 
@@ -53,8 +59,7 @@ class CTreader():
 			for i in tqdm(range(*r)):
 				tiffslice = tiff.imread(images[i])
 				if align == True: 
-					tiffslice = self.rotate_image(tiffslice, stack_metadata['angle'])
-
+					tiffslice = self.rotate_image(tiffslice, angle)
 				ct.append(tiffslice)
 			ct = np.array(ct)
 
@@ -62,13 +67,13 @@ class CTreader():
 			for i in tqdm(images):
 				tiffslice = tiff.imread(i)
 				if align == True: 
-					tiffslice = self.rotate_image(tiffslice, stack_metadata['angle'])
+					tiffslice = self.rotate_image(tiffslice, angle)
 				ct.append(tiffslice)
 			ct = np.array(ct)
 
 		return ct, stack_metadata
 
-	def read_metadata(self, n):
+	def read_metadata(self, fish):
 		'''
 		Return metadata dictionary from each fish json
 		'''
