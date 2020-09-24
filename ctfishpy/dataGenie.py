@@ -11,7 +11,55 @@ def fixFormat(batch, label = False):
     if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
     if label: return np.squeeze(batch.astype('uint8'), axis = 3)
 
-def DataGenie(batch_size, data_gen_args, fish_nums = None):
+def dataGenie(batch_size, data_gen_args, fish_nums = None):
+    imagegen = ImageDataGenerator(**data_gen_args)
+    maskgen = ImageDataGenerator(**data_gen_args)
+
+    while True:
+        for num in fish_nums:
+            scan_halves = None
+            templatePath = './Data/Labels/CC/otolith_template_10.hdf5'
+
+            ctreader = CTreader()
+            template = ctreader.read_label(templatePath, manual=False)
+            projections = ctreader.get_max_projections(num)
+            center, error = cc(num, template, thresh=200, roiSize=50)
+            z_center = center[0]
+            ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)#(1400,1600))
+            label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
+            center[0] = 50
+
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=100)
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=257, roiZ=100)
+
+
+            ct      = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+            label   = label[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+
+            print('[dataGenie] Initialising image and mask generators')
+
+            image_generator = imagegen.flow(ct,
+                batch_size = batch_size,
+                #save_to_dir = 'output/Keras/',
+                save_prefix = 'dataGenie',
+                seed = 420
+                )
+            mask_generator = maskgen.flow(label, 
+                batch_size = batch_size,
+                #save_to_dir = 'output/Keras/',
+                save_prefix = 'dataGenie',
+                seed = 420
+                )
+            print('Ready.')
+
+            datagen = zip(image_generator, mask_generator)
+            for x_batch, y_batch in datagen:
+                yield (x_batch, y_batch)
+            
+            ct, label = None, None
+            gc.collect()
+
+def valDataGenie(batch_size, data_gen_args, fish_nums = None):
     imagegen = ImageDataGenerator(**data_gen_args)
     maskgen = ImageDataGenerator(**data_gen_args)
 

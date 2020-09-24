@@ -15,5 +15,3 @@ nums = ctreader.fish_nums
 angles = {}
 for fish in nums:
 	ct, stack_metadata = ctreader.read(fish, align=True)
-
-
