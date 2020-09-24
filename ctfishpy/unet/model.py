@@ -9,6 +9,15 @@ from keras.layers import Input, merge, Conv2D, MaxPooling2D, UpSampling2D, Dropo
 from keras.optimizers import *
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 import tensorflow as tf
+<<<<<<< HEAD
+from keras import backend as k
+# device_name = tf.test.gpu_device_name()
+# if not device_name:
+#   raise SystemError('GPU device not found')
+# print(f'Found GPU at: {device_name}')
+# with tf.device("gpu:0"):
+#    print("tf.keras code in this scope will run on GPU")
+=======
 
 device_name = tf.test.gpu_device_name()
 if not device_name:
@@ -19,6 +28,7 @@ config = tf.config.experimental.set_memory_growth(gpus[0], True)
 
 with tf.device("gpu:0"):
    print("tf.keras code in this scope will run on GPU")
+>>>>>>> d72baae9e60f6e4e939cf3c6e1c5b9ba63c9d2dd
 
 def dice_coef(y_true, y_pred):
     smooth = 1
