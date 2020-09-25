@@ -132,7 +132,7 @@ dmypy.json
 .DS_Store
 
 # VScode stuff
-vscode/
+.vscode/
 
 output/Model
 .hdf5
