@@ -10,21 +10,21 @@ def fixFormat(batch, label = False):
     if label: return np.squeeze(batch.astype('uint8'), axis = 3)
 
 if __name__ == "__main__":
-	data_gen_args = dict(rotation_range=0,
-						width_shift_range=0.005,
-						height_shift_range=0.005,
+	data_gen_args = dict(rotation_range=0.001,
+						width_shift_range=0.01,
+						height_shift_range=0.01,
 						shear_range=0.01,
-						zoom_range=0,
+						zoom_range=0.3,
 						horizontal_flip=True,
 						vertical_flip = True,
 						fill_mode='constant',
 						cval = 0)
-	batch_size =200
+	batch_size =16
 
 	sample = [76, 40, 81, 85, 88, 218, 222, 236, 298, 425]
 	# change label path to read labels directly
 
-	datagenie = ctfishpy.DataGenie(  batch_size = batch_size,
+	datagenie = ctfishpy.dataGenie(  batch_size = batch_size,
 							data_gen_args = data_gen_args,
 							fish_nums = sample)
 
@@ -39,3 +39,4 @@ if __name__ == "__main__":
 		ctreader.view(x_batch, label = y_batch)
 
 		#break
+

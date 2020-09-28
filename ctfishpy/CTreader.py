@@ -201,9 +201,9 @@ class CTreader():
 		'''
 		#import pdb; pdb.set_trace()
 		dpath = str(self.dataset_path)
-		x = cv2.imread(f'{dpath}/projections/x/{n}.png')
-		y = cv2.imread(f'{dpath}/projections/y/{n}.png')
-		z = cv2.imread(f'{dpath}/projections/z/{n}.png')
+		x = cv2.imread(f'{dpath}/projections/x/x_{n}.png')
+		y = cv2.imread(f'{dpath}/projections/y/y_{n}.png')
+		z = cv2.imread(f'{dpath}/projections/z/z_{n}.png')
 		return [z, x, y]
 
 	def make_max_projections(self, stack):
@@ -221,7 +221,7 @@ class CTreader():
 		height = int(img.shape[0] * percent / 100)
 		return cv2.resize(img, (width, height), interpolation = cv2.INTER_AREA)
 
-	def crop_around_center3d(self, array, center=None, roiSize=50, roiZ=None):
+	def crop_around_center3d(self, array, center=None, roiSize=None, roiZ=None):
 		'''
 		Crop around the center of 3d array
 		You can specify the center of crop if you want
