@@ -3,7 +3,7 @@ from ctfishpy.dataGenie import *
 from ctfishpy import Lumpfish
 import os
 import time
-timestr = time.strftime("%Y%m%d-%H%M%S")
+timestr = time.strftime("%Y-%m-%d")
 import datetime
 import matplotlib.pyplot as plt
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -20,12 +20,13 @@ data_gen_args = dict(rotation_range=0.3,
                     fill_mode='constant',
                     cval = 0)
 
-sample = [76, 40, 81, 85, 88, 222, 236]
+sample = [76, 40, 81, 85, 88, 222, 236, 218, 425]
 test_num = 218
-val_sample = [298, 425]
+val_sample = [218]
+val_steps = 16
 batch_size = 16
-steps_per_epoch = 20
-epochs = 5
+steps_per_epoch = 16
+epochs = 64
 
 datagenie = dataGenie(  batch_size = batch_size,
                         data_gen_args = data_gen_args,
@@ -50,8 +51,8 @@ trainGenerator(batch_size,train_path,image_folder,mask_folder,aug_dict,image_col
 
 unet2 = Unet2()
 model = unet2.get_unet()  #unet()
-model_checkpoint = ModelCheckpoint(f'output/Model/{timestr}_unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
-history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = steps_per_epoch, epochs = epochs, validation_steps=2, callbacks = [model_checkpoint])
+model_checkpoint = ModelCheckpoint(f'output/Model/unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
+history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = steps_per_epoch, epochs = epochs, validation_steps=val_steps, callbacks = [model_checkpoint])
 
 # summarize history for accuracy
 plt.plot(history.history['accuracy'])
@@ -71,7 +72,7 @@ plt.legend(['train', 'test'], loc='upper left')
 plt.savefig('output/Model/loss_curves/loss.png')
 
 testGenie = testGenie(test_num)
-results = model.predict_generator(testGene, 100, verbose = 1) # read about this one
+results = model.predict(testGenie, 100, verbose = 1) # read about this one
 lumpfish = Lumpfish()
 lumpfish.write_label('prediction.hdf5', results)
 

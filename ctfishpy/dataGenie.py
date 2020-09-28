@@ -44,13 +44,13 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             batch_size = batch_size,
             #save_to_dir = 'output/Keras/',
             save_prefix = 'dataGenie',
-            seed = 2456
+            seed = 42069
             )
         mask_generator = maskgen.flow(label_list, 
             batch_size = batch_size,
             #save_to_dir = 'output/Keras/',
             save_prefix = 'dataGenie',
-            seed = 2456
+            seed = 42069
             )
         print('Ready.')
 
@@ -61,7 +61,7 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
         ct_list, label_list = None, None
         gc.collect()
 
-def testGenie(num):
+def testGenie(num, batch_size=16):
     templatePath = '../../Data/HDD/uCT/Labels/CC/otolith_template_10.hdf5'
     ctreader = CTreader()
     template = ctreader.read_label(templatePath, manual=False)
@@ -75,6 +75,21 @@ def testGenie(num):
     center[0] = 50
     ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=100)
     datagen = zip(ct, label)
+    imagegen = ImageDataGenerator()
+    maskgen = ImageDataGenerator()
+    ct      = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+    label   = label[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+    image_generator = imagegen.flow(ct,
+            batch_size = batch_size,
+            #save_to_dir = 'output/Keras/',
+            save_prefix = 'dataGenie'
+            )
+    mask_generator = maskgen.flow(label,
+            batch_size = batch_size,
+            #save_to_dir = 'output/Keras/',
+            save_prefix = 'dataGenie'
+            )
+    datagen = zip(image_generator, mask_generator)
     for x_batch, y_batch in datagen:
         yield (x_batch, y_batch)
 

@@ -17,7 +17,7 @@ print(f'Found GPU at: {device_name}')
 gpus = tf.config.experimental.list_physical_devices('GPU')
 # config = tf.config.experimental.set_memory_growth(gpus[0], True)
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 with tf.device("gpu:0"):
    print("tf.keras code in this scope will run on GPU")
@@ -105,7 +105,7 @@ class Unet2(object):
 
     def get_unet(self):
 
-        input1 = Input((self.img_rows, self.img_cols, 1))
+        input1 = Input((256, 256, 1))
 
         conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(input1)
         conv1 = Conv2D(64, 3, activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
@@ -151,9 +151,17 @@ class Unet2(object):
         conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)
 
         model = Model(inputs=input1, outputs=conv10)
+        learning_rate = 0.01
+        decay_rate = 5e-6
+        momentum = 0.9
+        sgd = SGD(lr=learning_rate,momentum=momentum, decay=decay_rate, nesterov=False)
+        
 
-        model.compile(optimizer=Adam(lr=1e-4), loss=dice_coef_loss, metrics=['accuracy'])
-
+        model.compile(optimizer=sgd, loss=dice_coef_loss, metrics=['accuracy'])
+        'output/Model/unet_checkpoints.hdf5'
+        model.load_weights(pretrained_weights)
+        
+        #Adam(lr=1e-2)
         return model
 
     def train(self):
