@@ -20,7 +20,8 @@ class CTreader():
 		load_dotenv()
 		self.dataset_path = Path(os.getenv('DATASET_PATH'))
 		self.master = pd.read_csv('./uCT_mastersheet.csv')
-		nums = [int(path.stem) for path in self.dataset_path.iterdir() if path.is_dir()]
+		low_res_clean_path = self.dataset_path / 'low_res_clean/'
+		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
 		self.fish_nums = nums
 
@@ -45,7 +46,7 @@ class CTreader():
 		Main function to read zebrafish from local dataset path specified in .env
 		'''
 
-		fishpath = self.dataset_path / str(fish).zfill(3) 
+		fishpath = self.dataset_path / 'low_res_clean' / str(fish).zfill(3) 
 		tifpath = fishpath / 'reconstructed_tifs'
 		metadatapath = fishpath / 'metadata.json'
 		with open('ctfishpy/angles.json', 'r') as fp:
@@ -82,7 +83,7 @@ class CTreader():
 		'''
 		Return metadata dictionary from each fish json
 		'''
-		fishpath = self.dataset_path / str(fish).zfill(3) 
+		fishpath = self.dataset_path / 'low_res_clean' / str(fish).zfill(3) 
 		metadatapath = fishpath / 'metadata.json'
 		with metadatapath.open() as metadatafile:
 			stack_metadata = json.load(metadatafile)
@@ -114,13 +115,18 @@ class CTreader():
 		# Use h5py module to read labelpath and extract pure numpy array
 		f = h5py.File(labelPath, 'r') 
 		
-		if manual: label = np.array(f['t0']['channel0'])
+		if manual: 
+			label = np.array(f['t0']['channel0'])
+			with open('ctfishpy/angles.json', 'r') as fp:
+				angles = json.load(fp)
+			angle = angles[str(n)]
 		else: 
 			label = np.array(f['t0'])
 		f.close()
 		if align: 
 			stack_metadata = self.read_metadata(n)
-			label = [self.rotate_image(i, stack_metadata['angle']) for i in label]
+
+			label = [self.rotate_image(i, angle) for i in label]
 			label = np.array(label)
 		print('Labels ready.')
 		return label
@@ -194,10 +200,11 @@ class CTreader():
 		This reads them instead of generating them
 		'''
 		#import pdb; pdb.set_trace()
-		x = cv2.imread(f'Data/projections/x/{n}.png')
-		y = cv2.imread(f'Data/projections/y/{n}.png')
-		z = cv2.imread(f'Data/projections/z/{n}.png')
-		return [x, y, z]
+		dpath = str(self.dataset_path)
+		x = cv2.imread(f'{dpath}/projections/x/{n}.png')
+		y = cv2.imread(f'{dpath}/projections/y/{n}.png')
+		z = cv2.imread(f'{dpath}/projections/z/{n}.png')
+		return [z, x, y]
 
 	def make_max_projections(self, stack):
 		'''

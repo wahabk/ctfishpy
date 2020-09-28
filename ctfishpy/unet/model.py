@@ -9,12 +9,15 @@ from keras.layers import Input, merge, Conv2D, MaxPooling2D, UpSampling2D, Dropo
 from keras.optimizers import *
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 import tensorflow as tf
+import keras.backend as K
 device_name = tf.test.gpu_device_name()
 if not device_name:
   raise SystemError('GPU device not found')
 print(f'Found GPU at: {device_name}')
 gpus = tf.config.experimental.list_physical_devices('GPU')
 # config = tf.config.experimental.set_memory_growth(gpus[0], True)
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 with tf.device("gpu:0"):
    print("tf.keras code in this scope will run on GPU")

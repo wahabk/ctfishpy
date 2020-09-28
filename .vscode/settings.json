@@ -1,5 +1,5 @@
 {
     "python.linting.pylintEnabled": true,
     "python.linting.enabled": true,
-    "python.pythonPath": "/home/wahab/.virtualenvs/fish/bin/python"
+    "python.pythonPath": "/home/ak18001/.virtualenvs/fish/bin/python"
 }
