@@ -134,7 +134,6 @@ dmypy.json
 # VScode stuff
 .vscode
 
-output/Model
 .hdf5
 Data/
 
