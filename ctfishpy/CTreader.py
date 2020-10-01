@@ -29,10 +29,12 @@ class CTreader():
 		return self.master
 
 	def trim(self, m, col, value):
-		# Trim df to e.g. fish that are 12 years old
-		# Find all rows that have specified value in specified column
-		# e.g. find all rows that have 12 in column 'age'
+		'''
+		Trim df to e.g. fish that are 12 years old
+		Find all rows that have specified value in specified column
+		e.g. find all rows that have 12 in column 'age'
 		index = list(m.loc[m[col]==value].index.values)
+		'''
 		# delete ones not in index
 		trimmed = m.drop(set(m.index) - set(index))
 		return trimmed
@@ -201,9 +203,9 @@ class CTreader():
 		'''
 		#import pdb; pdb.set_trace()
 		dpath = str(self.dataset_path)
-		x = cv2.imread(f'{dpath}/projections/x/{n}.png')
-		y = cv2.imread(f'{dpath}/projections/y/{n}.png')
-		z = cv2.imread(f'{dpath}/projections/z/{n}.png')
+		z = cv2.imread(f'{dpath}/projections/z/z_{n}.png')
+		x = cv2.imread(f'{dpath}/projections/x/x_{n}.png')
+		y = cv2.imread(f'{dpath}/projections/y/y_{n}.png')
 		return [z, x, y]
 
 	def make_max_projections(self, stack):
