@@ -158,9 +158,11 @@ class Unet2(object):
         
 
         model.compile(optimizer=sgd, loss=dice_coef_loss, metrics=['accuracy'])
-        'output/Model/unet_checkpoints.hdf5'
-        model.load_weights(pretrained_weights)
-        
+        pretrained_weights = 'output/Model/unet_checkpoints.hdf5'
+        try: 
+            model.load_weights(pretrained_weights)
+        except:
+            print('didnt work')
         #Adam(lr=1e-2)
         return model
 

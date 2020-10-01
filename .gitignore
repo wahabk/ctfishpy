@@ -135,5 +135,5 @@ dmypy.json
 .vscode
 
 .hdf5
-Data/
+Data
 
