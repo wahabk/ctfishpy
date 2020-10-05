@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 
 
-data_gen_args = dict(rotation_range=0.3,
+data_gen_args = dict(rescale=1. / 65535,
+                    rotation_range=0.3,
                     width_shift_range=0.1,
                     height_shift_range=0.1,
                     shear_range=0.2,
@@ -20,7 +21,7 @@ data_gen_args = dict(rotation_range=0.3,
                     fill_mode='constant',
                     cval = 0)
 
-sample = [76, 40, 81, 85, 88, 222, 236, 218, 425]
+sample = [76, 40, 81, 85, 88, 222, 236, 425]
 test_num = 218
 val_sample = [218]
 val_steps = 16

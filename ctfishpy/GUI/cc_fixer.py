@@ -11,9 +11,8 @@ class mainView(QMainWindow):
 	def __init__(self, stack):
 		super().__init__()
 
-		# convert 16 bit grayscale to 8 bit
-		# by mapping the data range to 0 - 255
 		self.stack = stack
+		self.pad = 20
 		self.initUI()
 
 
@@ -23,7 +22,6 @@ class mainView(QMainWindow):
 		self.statusBar().showMessage('Status bar: Ready')
 
 		self.fixer = Fixer(self.stack, self)
-
 		self.scrollArea = QScrollArea()
 		self.scrollArea.setWidget(self.fixer)
 		self.scrollArea.setBackgroundRole(QPalette.Dark)
@@ -32,7 +30,7 @@ class mainView(QMainWindow):
 
 		menubar = self.menuBar()
 		fileMenu = menubar.addMenu('&File')
-		self.setGeometry(1100, 10, self.fixer.width(), self.fixer.height())
+		self.setGeometry(1100, 10, self.fixer.width()+self.pad, self.fixer.height()+self.pad)
 
 		
 	def keyPressEvent(self, event):
@@ -40,35 +38,20 @@ class mainView(QMainWindow):
 		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q :
 			self.close()
 
-	def updateStatusBar(self, slice_ = 0):
-		self.statusBar().showMessage(f'{slice_}/{self.stack_length}')
-
 
 class Fixer(QWidget):
 
-	def __init__(self, projections, parent):
+	def __init__(self, projection, parent):
 		super().__init__()
 
 		# init variables
-		for img in projections:
-			if np.max(img) == 1: 
-				img = img*255 #fix labels so you can view them if are main stack
-			print(img.shape)
-		self.ogstack = projections
+		if np.max(projection) == 1: 
+			projection = projection*255 #fix labels so you can view them if are main stack
 		self.parent = parent
 		self.pad = 20
-		self.step = 0
-		self.position_list = []
-		'''
-		position_list = [
-			[x, y],
-			[z, x],
-			[z, y]
-		]
-		'''
+		self.image = projection
+		self.position = []
 
-		#if self.ogstack.shape[0] == self.ogstack.shape[1]: self.is_single_image = True
-		self.is_single_image = True
 
 		# set background colour to cyan
 		p = self.palette()
@@ -77,27 +60,24 @@ class Fixer(QWidget):
 		self.setAutoFillBackground(True)
 
 		self.qlabel = QLabel(self)
-		self.qlabel.setMargin(10)
+		self.qlabel.setMargin(0)
 		self.initUI()
 
 	def initUI(self):
-		self.update()
 		
+		self.setGeometry(10, 10, self.image.shape[1], self.image.shape[0])
+		self.update()
 		self.qlabel.mousePressEvent = self.getPixel
 
 	def update(self):
 
-		self.image = self.ogstack[self.step]
-		self.setGeometry(0, 0, 
-			self.image.shape[0] + self.pad, 
-			self.image.shape[1] + self.pad*3)
+		self.qlabel.setGeometry(10, 10, self.image.shape[1], self.image.shape[0])
 
 		# transform image to qimage and set pixmap
 		self.image = self.np2qt(self.image)
 		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
-
 		self.qlabel.setPixmap(self.pixmap)
-
+		
 
 	def np2qt(self, image):
 		# transform np cv2 image to qt format
@@ -121,17 +101,7 @@ class Fixer(QWidget):
 		#get pixels of every click and assign circle order
 		x = event.pos().x()
 		y = event.pos().y()
-
-		self.position_list.append([x, y])
-		self.step += 1
-		if self.step == 3:
-			self.finish()
-			return
-		self.update()
-			
-
-	def finish(self):
-		self.final_position = self.position_list
+		self.position = [x, y]
 		self.parent.close()
 
 
@@ -140,4 +110,4 @@ def mainFixer(stack):
 	win = mainView(stack)
 	win.show()
 	app.exec_()
-	return win.fixer.final_position
+	return win.fixer.position

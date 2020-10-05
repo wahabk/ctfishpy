@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
-from .GUI import mainviewer
-from .GUI import spinner
+from .GUI import *
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
@@ -135,7 +134,7 @@ class CTreader():
 
 	def to8bit(self, img):
 		'''
-		Change img from 16bit to 8bit
+		Change img from 16bit to 8bit by mapping the data range to 0 - 255
 		'''
 		if img.dtype == 'uint16':
 			new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8) 
@@ -252,3 +251,21 @@ class CTreader():
 		x, y  = center
 		array = array[x-l:x+l, y-l:y+l]
 		return array
+
+	def cc_fixer(self, fish):
+		projections = self.get_max_projections(fish)
+		positions = [mainFixer(p) for p in projections]
+		'''
+			Positions that come from PyQt QPixmap are for some reason in y, x format
+			So this function averages the two values
+
+			position_list = [
+				[y, x],
+				[x, z],
+				[y, z]
+			]
+		'''
+		x = int((positions[0][1] + positions[1][0])/2)
+		y = int((positions[0][0] + positions[2][0])/2)
+		z = int((positions[1][1] + positions[2][1])/2)
+		return [z, x, y]

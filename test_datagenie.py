@@ -21,7 +21,7 @@ if __name__ == "__main__":
 						cval = 0)
 	batch_size =16
 
-	sample = [76, 40, 81, 85, 88, 218, 222, 236, 298, 425]
+	sample = [76, 40, 81, 85, 88, 218, 222, 236, 425]
 	# change label path to read labels directly
 
 	datagenie = ctfishpy.dataGenie(  batch_size = batch_size,
