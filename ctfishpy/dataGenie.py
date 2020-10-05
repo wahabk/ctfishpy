@@ -84,7 +84,7 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
 
         datagen = zip(image_generator, mask_generator)
         for x_batch, y_batch in datagen:
-            img,mask = adjustData(img,mask)
+            x_batch,y_batch = adjustData(x_batch,y_batch)
             yield (x_batch, y_batch)
         
         ct_list, label_list = None, None
