@@ -50,11 +50,15 @@ class CTreader():
 		fishpath = self.dataset_path / 'low_res_clean' / str(fish).zfill(3) 
 		tifpath = fishpath / 'reconstructed_tifs'
 		metadatapath = fishpath / 'metadata.json'
-		with open('ctfishpy/angles.json', 'r') as fp:
-			angles = json.load(fp)
-		angle = angles[str(fish)]
+
+		# Apologies this is broken but angles available in some metadata files (v4 dataset)
+		# but not available on older dataset so can revert to using angle json
+		# with open('ctfishpy/angles.json', 'r') as fp:
+		# 	angles = json.load(fp)
+		# angle = angles[str(fish)]
 
 		stack_metadata = self.read_metadata(fish)
+		angle = stack_metadata['angle']
 
 		#images = list(tifpath.iterdir())
 		images = [str(i) for i in tifpath.iterdir()]
@@ -212,10 +216,10 @@ class CTreader():
 		Make x, y, z which represent axial, saggital, and coronal max projections
 		'''
 		#import pdb; pdb.set_trace()
-		x = np.max(stack, axis=0)
+		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
-		z = np.max(stack, axis=2)
-		return [x, y, z]
+		x = np.max(stack, axis=2)
+		return [z, x, y]
 
 	def resize(self, img, percent=100):
 		width = int(img.shape[1] * percent / 100)
