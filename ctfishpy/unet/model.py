@@ -46,7 +46,7 @@ class Unet(object):
         imgs_test = mydata.load_test_data()
         return imgs_train, imgs_mask_train, imgs_test
 
-    def get_unet(self):
+    def get_unet(self, preload=True):
 
         input1 = Input((256, 256, 1))
 
@@ -94,19 +94,17 @@ class Unet(object):
         conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)
 
         model = Model(inputs=input1, outputs=conv10)
-        learning_rate = 0.01
-        decay_rate = 5e-6
-        momentum = 0.9
-        sgd = SGD(lr=learning_rate,momentum=momentum, decay=decay_rate, nesterov=False)
-        
+        learning_rate = 0.0001
+        opt = Adam(lr=learning_rate)
 
-        model.compile(optimizer=Adam(lr=1e-2), loss=dice_coef_loss, metrics=['accuracy'])
+        model.compile(optimizer=opt, loss=dice_coef_loss, metrics=['accuracy'])
         pretrained_weights = 'output/Model/unet_checkpoints.hdf5'
-        try: 
-            model.load_weights(pretrained_weights)
-            print('\n \n Pretrained weights loaded \n\n')
-        except:
-            print('\n \n Pretrained weights *not* loaded \n\n')
+        if preload == True: 
+            try:
+                model.load_weights(pretrained_weights)
+                print('\n \n Pretrained weights loaded \n\n')
+            except:
+                print('\n \n Pretrained weights *not* loaded \n\n')
 
         return model
 

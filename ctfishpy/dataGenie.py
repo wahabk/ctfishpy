@@ -54,15 +54,17 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)
             label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
             
-            label = ctreader.crop_around_center3d(label, center = center, roiSize=257, roiZ=100)
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=257, roiZ=25)
             center[0] = 50 # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
-            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=100)
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=25)
             ct_list.append(ct)
             label_list.append(label)
             ct, label = None, None
         ct_list = np.vstack(ct_list)
         label_list = np.vstack(label_list)
-        
+        ct_list = np.array(ct_list, dtype='float32')
+        label_list = np.array(label_list, dtype='float32')
+        # import pdb; pdb.set_trace()
         ct_list      = ct_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
         label_list   = label_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 
@@ -88,6 +90,9 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
         # datagen = zip(image_generator, mask_generator)
         for x_batch, y_batch in image_generator:
             #x_batch,y_batch = adjustData(x_batch,y_batch)
+            x_batch = x_batch/65535
+            # print(x_batch[0].shape, x_batch[0].dtype, np.amax(x_batch[0]))
+            # print(y_batch[0].shape, y_batch[0].dtype, np.amax(y_batch[0]))
             yield (x_batch, y_batch)
 
 def testGenie(num, batch_size=16):
