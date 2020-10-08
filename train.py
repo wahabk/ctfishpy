@@ -12,22 +12,22 @@ import keras
 
 
 
-data_gen_args = dict(rotation_range=0.3,
+data_gen_args = dict(rotation_range=0.01,
                     width_shift_range=0.01,
-                    height_shift_range=0.01,
-                    shear_range=0.05,
+                    height_shift_range=0.09,
+                    shear_range=0.09,
                     zoom_range=0.05,
                     horizontal_flip=True,
-                    # vertical_flip = True,
+                    vertical_flip = True,
                     fill_mode='constant',
                     cval = 0)
 
-sample = [76, 40, 81, 85, 88, 222, 425, 236]
-val_sample = [218]
+sample = [76, 81, 85, 88, 222, 425, 236, 218]
+val_sample = [40]
 val_steps = 8
-batch_size = 16
-steps_per_epoch = 25
-epochs = 64
+batch_size = 8
+steps_per_epoch = 64
+epochs = 1024
 
 datagenie = dataGenie(  batch_size = batch_size,
                         data_gen_args = data_gen_args,

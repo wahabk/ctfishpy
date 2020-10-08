@@ -12,12 +12,15 @@ import numpy as np
 if __name__ == "__main__":
 	
 	unet = Unet()
-	model = unet.get_unet()  #unet()
+	model = unet.get_unet(preload=True)  #unet()
 	
 	test = testGenie(218, batch_size=16) 
-	results = model.predict(test, 16, verbose = 1) # read about this one
-	results = fixFormat(results)
+	results = model.predict(test, 10) # read about this one
+	results = np.squeeze(results.astype('float32'), axis = 3)
+	test = np.squeeze(test.astype('float32'), axis = 3)
 	print(results.shape, np.amax(results))
-	plt.imsave('first_prediction.png', results[50])
+	cv2.imwrite('prediction.png', results[10])
+	plt.imsave('first_prediction.png', results[20])
+	plt.imsave('first_prediction_x.png', test[20])
 	# lumpfish = ctfishpy.Lumpfish()
 	# lumpfish.write_label('prediction.hdf5', results)

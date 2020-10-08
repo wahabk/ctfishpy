@@ -51,12 +51,12 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             
             
             z_center = center[0] # Find center of cc result and only read roi from slices
-            ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)
+            ct, stack_metadata = ctreader.read(num, r = (z_center - 20, z_center + 20), align=True)
             label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
-            
-            label = ctreader.crop_around_center3d(label, center = center, roiSize=75, roiZ=25)
-            center[0] = 50 # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
-            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=25)
+            roiZ = 40
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=75, roiZ=roiZ)
+            center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=roiZ)
             ct_list.append(ct)
             label_list.append(label)
             ct, label = None, None
@@ -102,20 +102,21 @@ def testGenie(num, batch_size=16):
     templatePath = '../../Data/HDD/uCT/Labels/CC/otolith_template_10.hdf5'
     ctreader = CTreader()
     template = ctreader.read_label(templatePath, manual=False)
-    center, error = cc(num, template, thresh=200, roiSize=50)
+    # center, error = cc(num, template, thresh=200, roiSize=50)
 
     with open('ctfishpy/cc_centres.json', 'r') as fp:
         centres = json.load(fp)
     center = centres[str(num)]
     z_center = center[0] # Find center of cc result and only read roi from slices
-    ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)#(1400,1600))
-    center[0] = 50
-    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=100, roiZ=100)
+    ct, stack_metadata = ctreader.read(num, r = (z_center - 20, z_center + 20), align=True)#(1400,1600))
+    center[0] = 20
+    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=40)
     # ctreader.view(ct)
-    ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
     
     ct = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct]
     ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
+    ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+
     print(ct.shape, np.amax(ct))
     
     # for i in range(0, ct.shape[0], batch_size):

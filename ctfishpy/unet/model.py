@@ -16,7 +16,7 @@ if not device_name:
 print(f'Found GPU at: {device_name}')
 gpus = tf.config.experimental.list_physical_devices('GPU')
 # config = tf.config.experimental.set_memory_growth(gpus[0], True)
-tf.config.experimental.set_memory_growth(gpus[0], True)
+config=tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 def dice_coef(y_true, y_pred):
@@ -31,8 +31,8 @@ def dice_coef_loss(y_true, y_pred):
 
 def lr_scheduler(epoch, lr):
     decay_rate = 0.1
-    decay_step = 8
-    if epoch % decay_step == 0 and epoch:
+    decay_step = 64
+    if epoch % decay_step == 0 and epoch not in [0, 1]:
         return lr * decay_rate
     return lr
 
@@ -50,7 +50,7 @@ class Unet(object):
         imgs_test = mydata.load_test_data()
         return imgs_train, imgs_mask_train, imgs_test
 
-    def get_unet(self, preload=True):
+    def get_unet(self, preload=False):
 
         input1 = Input((256, 256, 1))
 
@@ -100,11 +100,11 @@ class Unet(object):
         model = Model(inputs=input1, outputs=conv10)
         lr_schedule = schedules.ExponentialDecay(initial_learning_rate=1e-2, decay_steps=10000, decay_rate=0.9, staircase=True)
 
-        opt = Adam(lr=1e-3)
+        opt = Adam(lr=1e-4)
 
         model.compile(optimizer=opt, loss=dice_coef_loss, metrics=['accuracy'])
         pretrained_weights = 'output/Model/unet_checkpoints.hdf5'
-        if preload == False: 
+        if preload == True: 
             try:
                 model.load_weights(pretrained_weights)
                 print('\n \n Pretrained weights loaded \n\n')
