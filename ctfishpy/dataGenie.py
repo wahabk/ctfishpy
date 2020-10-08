@@ -54,14 +54,18 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)
             label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
             
-            label = ctreader.crop_around_center3d(label, center = center, roiSize=257, roiZ=25)
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=75, roiZ=25)
             center[0] = 50 # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
-            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=25)
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=25)
             ct_list.append(ct)
             label_list.append(label)
             ct, label = None, None
+        
         ct_list = np.vstack(ct_list)
         label_list = np.vstack(label_list)
+        ct_list = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct_list]
+        label_list = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in label_list]
+
         ct_list = np.array(ct_list, dtype='float32')
         label_list = np.array(label_list, dtype='float32')
         # import pdb; pdb.set_trace()
@@ -71,24 +75,23 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
         print('[dataGenie] Initialising image and mask generators')
 
         image_generator = imagegen.flow(ct_list,
-            y=label_list,
             batch_size = batch_size,
             #save_to_dir = 'output/Keras/',
             save_prefix = 'dataGenie',
             seed = 42069,
             shuffle=True
             )
-        # mask_generator = maskgen.flow(label_list, 
-        #     batch_size = batch_size,
-        #     #save_to_dir = 'output/Keras/',
-        #     save_prefix = 'dataGenie',
-        #     seed = 42069,
-        #     shuffle=True
-        #     )
+        mask_generator = maskgen.flow(label_list, 
+            batch_size = batch_size,
+            #save_to_dir = 'output/Keras/',
+            save_prefix = 'dataGenie',
+            seed = 42069,
+            shuffle=True
+            )
         print('Ready.')
 
-        # datagen = zip(image_generator, mask_generator)
-        for x_batch, y_batch in image_generator:
+        datagen = zip(image_generator, mask_generator)
+        for x_batch, y_batch in datagen:
             #x_batch,y_batch = adjustData(x_batch,y_batch)
             x_batch = x_batch/65535
             # print(x_batch[0].shape, x_batch[0].dtype, np.amax(x_batch[0]))
@@ -100,16 +103,24 @@ def testGenie(num, batch_size=16):
     ctreader = CTreader()
     template = ctreader.read_label(templatePath, manual=False)
     center, error = cc(num, template, thresh=200, roiSize=50)
+
+    with open('ctfishpy/cc_centres.json', 'r') as fp:
+        centres = json.load(fp)
+    center = centres[str(num)]
     z_center = center[0] # Find center of cc result and only read roi from slices
     ct, stack_metadata = ctreader.read(num, r = (z_center - 50, z_center + 50), align=True)#(1400,1600))
     center[0] = 50
-    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=257, roiZ=100)
+    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=100, roiZ=100)
     # ctreader.view(ct)
     ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
-    ct = np.array([_slice / 65535 for _slice in ct]) # Normalise 16 bit slices
     
-    for i in range(0, ct.shape[0], batch_size):
-        yield ct[i:i+batch_size]
+    ct = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct]
+    ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
+    print(ct.shape, np.amax(ct))
+    
+    # for i in range(0, ct.shape[0], batch_size):
+    #     yield ct[i:i+batch_size]
+    return ct
 
 
 

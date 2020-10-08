@@ -21,7 +21,7 @@ if __name__ == "__main__":
 						cval = 0)
 	batch_size =16
 
-	sample = [76, 40, 81, 85, 88, 218, 222, 236, 425]
+	sample = [76, 40, 81, 85]
 	# change label path to read labels directly
 
 	datagenie = ctfishpy.dataGenie(  batch_size = batch_size,
@@ -33,10 +33,9 @@ if __name__ == "__main__":
 	for x_batch, y_batch in datagenie:
 		#print(x_batch.shape)
 		#print(y_batch.shape)
-		x_batch = fixFormat(x_batch)  # remove last weird axis
+		x_batch = fixFormat(x_batch*255)  # remove last weird axis
 		y_batch = fixFormat(y_batch, label = True)  # remove last weird axis
 
 		ctreader.view(x_batch, label = y_batch)
 
 		#break
-

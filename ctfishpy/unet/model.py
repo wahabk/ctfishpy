@@ -16,11 +16,8 @@ if not device_name:
 print(f'Found GPU at: {device_name}')
 gpus = tf.config.experimental.list_physical_devices('GPU')
 # config = tf.config.experimental.set_memory_growth(gpus[0], True)
+tf.config.experimental.set_memory_growth(gpus[0], True)
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-with tf.device("gpu:0"):
-   print("tf.keras code in this scope will run on GPU")
 
 def dice_coef(y_true, y_pred):
     smooth = 1
@@ -31,6 +28,13 @@ def dice_coef(y_true, y_pred):
 
 def dice_coef_loss(y_true, y_pred):
     return 1-dice_coef(y_true, y_pred)
+
+def lr_scheduler(epoch, lr):
+    decay_rate = 0.1
+    decay_step = 8
+    if epoch % decay_step == 0 and epoch:
+        return lr * decay_rate
+    return lr
 
 class Unet(object):
 
@@ -94,12 +98,13 @@ class Unet(object):
         conv10 = Conv2D(1, 1, activation='sigmoid')(conv9)
 
         model = Model(inputs=input1, outputs=conv10)
-        learning_rate = 0.0001
-        opt = Adam(lr=learning_rate)
+        lr_schedule = schedules.ExponentialDecay(initial_learning_rate=1e-2, decay_steps=10000, decay_rate=0.9, staircase=True)
+
+        opt = Adam(lr=1e-3)
 
         model.compile(optimizer=opt, loss=dice_coef_loss, metrics=['accuracy'])
         pretrained_weights = 'output/Model/unet_checkpoints.hdf5'
-        if preload == True: 
+        if preload == False: 
             try:
                 model.load_weights(pretrained_weights)
                 print('\n \n Pretrained weights loaded \n\n')

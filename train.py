@@ -8,6 +8,7 @@ import datetime
 import matplotlib.pyplot as plt
 #os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+import keras
 
 
 
@@ -26,7 +27,7 @@ val_sample = [218]
 val_steps = 8
 batch_size = 16
 steps_per_epoch = 25
-epochs = 1024
+epochs = 64
 
 datagenie = dataGenie(  batch_size = batch_size,
                         data_gen_args = data_gen_args,
@@ -37,25 +38,27 @@ valdatagenie = dataGenie(  batch_size = batch_size,
                         fish_nums = val_sample)
 
 
-unet = Unet()
-model = unet.get_unet()  #unet()
-model_checkpoint = ModelCheckpoint(f'output/Model/unet_checkpoints.hdf5', monitor = 'loss', verbose = 1, save_best_only = True)
-history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = steps_per_epoch, epochs = epochs, validation_steps=val_steps, callbacks = [model_checkpoint])
+model_checkpoint = ModelCheckpoint(f'output/Model/unet_checkpoints.hdf5', 
+                                        monitor = 'loss', verbose = 1, save_best_only = True)
 
-# summarize history for accuracy
-# plt.plot(history.history['accuracy'])
-# plt.plot(history.history['val_accuracy'])
-# plt.title('model accuracy')
-# plt.ylabel('accuracy')
-# plt.xlabel('epoch')
-# plt.legend(['train', 'test'], loc='upper left')
-# plt.savefig(f'output/Model/loss_curves/{timestr}_acc.png')
+callbacks = [
+    keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
+    model_checkpoint
+]
+
+unet = Unet()
+model = unet.get_unet(preload=True)  #unet() 
+history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = steps_per_epoch, 
+                    epochs = epochs, callbacks=callbacks, validation_steps=val_steps)
+
+
 # summarize history for loss
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
-plt.title('model loss')
+plt.title('Unet-otolith loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
+plt.ylim(0,1)
 plt.legend(['train', 'val'], loc='upper left')
 plt.savefig(f'output/Model/loss_curves/{timestr}_loss.png')
 
