@@ -51,9 +51,10 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             
             
             z_center = center[0] # Find center of cc result and only read roi from slices
-            ct, stack_metadata = ctreader.read(num, r = (z_center - 20, z_center + 20), align=True)
-            label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
             roiZ = 40
+            ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+            label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
+            
             label = ctreader.crop_around_center3d(label, center = center, roiSize=75, roiZ=roiZ)
             center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
             ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=roiZ)
@@ -108,9 +109,10 @@ def testGenie(num, batch_size=16):
         centres = json.load(fp)
     center = centres[str(num)]
     z_center = center[0] # Find center of cc result and only read roi from slices
-    ct, stack_metadata = ctreader.read(num, r = (z_center - 20, z_center + 20), align=True)#(1400,1600))
-    center[0] = 20
-    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=40)
+    roiZ = 100
+    ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)#(1400,1600))
+    center[0] = int(roiZ/2)
+    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=roiZ)
     # ctreader.view(ct)
     
     ct = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct]

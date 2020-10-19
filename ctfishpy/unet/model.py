@@ -6,17 +6,17 @@ import skimage.transform as trans
 import numpy as np
 from keras.models import *
 from keras.layers import Input, merge, Conv2D, MaxPooling2D, UpSampling2D, Dropout, Cropping2D, concatenate
-from keras.optimizers import *
+from tensorflow.keras.optimizers import Adam, schedules
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 import tensorflow as tf
 import keras.backend as K
-device_name = tf.test.gpu_device_name()
-if not device_name:
-  raise SystemError('GPU device not found')
-print(f'Found GPU at: {device_name}')
-gpus = tf.config.experimental.list_physical_devices('GPU')
-# config = tf.config.experimental.set_memory_growth(gpus[0], True)
-config=tf.config.experimental.set_memory_growth(gpus[0], True)
+# device_name = tf.test.gpu_device_name()
+# if not device_name:
+#   raise SystemError('GPU device not found')
+# print(f'Found GPU at: {device_name}')
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# # config = tf.config.experimental.set_memory_growth(gpus[0], True)
+# config=tf.config.experimental.set_memory_growth(gpus[0], True)
 
 
 def dice_coef(y_true, y_pred):
