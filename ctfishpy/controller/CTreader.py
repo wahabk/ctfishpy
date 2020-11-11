@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from .GUI import *
+from ..viewer import *
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
