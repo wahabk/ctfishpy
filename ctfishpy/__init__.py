@@ -1,5 +1,4 @@
-from .CTreader import CTreader
-from .Lumpfish import Lumpfish
-from .dataGenie import *
-#from .unet import unet
+from .controller import *
+from .viewer import *
+from .model import *
 

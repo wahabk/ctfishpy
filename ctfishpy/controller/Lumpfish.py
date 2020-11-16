@@ -1,4 +1,3 @@
-from . GUI.mainviewer import mainViewer
 from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 from pathlib2 import Path

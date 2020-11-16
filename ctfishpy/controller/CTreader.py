@@ -11,7 +11,6 @@ import h5py
 import codecs
 import os
 
-
 class CTreader():
 	def __init__(self):
 		# Use a local .env file to set where dataset is on current machine
@@ -23,6 +22,7 @@ class CTreader():
 		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
 		self.fish_nums = nums
+		self.anglePath = self.dataset_path / 'angles.json'
 
 	def mastersheet(self):
 		return self.master
@@ -53,7 +53,7 @@ class CTreader():
 
 		# Apologies this is broken but angles available in some metadata files (v4 dataset)
 		# but not available on older dataset so can revert to using angle json
-		with open('ctfishpy/angles.json', 'r') as fp:
+		with open(self.anglePath, 'r') as fp:
 			angles = json.load(fp)
 		angle = angles[str(fish)]
 
@@ -122,7 +122,7 @@ class CTreader():
 		
 		if manual: 
 			label = np.array(f['t0']['channel0'])
-			with open('ctfishpy/angles.json', 'r') as fp:
+			with open(self.anglePath, 'r') as fp:
 				angles = json.load(fp)
 			angle = angles[str(n)]
 		else: 
@@ -257,11 +257,9 @@ class CTreader():
 		return array
 
 	def cc_fixer(self, fish):
-		projections = self.get_max_projections(fish)
-		positions = [mainFixer(p) for p in projections]
 		'''
 			Positions that come from PyQt QPixmap are for some reason in y, x format
-			So this function averages the two values
+			So this function seperates and averages the two values
 
 			position_list = [
 				[y, x],
@@ -269,6 +267,10 @@ class CTreader():
 				[y, z]
 			]
 		'''
+		
+		projections = self.get_max_projections(fish)
+		positions = [cc_fixer.mainFixer(p) for p in projections]
+		
 		x = int((positions[0][1] + positions[1][0])/2)
 		y = int((positions[0][0] + positions[2][0])/2)
 		z = int((positions[1][1] + positions[2][1])/2)

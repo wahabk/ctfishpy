@@ -1,6 +1,6 @@
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-from .CTreader import CTreader
+from ..CTreader import CTreader
 from .cc import cc
 import gc
 import cv2
@@ -104,8 +104,8 @@ def testGenie(num, batch_size=16):
     ctreader = CTreader()
     template = ctreader.read_label(templatePath, manual=False)
     # center, error = cc(num, template, thresh=200, roiSize=50)
-
-    with open('ctfishpy/cc_centres.json', 'r') as fp:
+    cc_centres_path = ctreader.dataset_path / 'cc_centres.json'
+    with open(cc_centres_path, 'r') as fp:
         centres = json.load(fp)
     center = centres[str(num)]
     z_center = center[0] # Find center of cc result and only read roi from slices
