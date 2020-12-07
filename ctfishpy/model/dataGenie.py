@@ -105,7 +105,7 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
 def testGenie(num, batch_size=16):
     templatePath = '../../Data/HDD/uCT/Labels/CC/otolith_template_10.hdf5'
     ctreader = CTreader()
-    template = ctreader.read_label(templatePath, manual=False)
+    template = ctreader.read_label1(templatePath, manual=False)
     # center, error = cc(num, template, thresh=200, roiSize=50)
     cc_centres_path = ctreader.dataset_path / 'cc_centres.json'
     with open(cc_centres_path, 'r') as fp:
@@ -115,14 +115,14 @@ def testGenie(num, batch_size=16):
     roiZ = 100
     ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)#(1400,1600))
     center[0] = int(roiZ/2)
-    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=roiZ)
+    ct = ctreader.crop_around_center3d(ct, center = center, roiSize=128, roiZ=roiZ)
     # ctreader.view(ct)
     
-    ct = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct]
+    ct = [cv2.resize(s, dsize=(128, 128), interpolation=cv2.INTER_CUBIC) for s in ct]
     ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
     ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 
-    print(ct.shape, np.amax(ct))
+    #print(ct.shape, np.amax(ct))
     
     # for i in range(0, ct.shape[0], batch_size):
     #     yield ct[i:i+batch_size]

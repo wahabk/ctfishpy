@@ -41,8 +41,8 @@ data_gen_args = dict(rotation_range=0.01,
                     fill_mode='constant',
                     cval = 0)
 
-sample = [76, 81, 85, 88, 222, 425, 236, 218]
-val_sample = [40]
+sample = [81, 85, 88, 222, 425, 236, 218]
+val_sample = [40, 76]
 val_steps = 8
 batch_size = 8
 steps_per_epoch = 64
