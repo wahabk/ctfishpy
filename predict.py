@@ -1,4 +1,4 @@
-from ctfishpy.unet.model import *
+from ctfishpy.model.model import *
 from ctfishpy.dataGenie import *
 import ctfishpy
 import os

@@ -1,3 +1,5 @@
 # u net model is from https://github.com/zhixuhao/unet
 
-from .model import *
+from .unet import *
+from .cc import *
+from . dataGenie import *

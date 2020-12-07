@@ -17,6 +17,9 @@ def stratified_sample(df, strata, size=None, seed=None, keep_index= True):
 		- N1 is the population size of stratum 1
 		- N is the total population size
 		- n is the sampling size
+	
+	https://www.kaggle.com/flaviobossolan/stratified-sampling-python
+	
 	Parameters
 	----------
 	:df: pandas dataframe from which data will be sampled.
@@ -169,6 +172,13 @@ def __smpl_size(population, size):
 		n = size
 	return n
 
+
+
+
+
+
+
+
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	master = ctreader.mastersheet()
@@ -176,14 +186,18 @@ if __name__ == "__main__":
 	bins = [12,24,36] # for age in months
 	conditions = ['wt', 'het', 'hom']
 
-	# Group all ages into 6, 12, 24, 36 months old
-
-	master = stratified_sample(master, ['age', 'genotype'], 20)
-	print(master)
+	#remove genotypes injected or mosaic etc
+	master = master[master['genotype'].isin(conditions)]
 	
+	master = stratified_sample(master, ['age', 'genotype'], size=25, seed = 69)
+	master.to_csv('output/otoliths2seg.csv')
+	print(master)
+
+	# Group all ages into 6, 12, 24, 36 months old
 	master.age = pd.cut(master.age, bins = len(bins), labels=bins, right = False)
 	ages= [ctreader.trim(master, 'age', b) for b in bins]
 
+	# find numbers per bin
 	nums = []
 	for age in ages:
 		num = []
@@ -197,8 +211,9 @@ if __name__ == "__main__":
 	print(data)
 
 	column_names = [None, 'wt', None, 'het', None, 'hom']
-	row_names = [ None, '6', None, '12', None, '24', None, '36']
-
+	row_names = [[None, b] for b in bins]
+	row_names = [i for sublist in row_names for i in sublist] # flatten
+	
 	fig = plt.figure()
 	ax = Axes3D(fig)
 
@@ -225,6 +240,8 @@ if __name__ == "__main__":
 	ax.set_ylabel('Age', fontsize=20, labelpad=20)
 	ax.set_zlabel('Occurrence', fontsize=20, labelpad=20)
 	plt.show()
+
+	
 
 
 

@@ -1,0 +1,21 @@
+,index,n,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Value,Arb Value
+0,265,401,3.0,het,sp7,sp7 +/-,,"moved, rescanned with 421",3 months,EK_Phantoms_211117_PM,6.2740290000000005,2.5
+1,269,405,3.0,hom,sp7,sp7 -/-,,"moved, rescanned with 421",3 months,EK_Phantoms_211117_PM,6.2740290000000005,2.5
+2,249,385,3.0,wt,,sp7 wt sib,,,3 months,EK_Phantoms_211117_AM2,6.279456,2.5
+3,38,78,7.0,wt,,col2:mcherry,,,7 months,,,
+4,487,624,10.0,het,irf6,irf6 +/-,low res scanned with.  Phantom at first. Position,,10 months,scanned with phantom,0.750605,2.5
+5,302,438,12.0,het,col11 ,col11 +/-,,,1 year,EK_Phantom_10-01-18_AM,6.123677,2.5
+6,201,337,12.0,hom,mcf2l,mcf2l -/-,,,1 year,EKPhantoms_22Sep17_PM2,6.509225,2.5
+7,413,550,12.0,hom,col9,col9-/-,,For OA paper ,1 year,ek_phantom_150719_12pm,7.729474400000001,2.5
+8,373,510,12.0,hom,wnt16,wnt16-/-,510_516,For OA paper ,1 year,ek_phantom_150719_930am,6.983726,2.5
+9,81,217,12.0,wt,,UAS:kaeda,,,1 year,EKPhantoms_21SepPM,7.312511,2.5
+10,64,200,12.0,wt,,UAS:kaeda,* (200_207),"8 fish per scan. Fixed in 4% PFA, Dehydrated to 70% ethanol, wrapped in wet paper and parafilm. Fish in first position has a plastic cap.  * first position . palaeo folder",1 year,EKPhantoms_21SepLowRes,6.6315,2.5
+11,205,341,18.0,het,mcf2l,mcf2l +/-,,,1.5 year,EKPhantoms_22Sep17_PM2,6.509225,2.5
+12,224,360,18.0,wt,dot1,dot1 +/+,," For high res: head ribs, tail /ELIS",1.5 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
+13,147,283,24.0,het,chst11,chst11 talen,,,2 year,EKPhantoms_22Sep17_PM,7.134997,2.5
+14,456,593,24.0,hom,il10,IL10 -/-,,EK Spine,2 year ,590_595 with phantom,7.282342999999999,2.5
+15,228,364,24.0,wt,,dvl:gfp contrast enhance,,,2 year,EK_Phantoms_26Sep17_AM_lowres,6.650108,2.5
+16,4,44,24.0,wt,,wt,,,2 year,,,
+17,139,275,30.0,het,chst11,chst11 talen,,,2.5 year,EKPhantoms22Sep17AM,7.130796000000001,2.5
+18,141,277,30.0,wt,chst11,chst11 talen SIBS,,HR head and ribs,2.5 year,EKPhantoms22Sep17AM,7.130796000000001,2.5
+19,104,240,36.0,wt,,wnt:gfp col2a1:mch,* (240_247),shg+ histology,3 year,EKPhantoms_21SepPM,7.312511,2.5

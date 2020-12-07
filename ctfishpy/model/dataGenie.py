@@ -1,6 +1,6 @@
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-from ..CTreader import CTreader
+from ..controller import CTreader
 from .cc import cc
 import gc
 import cv2
