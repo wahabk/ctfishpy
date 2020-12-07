@@ -35,44 +35,47 @@ def fixFormat(batch, label = False):
 def dataGenie(batch_size, data_gen_args, fish_nums = None):
     imagegen = ImageDataGenerator(**data_gen_args)
     maskgen = ImageDataGenerator(**data_gen_args)
-    with open('ctfishpy/cc_centres.json', 'r') as fp:
+    ctreader = CTreader()
+    cc_centres_path = ctreader.dataset_path / 'cc_centres.json'
+    with open(cc_centres_path, 'r') as fp:
         centres = json.load(fp)
     while True:
         ct_list, label_list = [], []
         for num in fish_nums:
             templatePath = '../../Data/HDD/uCT/Labels/CC/otolith_template_10.hdf5'
-            ctreader = CTreader()
+            labelpath = ctreader.dataset_path / 'Labels/Organs/'
             center = centres[str(num)]
+
+
             # take out cc for now
             # template = ctreader.read_label(templatePath, manual=False)
             # projections = ctreader.get_max_projections(num)
             # center, error = cc(num, template, thresh=200, roiSize=50)
-
-            
             
             z_center = center[0] # Find center of cc result and only read roi from slices
-            roiZ = 40
+            roiZ = 100
+
             ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-            label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{num}.h5', n=num,  align=True, manual=True)
+            label = ctreader.read_label1(f'../../Data/HDD/uCT/Labels/Organs//Otolith1/{num}.h5', n=num,  align=True, manual=True)
             
-            label = ctreader.crop_around_center3d(label, center = center, roiSize=75, roiZ=roiZ)
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=128, roiZ=roiZ)
             center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
-            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=75, roiZ=roiZ)
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=128, roiZ=roiZ)
             ct_list.append(ct)
             label_list.append(label)
             ct, label = None, None
         
         ct_list = np.vstack(ct_list)
         label_list = np.vstack(label_list)
-        ct_list = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in ct_list]
-        label_list = [cv2.resize(s, dsize=(256, 256), interpolation=cv2.INTER_CUBIC) for s in label_list]
+        ct_list = [cv2.resize(s, dsize=(128, 128), interpolation=cv2.INTER_CUBIC) for s in ct_list]
+        label_list = [cv2.resize(s, dsize=(128, 128), interpolation=cv2.INTER_CUBIC) for s in label_list]
 
         ct_list = np.array(ct_list, dtype='float32')
         label_list = np.array(label_list, dtype='float32')
+        
         # import pdb; pdb.set_trace()
         ct_list      = ct_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
         label_list   = label_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
-
         print('[dataGenie] Initialising image and mask generators')
 
         image_generator = imagegen.flow(ct_list,

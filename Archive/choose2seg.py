@@ -7,14 +7,6 @@ import random
 
 ctreader = ctfishpy.CTreader()
 random.seed(a = 111)
-#labelpath = '../../Data/HDD/uCT/Labels/Otolith1/040.h5'
-#label = ctreader.read_labels(labelpath)
-#ctreader.view(label[0])
-
-
-#ct, stack_metadata = ctreader.read(40, r = None)#(1400,1600))
-#label = ctreader.read_label(labelpath)
-
 
 m = ctreader.mastersheet()
 wt = ctreader.trim(m, 'genotype', 'wt')
