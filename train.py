@@ -1,18 +1,18 @@
 from ctfishpy.model.dataGenie import *
-from segmentation_models import Unet
+import matplotlib.pyplot as plt
+import numpy as np
+import datetime
 import ctfishpy
 import os
 import time
-timestr = time.strftime("%Y-%m-%d")
-import datetime
-import matplotlib.pyplot as plt
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from segmentation_models import Unet
 import keras
 from keras import backend as K
-from tensorflow.keras.optimizers import Adam, schedules
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.layers import Input, Conv2D
 from keras.models import Model
+from tensorflow.keras.optimizers import Adam, schedules
+timestr = time.strftime("%Y-%m-%d")
 
 def dice_coef(y_true, y_pred):
     smooth = 1
@@ -49,11 +49,11 @@ steps_per_epoch = 64
 epochs = 10
 lr = 1e-4
 
-datagenie = dataGenie(  batch_size = batch_size,
+datagenie = dataGenie(batch_size = batch_size,
                         data_gen_args = data_gen_args,
                         fish_nums = sample)
 
-valdatagenie = dataGenie(  batch_size = batch_size,
+valdatagenie = dataGenie(batch_size = batch_size,
                         data_gen_args = data_gen_args,
                         fish_nums = val_sample)
 

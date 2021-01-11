@@ -23,7 +23,6 @@ def find_max_value_coords(x):
 	x_y_coords =  [indices[0][0], indices[1][0]]
 	return x_y_coords
 
-
 def cc(n, template, thresh, roiSize):
 	'''
 	Cross correlate a ct scan against a template and return center
@@ -34,7 +33,7 @@ def cc(n, template, thresh, roiSize):
 	IMVIP 2019: Irish Machine Vision & Image Processing, August 28-30. 
 	doi:10.21427/8fgf-y086
 	'''
-	ctreader = ctfishpy.CTreader()
+	ctreader = CTreader()
 	projections = ctreader.get_max_projections(n)
 	projections = [cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in projections]
 	projections = [ctreader.thresh_img(i, thresh, True) for i in projections]
@@ -105,7 +104,7 @@ if __name__ == "__main__":
 		z = cv2.imread(f'Data/projections/z/{fish}.png')
 		projections = [x, y, z]
 		
-		center, error = cc(projections, template, thresh=200, roiSize=50)
+		center, error = cc(projections, template, thresh=100, roiSize=50)
 		center.pop(0)
 		otolith = ctreader.crop_around_center2d(x, center = center, roiSize=255)
 

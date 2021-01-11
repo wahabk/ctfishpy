@@ -134,6 +134,7 @@ dmypy.json
 # VScode stuff
 .vscode
 
-.hdf5
+*.h5
+*.hdf5
 Data
 output/Model/weights

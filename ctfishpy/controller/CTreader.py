@@ -99,7 +99,7 @@ class CTreader:
 
 	def read_label1(self, labelPath, align=False, n=None, manual=True):
 		"""
-		Read and return hdf5 label files
+		OLD Read and return hdf5 label files
 
 		TODO Automatically find labelPaths stored in .Data/Labels/organ/fishnums
 
@@ -127,7 +127,7 @@ class CTreader:
 		print("Labels ready.")
 		return label
 
-	def read_label(self, organ, n, auto=False, align=False):
+	def read_label(self, organ, n, align=True, template=False):
 		"""
 		Read and return hdf5 label files
 
@@ -136,60 +136,42 @@ class CTreader:
 		if organ not in ['Otoliths']:
 			raise Exception('organ not found')
 
-		labels_path = str(self.dataset_path / f'Labels/Organs/{organ}.h5')
-		print(f"[CTFishPy] Reading labels {labels_path}")
+		if template:
+			labels_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
+			print(f"[CTFishPy] Reading labels fish: {n} {labels_path} ")
+			f = h5py.File(labels_path, "r")
+			label = np.array(f['0'])
+			f.close()
 
-		f = h5py.File(labels_path, "r")
-		nums = list(f['fish'].keys())
-		label = np.array(f['fish'][str(n)])
-		f.close()
+		else:
+			labels_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
+			print(f"[CTFishPy] Reading labels fish: {n} {labels_path} ")
 
-		if align:
-			# get manual alignment
-			with open(self.anglePath, "r") as fp:
-				angles = json.load(fp)
-			angle = angles[str(n)]
-			stack_metadata = self.read_metadata(n)
-			label = [self.rotate_image(i, angle) for i in label]
-			label = np.array(label)
+			f = h5py.File(labels_path, "r")
+			label = np.array(f[str(n)])
+			f.close()
+
+			if align:
+				# get manual alignment
+				with open(self.anglePath, "r") as fp:
+					angles = json.load(fp)
+				angle = angles[str(n)]
+				stack_metadata = self.read_metadata(n)
+				label = [self.rotate_image(i, angle) for i in label]
+				label = np.array(label)
 
 		print("Labels ready.")
 		return label
 
-	def write_label2(self, organ, n, ):
-		pass
-
-	def write_label(self, labelPath, label):
-		hf = h5py.File(labelPath, 'w')
-		hf.create_dataset('t0', data=label)
-		hf.close()
-		print('Labels ready.')
-		return label
-
-	def store_single_hdf5(image, image_id):
-		""" Stores a single image to an HDF5 file.
-			Parameters:
-			---------------
-			image       image array, (32, 32, 3) to be stored
-			image_id    integer unique ID for image
-			label       image label
-
-			from: https://realpython.com/storing-images-in-python/#adjusting-the-code-for-many-images_1
-		"""
-		# Create a new HDF5 file
-		labelPath = Path('Data/Labels/')
-
-		file = h5py.File(hdf5_dir / f"{image_id}.h5", "w")
-
-		# Create a dataset in the file
-		dataset = file.create_dataset(
-			"image", np.shape(image), h5py.h5t.STD_U8BE, data=image
-		)
-		meta_set = file.create_dataset(
-			"meta", np.shape(label), h5py.h5t.STD_U8BE, data=label
-		)
-		file.close()
-
+	def write_label(self, label, organ, n):
+		'''
+		put n =0 if label is a template
+		'''
+		path = Path(f'{self.dataset_path}/Labels/{organ}/{organ}.h5')
+		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
+		f = h5py.File(path, "w")
+		dset = f.create_dataset(str(n), data = label)
+		f.close()
 
 	def read_max_projections(self, n):
 		"""

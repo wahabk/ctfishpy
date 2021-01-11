@@ -7,12 +7,6 @@ import random
 import gc
 from scipy import ndimage
 
-def crop3D(stack, crop):
-	cropped = stack[crop[0,0]: crop[0,1],
-					crop[1,0]: crop[1,1],
-					crop[2,0]: crop[2,1]]
-	return np.array(cropped)
-
 def check(x, x_length):
 	return x
 	if x < 0: 
@@ -21,19 +15,20 @@ def check(x, x_length):
 		return x_length
 
 def find_roi_bounds(x, roiSize, x_length):
-	x1 = check(int(x - roiSize/2), x_length)
-	x2 = check(int(x + roiSize/2), x_length)
+	x1 = int(x - roiSize/2)
+	x2 = int(x + roiSize/2)
 	return [x1, x2]
 
-def makeTemplate(labelsList, scanList, roiSize):
+def makeTemplate(labelsList, scanList, roiSize, thresh):
 	'''
 	Make template by:
-	1. find lagenal centre of mass of labels 
+	1. find centre of mass of labels 
 	1. crop 256x256x256 around COM
 	2. use crop from original scan (only reading necessary slices) 
 	3. Average multiple ROI crops 
 	'''
 	cropList = []
+	ctreader = ctfishpy.CTreader()
 
 	print('Finding ROIs...')
 	for label in labelsList:
@@ -55,35 +50,39 @@ def makeTemplate(labelsList, scanList, roiSize):
 
 	otolithList = []
 	for i, ct in enumerate(scanList):
-		otolith = crop3D(ct, cropList[i])
-		ctreader = ctfishpy.CTreader()
+		crop = cropList[i]
+		ct = np.array(ct, dtype = 'uint16')
+		cropped = ct[crop[0,0]: crop[0,1],
+					 crop[1,0]: crop[1,1],
+					 crop[2,0]: crop[2,1]]
+		otolith =  np.array(cropped)
 		
-		otolith = ctreader.thresh_stack(otolith, 150)
+		otolith = ctreader.thresh_stack(otolith, thresh)
 		otolithList.append(otolith)
 
 	otolithArray = np.array(otolithList)
-	template = np.array(np.average(otolithArray, 0), dtype='uint16')
+	template = np.average(otolithArray, axis=0)
+	template = np.array(template, dtype='uint16')
 	return template
 
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
-	lumpfish = ctfishpy.Lumpfish()
-	templatePath = './Data/Labels/CC/otolith_template_10.hdf5'
+	templatePath = './Data/Labels/CC/otolith_template.hdf5'
 
-	# labelsList = []
-	# scanList = []
-	# _list = [40, 76, 81, 85, 88, 218, 222, 236, 298, 425]
-	# for fish in _list:
-	# 	ct, metadata = ctreader.read(fish, align=True)
-	# 	label = ctreader.read_label(f'../../Data/HDD/uCT/Labels/Otolith1/{fish}.h5', align=True, n=fish)
+	labelsList = []
+	scanList = []
+	samples = [40, 78, 200]
+	for n in samples:
+		ct, metadata = ctreader.read(n, align=True)
+		label = ctreader.read_label('Otoliths', n)
 
-	# 	labelsList.append(label)
-	# 	scanList.append(ct)
+		labelsList.append(label)
+		scanList.append(ct)
 
-	# template = makeTemplate(labelsList, scanList, roiSize = 255)
-	# #lumpfish.write_label(templatePath, template)
-	template = ctreader.read_label(templatePath, manual=False)
+	template = makeTemplate(labelsList, scanList, roiSize = 150, thresh = 100)
+	ctreader.write_label(template, 'Otoliths', 0)
+	template = ctreader.read_label('Otoliths', 0, align=False, template=True)
 	ctreader.view(template)
 
 
