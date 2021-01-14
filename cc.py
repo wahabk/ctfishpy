@@ -9,6 +9,7 @@ import gc
 import itertools
 from pathlib2 import Path
 import math
+import json
 
 def scale(X, x_min, x_max):
 	# https://datascience.stackexchange.com/questions/39142/normalize-matrix-in-python-numpy
@@ -33,8 +34,9 @@ def cc(n, template, thresh, roiSize):
 	IMVIP 2019: Irish Machine Vision & Image Processing, August 28-30. 
 	doi:10.21427/8fgf-y086
 	'''
-	ctreader = CTreader()
-	projections = ctreader.get_max_projections(n)
+	
+	ctreader = ctfishpy.CTreader()
+	projections = ctreader.read_max_projections(n)
 	projections = [cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in projections]
 	projections = [ctreader.thresh_img(i, thresh, True) for i in projections]
 	template = ctreader.crop_around_center3d(template, roiSize=roiSize)
@@ -43,77 +45,79 @@ def cc(n, template, thresh, roiSize):
 	_min = 1
 	_max = -1
 
-	# Rescale images and template to intensities of 1 to 1
+	# Rescale images and template to intensities of 1 to -1
 	projections = [scale(i, _min, _max) for i in projections]
 	template_projections = [scale(i, _min, _max) for i in template_projections]
 	
-	x, y, z = projections
-	xt, yt, zt = template_projections
+	z, y, x = projections
+	zt, yt, xt = template_projections
 
 	# Scipy correlate in x and y projections
-	cx = correlate(x, xt, mode='same', method='fft')
-	cy = correlate(y, yt, mode='same', method='fft')
 	cz = correlate(z, zt, mode='same', method='fft')
-
-	# cmap = 'Spectral'
-	# plt.imsave('output/cc_corr_x.png', cx, cmap=cmap)
-	# plt.imsave('output/cc_corr_y.png', cy, cmap=cmap)
-	# plt.imsave('output/cc_corr_z.png', cz, cmap=cmap)
+	cy = correlate(y, yt, mode='same', method='fft')
+	cx = correlate(x, xt, mode='same', method='fft')
 
 	# Find coordinates of the peak of cross correlates
-	centerX = find_max_value_coords(cx)
-	centerY = find_max_value_coords(cy)
 	centerZ = find_max_value_coords(cz)
+	centerY = find_max_value_coords(cy)
+	centerX = find_max_value_coords(cx)
+	
+	center=[(centerX[1] + centerY[1])/2,
+			(centerY[0] + centerZ[0])/2,
+			(centerX[0] + centerZ[1])/2]
+	
+
+
+	manualcenterspath = ctreader.dataset_path / 'cc_centres.json'
+	with open(manualcenterspath, "r") as fp:
+		mancenters = json.load(fp)
+	mancenter = mancenters[str(n)]
 
 	#find difference in centre for each one to find how certain it is of the center
-	x_diff = centerX[0] - centerZ[1]
-	y_diff = centerX[1] - centerY[1]
-	z_diff = centerZ[0] - centerY[0]
+	x_diff = (centerX[0] + centerZ[1])/2
+	y_diff = (centerY[0] + centerY[1])/2
+	z_diff = (centerZ[0] + centerY[0])/2
 
 	# Find if any of the values are zero and if so increment error c by 1000 to make obvious
-	c=1
-	for i in itertools.chain(centerX, centerY, centerZ):
-		if i == 0:
-			c =+ 1000
-	square_error = x_diff**2 + y_diff**2 + c**2
+
+	square_error = x_diff**2 + y_diff**2 + z_diff**2
 	error = int(math.sqrt(square_error))
 	
 	# Find the center by using correlation through x and y views
-	# and find y value 
-	center = [centerY[0], centerX[0], centerX[1]]
+	center = [centerZ[0], centerX[1], centerX[0]]
+
+	cmap = 'Spectral'
+	plt.imsave('output/cc_corr_x.png', cx, cmap=cmap)
+	plt.imsave('output/cc_corr_y.png', cy, cmap=cmap)
+	plt.imsave('output/cc_corr_z.png', cz, cmap=cmap)
+
 	return center, error
 
 
 if __name__ == "__main__":
-	_list = [85, 88, 218, 222, 236, 298, 425] #40, 76, 81, 
-	ctreader = ctfishpy.CTreader()
-	templatePath = './Data/Labels/CC/otolith_template_10.hdf5'
-	template = ctreader.read_label(templatePath, manual=False)
+	_list = [218, 222, 236, 40, 425,765,81,85,88]
+	roiSize = 150
+	thresh = 100
 
-	projections = Path('Data/projections/x/')
-	made = [int(path.stem) for path in projections.iterdir() if path.is_file() and path.suffix == '.png']
+	ctreader = ctfishpy.CTreader()
+	template = ctreader.read_label('Otoliths', 0)
+
+	projectionspath = ctreader.dataset_path / 'projections/x/'
+
+	made = [path.stem for path in projectionspath.iterdir() if path.is_file() and path.suffix == '.png']
+	made = [int(name.replace('x_', '')) for name in made]
 	made.sort()
 
 	errors = []
-	for fish in made:
-		# ct, stack_metadata = ctreader.read(fish)
-		# projections = ctreader.get_max_projections(ct)
-		
-		x = cv2.imread(f'Data/projections/x/{fish}.png')
-		y = cv2.imread(f'Data/projections/y/{fish}.png')
-		z = cv2.imread(f'Data/projections/z/{fish}.png')
-		projections = [x, y, z]
-		
-		center, error = cc(projections, template, thresh=100, roiSize=50)
-		center.pop(0)
-		otolith = ctreader.crop_around_center2d(x, center = center, roiSize=255)
+	for n in made:
+		ct, metadata = ctreader.read(n, align = True)
+		z,y,x = ctreader.read_max_projections(n)
+		center, error,  = cc(n, template, thresh, roiSize)
+		print(f'center {center} shape {ct.shape} otolith shape {otolith.shape} error {error}')
+		# center.pop(0)
+		otolith = ctreader.crop_around_center3d(ct, roiSize, center)
 
-		print(otolith.shape)
-		cv2.imshow('', otolith)
-		cv2.waitKey(0)
-
-		errors.append(int(error))
-	errors = np.array(errors)
-	np.savetxt('cc_errors.csv', errors)
-
-	
+		# ctreader.view(otolith)
+		# errors.append(int(error))
+	# errors = np.array(errors)
+	# np.savetxt('output/cc_errors.csv', errors)

@@ -1,7 +1,7 @@
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 from ..controller import CTreader
-from ..controller import cc
+#from ..controller import cc
 import gc
 import cv2
 import json

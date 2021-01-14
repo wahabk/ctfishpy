@@ -67,12 +67,13 @@ def makeTemplate(labelsList, scanList, roiSize, thresh):
 
 
 if __name__ == "__main__":
+	samples = [40, 78, 200]
+	roiSize = 150
+	thresh = 100
+	
 	ctreader = ctfishpy.CTreader()
-	templatePath = './Data/Labels/CC/otolith_template.hdf5'
-
 	labelsList = []
 	scanList = []
-	samples = [40, 78, 200]
 	for n in samples:
 		ct, metadata = ctreader.read(n, align=True)
 		label = ctreader.read_label('Otoliths', n)
@@ -80,9 +81,9 @@ if __name__ == "__main__":
 		labelsList.append(label)
 		scanList.append(ct)
 
-	template = makeTemplate(labelsList, scanList, roiSize = 150, thresh = 100)
+	template = makeTemplate(labelsList, scanList, roiSize, thresh)
 	ctreader.write_label(template, 'Otoliths', 0)
-	template = ctreader.read_label('Otoliths', 0, align=False, template=True)
+	template = ctreader.read_label('Otoliths', 0, align=False)
 	ctreader.view(template)
 
 

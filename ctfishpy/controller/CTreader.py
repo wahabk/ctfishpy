@@ -97,37 +97,7 @@ class CTreader:
 			stack_metadata = json.load(metadatafile)
 		return stack_metadata
 
-	def read_label1(self, labelPath, align=False, n=None, manual=True):
-		"""
-		OLD Read and return hdf5 label files
-
-		TODO Automatically find labelPaths stored in .Data/Labels/organ/fishnums
-
-		"""
-
-		print("[CTFishPy] Reading labels...")
-		# Use h5py module to read labelpath and extract pure numpy array
-		f = h5py.File(labelPath, "r")
-
-		if manual:
-			label = np.array(f["t0"]["channel0"])
-			with open(self.anglePath, "r") as fp:
-				angles = json.load(fp)
-			angle = angles[str(n)]
-		else:
-			label = np.array(f["t0"])
-		f.close()
-
-		if align:
-			stack_metadata = self.read_metadata(n)
-
-			label = [self.rotate_image(i, angle) for i in label]
-			label = np.array(label)
-
-		print("Labels ready.")
-		return label
-
-	def read_label(self, organ, n, align=True, template=False):
+	def read_label(self, organ, n, align=True):
 		"""
 		Read and return hdf5 label files
 
@@ -136,7 +106,7 @@ class CTreader:
 		if organ not in ['Otoliths']:
 			raise Exception('organ not found')
 
-		if template:
+		if n==0:
 			labels_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 			print(f"[CTFishPy] Reading labels fish: {n} {labels_path} ")
 			f = h5py.File(labels_path, "r")
@@ -181,9 +151,9 @@ class CTreader:
 		# import pdb; pdb.set_trace()
 		dpath = str(self.dataset_path)
 		z = cv2.imread(f"{dpath}/projections/z/z_{n}.png")
-		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
-		y = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
-		return [z, x, y]
+		y = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
+		x = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
+		return [z, y, x]
 
 	def make_max_projections(self, stack):
 		"""
@@ -193,7 +163,7 @@ class CTreader:
 		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
 		x = np.max(stack, axis=2)
-		return [z, x, y]
+		return [z, y, x]
 
 	def view(self, ct, label=None, thresh=False):
 		"""
@@ -307,7 +277,7 @@ class CTreader:
 		obj = json.loads(obj_text)
 		return np.array(obj)
 
-	def crop_around_center3d(self, array, center=None, roiSize=None, roiZ=None):
+	def crop_around_center3d(self, array, roiSize, center=None, roiZ=None):
 		"""
 		Crop around the center of 3d array
 		You can specify the center of crop if you want
@@ -329,7 +299,7 @@ class CTreader:
 	def crop_around_center2d(self, array, center=None, roiSize=100):
 		"""
 		I have to crop a lot of images so this is a handy utility function
-		If you don't provide a center of rotation this will rotate around nominal center
+		If you don't provide a center this will crop around nominal center
 		"""
 		l = int(roiSize / 2)
 		if center == None:
