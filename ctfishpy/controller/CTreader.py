@@ -252,7 +252,7 @@ class CTreader:
 		thresh_16 = thresh_8 * (65535 / 255)
 		if is_16bit:
 			thresh = thresh_16
-		if is_16bit:
+		if not is_16bit:
 			thresh = thresh_8
 		new_img = (img > thresh) * img
 		return new_img

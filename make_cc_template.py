@@ -7,19 +7,12 @@ import random
 import gc
 from scipy import ndimage
 
-def check(x, x_length):
-	return x
-	if x < 0: 
-		return 0 
-	elif x > x_length:  
-		return x_length
-
 def find_roi_bounds(x, roiSize, x_length):
 	x1 = int(x - roiSize/2)
 	x2 = int(x + roiSize/2)
 	return [x1, x2]
 
-def makeTemplate(labelsList, scanList, roiSize, thresh):
+def makeTemplate(samples, roiSize, thresh):
 	'''
 	Make template by:
 	1. find centre of mass of labels 
@@ -27,9 +20,18 @@ def makeTemplate(labelsList, scanList, roiSize, thresh):
 	2. use crop from original scan (only reading necessary slices) 
 	3. Average multiple ROI crops 
 	'''
-	cropList = []
+	
 	ctreader = ctfishpy.CTreader()
+	labelsList = []
+	scanList = []
+	for n in samples:
+		ct, metadata = ctreader.read(n, align=True)
+		label = ctreader.read_label('Otoliths', n)
+		
+		labelsList.append(label)
+		scanList.append(ct)
 
+	cropList = []
 	print('Finding ROIs...')
 	for label in labelsList:
 		z, x, y = ndimage.measurements.center_of_mass(label)
@@ -65,23 +67,14 @@ def makeTemplate(labelsList, scanList, roiSize, thresh):
 	template = np.array(template, dtype='uint16')
 	return template
 
-
 if __name__ == "__main__":
-	samples = [40, 78, 200]
+	samples = [40, 78, 200, 218, 240, 277, 330, 337, 341, 364, 462, 464]
 	roiSize = 150
 	thresh = 100
 	
 	ctreader = ctfishpy.CTreader()
-	labelsList = []
-	scanList = []
-	for n in samples:
-		ct, metadata = ctreader.read(n, align=True)
-		label = ctreader.read_label('Otoliths', n)
 
-		labelsList.append(label)
-		scanList.append(ct)
-
-	template = makeTemplate(labelsList, scanList, roiSize, thresh)
+	template = makeTemplate(samples, roiSize, thresh)
 	ctreader.write_label(template, 'Otoliths', 0)
 	template = ctreader.read_label('Otoliths', 0, align=False)
 	ctreader.view(template)

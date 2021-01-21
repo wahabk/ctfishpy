@@ -38,9 +38,10 @@ def cc(n, template, thresh, roiSize):
 	ctreader = ctfishpy.CTreader()
 	projections = ctreader.read_max_projections(n)
 	projections = [cv2.cvtColor(i, cv2.COLOR_RGB2GRAY) for i in projections]
-	projections = [ctreader.thresh_img(i, thresh, True) for i in projections]
+	projections = [ctreader.thresh_img(i, thresh, False) for i in projections]
 	template = ctreader.crop_around_center3d(template, roiSize=roiSize)
 	template_projections = ctreader.make_max_projections(template)
+
 
 	_min = 1
 	_max = -1
@@ -61,10 +62,9 @@ def cc(n, template, thresh, roiSize):
 	centerZ = find_max_value_coords(cz)
 	centerY = find_max_value_coords(cy)
 	centerX = find_max_value_coords(cx)
-	
-	center=[(centerX[1] + centerY[1])/2,
-			(centerY[0] + centerZ[0])/2,
-			(centerX[0] + centerZ[1])/2]
+	center=[int((centerX[0] + centerY[0])/2),
+			int((centerY[1] + centerZ[0])/2),
+			int((centerX[1] + centerZ[1])/2)]
 	
 
 
@@ -74,28 +74,27 @@ def cc(n, template, thresh, roiSize):
 	mancenter = mancenters[str(n)]
 
 	#find difference in centre for each one to find how certain it is of the center
-	x_diff = (centerX[0] + centerZ[1])/2
-	y_diff = (centerY[0] + centerY[1])/2
-	z_diff = (centerZ[0] + centerY[0])/2
+	x_diff = (center[2] - mancenter[2])**2
+	y_diff = (center[1] - mancenter[1])**2
+	z_diff = (center[0] - mancenter[0])**2
 
 	# Find if any of the values are zero and if so increment error c by 1000 to make obvious
 
-	square_error = x_diff**2 + y_diff**2 + z_diff**2
+	square_error = x_diff + y_diff + z_diff
 	error = int(math.sqrt(square_error))
 	
 	# Find the center by using correlation through x and y views
-	center = [centerZ[0], centerX[1], centerX[0]]
 
 	cmap = 'Spectral'
 	plt.imsave('output/cc_corr_x.png', cx, cmap=cmap)
 	plt.imsave('output/cc_corr_y.png', cy, cmap=cmap)
 	plt.imsave('output/cc_corr_z.png', cz, cmap=cmap)
 
-	return center, error
+	return center, error, mancenter
 
 
 if __name__ == "__main__":
-	_list = [218, 222, 236, 40, 425,765,81,85,88]
+	_list = [218, 222, 236, 40, 425,81,85,88]
 	roiSize = 150
 	thresh = 100
 
@@ -104,20 +103,20 @@ if __name__ == "__main__":
 
 	projectionspath = ctreader.dataset_path / 'projections/x/'
 
-	made = [path.stem for path in projectionspath.iterdir() if path.is_file() and path.suffix == '.png']
-	made = [int(name.replace('x_', '')) for name in made]
-	made.sort()
+	# made = [path.stem for path in projectionspath.iterdir() if path.is_file() and path.suffix == '.png']
+	# made = [int(name.replace('x_', '')) for name in made]
+	# made.sort()
 
 	errors = []
-	for n in made:
+	for n in _list:
 		ct, metadata = ctreader.read(n, align = True)
 		z,y,x = ctreader.read_max_projections(n)
-		center, error,  = cc(n, template, thresh, roiSize)
-		print(f'center {center} shape {ct.shape} otolith shape {otolith.shape} error {error}')
+		center, error, mancenter  = cc(n, template, thresh, roiSize)
+		
 		# center.pop(0)
 		otolith = ctreader.crop_around_center3d(ct, roiSize, center)
-
-		# ctreader.view(otolith)
+		print(f'center {center} mancenter {mancenter} ct shape {ct.shape} otolith shape {otolith.shape} error {error} ')
+		ctreader.view(otolith)
 		# errors.append(int(error))
 	# errors = np.array(errors)
 	# np.savetxt('output/cc_errors.csv', errors)
