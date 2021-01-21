@@ -9,14 +9,16 @@ import json
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
-	sample = [76, 40, 81, 85, 88, 222, 236, 218, 425]
+	datapath = ctreader.dataset_path / 'cc_centres_otoliths.json'
+
+	sample = [40,78,200,218,240,277,330,337,341,462,464,364]
 	centres = {}
 	for fish in sample:
 		positions = ctreader.cc_fixer(fish)
 		centres[str(fish)] = positions
-	with open('cc_centres.json', 'w') as f:
+	with open(datapath, 'w') as f:
 		json.dump(centres, f, sort_keys=True, indent=4)
-	with open('cc_centres.json', 'r') as fp:
+	with open(datapath, 'r') as fp:
 		data = json.load(fp)
 	print(data)
 		

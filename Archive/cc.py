@@ -10,6 +10,15 @@ import itertools
 from pathlib2 import Path
 import math
 import json
+import skimage.filters
+
+def cropcenter():
+	indices = x.shape
+	center = [int(i/2) for i in indices]
+
+	z, x, y = center
+	array = array[z - zl : z + zl, x - l : x + l, y - l : y + l]
+	pass
 
 def scale(X, x_min, x_max):
 	# https://datascience.stackexchange.com/questions/39142/normalize-matrix-in-python-numpy
@@ -57,14 +66,25 @@ def cc(n, template, thresh, roiSize):
 	cz = correlate(z, zt, mode='same', method='fft')
 	cy = correlate(y, yt, mode='same', method='fft')
 	cx = correlate(x, xt, mode='same', method='fft')
+	
+
+
+	g=1
+	cz = skimage.filters.gaussian(cz, (g,g))
+	cy = skimage.filters.gaussian(cy, (g,g))
+	cx = skimage.filters.gaussian(cx, (g,g))
 
 	# Find coordinates of the peak of cross correlates
+
+
 	centerZ = find_max_value_coords(cz)
 	centerY = find_max_value_coords(cy)
 	centerX = find_max_value_coords(cx)
-	center=[int((centerX[0] + centerY[0])/2),
-			int((centerY[1] + centerZ[0])/2),
-			int((centerX[1] + centerZ[1])/2)]
+
+	print('CENTERS', centerZ,centerY,centerX)
+	center=[int(centerX[0]),
+			int((centerZ[0]+centerY[1])/2),
+			int((centerZ[1]+centerX[1])/2)]
 	
 
 
@@ -115,7 +135,7 @@ if __name__ == "__main__":
 		
 		# center.pop(0)
 		otolith = ctreader.crop_around_center3d(ct, roiSize, center)
-		print(f'center {center} mancenter {mancenter} ct shape {ct.shape} otolith shape {otolith.shape} error {error} ')
+		print(f'center {center} mancenter {mancenter} error {error} ')
 		ctreader.view(otolith)
 		# errors.append(int(error))
 	# errors = np.array(errors)

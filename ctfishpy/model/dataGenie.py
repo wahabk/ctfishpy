@@ -16,9 +16,12 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
     imagegen = ImageDataGenerator(**data_gen_args)
     maskgen = ImageDataGenerator(**data_gen_args)
     ctreader = CTreader()
-    cc_centres_path = ctreader.dataset_path / 'cc_centres.json'
+    cc_centres_path = ctreader.dataset_path / 'cc_centres_otoliths.json'
     with open(cc_centres_path, 'r') as fp:
         centres = json.load(fp)
+
+    roiZ=150
+    roiSize=128
     while True:
         ct_list, label_list = [], []
         for num in fish_nums:
@@ -33,22 +36,19 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             # center, error = cc(num, template, thresh=200, roiSize=50)
             
             z_center = center[0] # Find center of cc result and only read roi from slices
-            roiZ = 100
 
             ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-            label = ctreader.read_label1(f'../../Data/HDD/uCT/Labels/Organs//Otolith1/{num}.h5', n=num,  align=True, manual=True)
+            label = ctreader.read_label('Otoliths', n=num,  align=True)
             
-            label = ctreader.crop_around_center3d(label, center = center, roiSize=128, roiZ=roiZ)
+            label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
             center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
-            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=128, roiZ=roiZ)
+            ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
             ct_list.append(ct)
             label_list.append(label)
             ct, label = None, None
         
         ct_list = np.vstack(ct_list)
         label_list = np.vstack(label_list)
-        ct_list = [cv2.resize(s, dsize=(128, 128), interpolation=cv2.INTER_CUBIC) for s in ct_list]
-        label_list = [cv2.resize(s, dsize=(128, 128), interpolation=cv2.INTER_CUBIC) for s in label_list]
 
         ct_list = np.array(ct_list, dtype='float32')
         label_list = np.array(label_list, dtype='float32')
@@ -62,14 +62,14 @@ def dataGenie(batch_size, data_gen_args, fish_nums = None):
             batch_size = batch_size,
             #save_to_dir = 'output/Keras/',
             save_prefix = 'dataGenie',
-            seed = 42069,
+            seed = 2,
             shuffle=True
             )
         mask_generator = maskgen.flow(label_list, 
             batch_size = batch_size,
             #save_to_dir = 'output/Keras/',
             save_prefix = 'dataGenie',
-            seed = 42069,
+            seed = 2,
             shuffle=True
             )
         print('Ready.')

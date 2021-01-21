@@ -1,12 +1,13 @@
 from ctfishpy.model.dataGenie import *
 import matplotlib.pyplot as plt
 import numpy as np
-import datetime
 import ctfishpy
-import os
 import time
 from segmentation_models import Unet
-import keras
+from segmentation_models import get_preprocessing
+from segmentation_models.losses import dice_loss
+from segmentation_models.metrics import FScore
+import tensorflow.keras as keras
 from keras import backend as K
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras.layers import Input, Conv2D
@@ -14,22 +15,12 @@ from keras.models import Model
 from tensorflow.keras.optimizers import Adam, schedules
 timestr = time.strftime("%Y-%m-%d")
 
-def dice_coef(y_true, y_pred):
-    smooth = 1
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection +smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) +smooth)
-
-def dice_coef_loss(y_true, y_pred):
-    return 1-dice_coef(y_true, y_pred)
-
-def lr_scheduler(epoch, lr):
+def lr_scheduler(epoch, learning_rate):
     decay_rate = 0.1
-    decay_step = 8
+    decay_step = 10
     if epoch % decay_step == 0 and epoch not in [0, 1]:
-        return lr * decay_rate
-    return lr
+        return learning_rate * decay_rate
+    return learning_rate
 
 data_gen_args = dict(rotation_range=0.01,
                     width_shift_range=0.01,
@@ -41,22 +32,17 @@ data_gen_args = dict(rotation_range=0.01,
                     fill_mode='constant',
                     cval = 0)
 
-sample = [81, 85, 88, 222, 425, 236, 218]
-val_sample = [40, 76]
+
+sample = [200,218,240,277,330,337,341,462,464,364]
+val_sample = [40, 78]
 val_steps = 8
-batch_size = 8
-steps_per_epoch = 64
-epochs = 10
-lr = 1e-4
-
-datagenie = dataGenie(batch_size = batch_size,
-                        data_gen_args = data_gen_args,
-                        fish_nums = sample)
-
-valdatagenie = dataGenie(batch_size = batch_size,
-                        data_gen_args = data_gen_args,
-                        fish_nums = val_sample)
-
+batch_size = 64
+steps_per_epoch = 23
+epochs = 50
+lr = 1e-5
+BACKBONE = 'resnet34'
+weights = 'imagenet'# 'output/Model/unet_checkpoints.hdf5'
+opt = Adam(learning_rate=lr)
 
 model_checkpoint = ModelCheckpoint(f'output/Model/unet_checkpoints.hdf5', 
                                         monitor = 'loss', verbose = 1, save_best_only = True)
@@ -66,14 +52,25 @@ callbacks = [
     model_checkpoint
 ]
 
-opt = Adam(lr=lr)
-base_model = Unet('resnet34', encoder_weights=None, input_shape=(128, 128, 3), classes=1, activation='sigmoid')
-inp = Input(shape=(None, None, 1))
+datagenie = dataGenie(batch_size = batch_size,
+                        data_gen_args = data_gen_args,
+                        fish_nums = sample)
+
+valdatagenie = dataGenie(batch_size = batch_size,
+                        data_gen_args = dict(),
+                        fish_nums = val_sample)
+
+
+
+
+base_model = Unet(BACKBONE, encoder_weights=weights, classes=4, activation='sigmoid')
+inp = Input(shape=(128, 128, 1))
 l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 out = base_model(l1)
 model = Model(inp, out, name=base_model.name)
 
-model.compile(optimizer='adam', loss=dice_coef_loss, metrics=[dice_coef])
+# model.load_weights(weights)
+model.compile(optimizer=opt, loss=dice_loss, metrics=[dice_loss])
 history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = steps_per_epoch, 
                     epochs = epochs, callbacks=callbacks, validation_steps=val_steps)
 

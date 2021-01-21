@@ -102,14 +102,14 @@ class Spinner(QWidget):
 			self.slider.valueChanged.connect(self.updateSlider)
 			self.setGeometry(0, 0, 
 				self.pixmap.width() + pad, 
-				self.pixmap.height() + pad + self.slider.height()*2 + pad)
+				self.pixmap.height() + pad + self.slider.height()*2+ pad*2)
 
 		elif self.is_single_image: 
 			self.initSlider()
 			self.slider.valueChanged.connect(self.updateSlider)
 			self.setGeometry(0, 0, 
 				self.pixmap.width() + pad, 
-				self.pixmap.height() + pad*3)
+				self.pixmap.height() + pad + self.slider.height()*2 + pad*2)
 
 		if self.thresh == True: 
 			self.initThresholdSliders()

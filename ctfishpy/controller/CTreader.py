@@ -20,9 +20,7 @@ class CTreader:
 		self.dataset_path = Path(os.getenv("DATASET_PATH"))
 		self.master = pd.read_csv("./uCT_mastersheet.csv")
 		low_res_clean_path = self.dataset_path / "low_res_clean/"
-		nums = [
-			int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()
-		]
+		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
 		self.fish_nums = nums
 		self.anglePath = self.dataset_path / "angles.json"
@@ -48,6 +46,11 @@ class CTreader:
 	def read(self, fish, r=None, align=False):
 		"""
 		Main function to read zebrafish from local dataset path specified in .env
+
+		parameters
+		fish : number of sample you want to read
+		r : range of slices you want to read to save RAM
+		align : manually aligns fish for dorsal fin to point upwards
 		"""
 
 		fishpath = self.dataset_path / "low_res_clean" / str(fish).zfill(3)
@@ -56,9 +59,10 @@ class CTreader:
 
 		# Apologies this is broken but angles available in some metadata files (v4 dataset)
 		# but not available on older dataset so can revert to using angle json
-		with open(self.anglePath, "r") as fp:
-			angles = json.load(fp)
-		angle = angles[str(fish)]
+		if align:
+			with open(self.anglePath, "r") as fp:
+				angles = json.load(fp)
+			angle = angles[str(fish)]
 
 		stack_metadata = self.read_metadata(fish)
 		# angle = stack_metadata['angle']
@@ -101,6 +105,11 @@ class CTreader:
 		"""
 		Read and return hdf5 label files
 
+		parameters
+		organ : give string of organ you want to read
+		n : number of fish to get labels
+		align : spin label for dorsal fin to point upwards
+
 		"""
 
 		if organ not in ['Otoliths']:
@@ -135,12 +144,16 @@ class CTreader:
 
 	def write_label(self, label, organ, n):
 		'''
-		put n =0 if label is a template
+		Write label to organ hdf5
+
+		parameters
+		label = label to save as a numpy array
+		put n =0 if label is a cc template
 		'''
 		path = Path(f'{self.dataset_path}/Labels/{organ}/{organ}.h5')
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 		f = h5py.File(path, "w")
-		dset = f.create_dataset(str(n), data = label)
+		dset = f.create_dataset(str(n), data = label, shape=canvas.shape, dtype='uint8', compression=1)
 		f.close()
 
 	def read_max_projections(self, n):
@@ -151,8 +164,8 @@ class CTreader:
 		# import pdb; pdb.set_trace()
 		dpath = str(self.dataset_path)
 		z = cv2.imread(f"{dpath}/projections/z/z_{n}.png")
-		y = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
-		x = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
+		y = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
+		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
 		return [z, y, x]
 
 	def make_max_projections(self, stack):
@@ -190,7 +203,7 @@ class CTreader:
 		]
 		"""
 
-		projections = self.get_max_projections(fish)
+		projections = self.read_max_projections(fish)
 		positions = [cc_fixer.mainFixer(p) for p in projections]
 
 		x = int((positions[0][1] + positions[1][0]) / 2)
@@ -218,6 +231,11 @@ class CTreader:
 		"""
 		Rotate images properly using cv2.warpAffine
 		since it provides more control eg over center
+
+		parameters
+		image : 2d np array
+		angle : angle to spin
+		center : provide center if you dont want to spin around true center
 		"""
 		image_center = tuple(np.array(image.shape[1::-1]) / 2)
 		if center:
@@ -231,7 +249,7 @@ class CTreader:
 	def thresh_stack(self, stack, thresh_8):
 		"""
 		Threshold CT stack in 16 bits using numpy because it's faster
-		provide threshold in 8bit since it's more intuitive then convert to 16
+		provide threshold in 8bit since it's more intuitive, then convert to 16
 		"""
 
 		thresh_16 = thresh_8 * (65535 / 255)
@@ -245,10 +263,10 @@ class CTreader:
 
 	def thresh_img(self, img, thresh_8, is_16bit=False):
 		"""
-		Threshold CT img in 16 bits using numpy because it's faster
-		provide threshold in 8bit since it's more intuitive then convert to 16
+		Threshold CT img 
+		Default is 8bit thresholding but make 16_bit=True if not
 		"""
-
+		#provide threshold in 8bit since it's more intuitive then convert to 16
 		thresh_16 = thresh_8 * (65535 / 255)
 		if is_16bit:
 			thresh = thresh_16
@@ -259,7 +277,7 @@ class CTreader:
 
 	def saveJSON(self, nparray, jsonpath):
 		"""
-		Just a quick way to save nparrays as json
+		A quick way to save nparrays as json
 		"""
 		json.dump(
 			nparray,
@@ -271,7 +289,7 @@ class CTreader:
 
 	def readJSON(self, jsonpath):
 		"""
-		Just a quick way to read nparrays as json
+		Quickly read nparrays as json
 		"""
 		obj_text = codecs.open(jsonpath, "r", encoding="utf-8").read()
 		obj = json.loads(obj_text)

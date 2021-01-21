@@ -12,16 +12,14 @@ class mainView(QMainWindow):
 		super().__init__()
 		self.thresh = thresh
 		self.label = label
+		self.stack_length = self.stack.shape[0]
 		# convert 16 bit grayscale to 8 bit
 		# by mapping the data range to 0 - 255
 		if stack.dtype == 'uint16':
 			self.stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
 		else:
 			self.stack = stack
-		self.stack_length = self.stack.shape[0]
-
 		self.initUI()
-
 
 	def initUI(self):
 		#initialise UI
@@ -31,7 +29,6 @@ class mainView(QMainWindow):
 		self.viewer = Viewer(self.stack, label = self.label, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.viewer)
 		#widget.findChildren(QWidget)[0]
-
 		menubar = self.menuBar()
 		fileMenu = menubar.addMenu('&File')
 		self.setGeometry(1100, 10, self.viewer.width(), self.viewer.height())
@@ -51,14 +48,14 @@ class Viewer(QWidget):
 		super().__init__()
 
 		# init variables
-		if np.max(stack) == 1: stack = stack*255 #fix labels so you can view them if are main stack
+		if np.max(stack) < 10: stack = stack*255 #fix labels so you can view them if are main stack
 		self.ogstack = stack
 		self.stack_size = stack.shape[0]
 		self.stride = stride
 		self.slice = 0
 		self.parent = parent
 		self.min_thresh = 0
-		self.max_thresh = 150
+		self.max_thresh = 250
 		self.thresh = thresh
 		self.label = label
 		self.pad = 20
@@ -70,6 +67,8 @@ class Viewer(QWidget):
 			self.ogstack = np.array([np.stack((img,)*3, axis=-1) for img in self.ogstack])
 			# change pixels to red if in label
 			self.ogstack[label == 1, :] = [255, 0, 0]
+			self.ogstack[label == 2, :] = [255, 255, 0]
+			self.ogstack[label == 3, :] = [0, 0, 255]
 
 		#if self.ogstack.shape[0] == self.ogstack.shape[1]: self.is_single_image = True
 		if len(self.ogstack.shape) == 2: self.is_single_image = True
@@ -99,7 +98,7 @@ class Viewer(QWidget):
 		elif self.is_single_image: 
 			self.setGeometry(0, 0, 
 			self.pixmap.width() + pad, 
-			self.pixmap.height() + pad*3)
+			self.pixmap.height() + pad*2)
 
 		if self.thresh == True: 
 			self.initThresholdSliders()
@@ -109,9 +108,6 @@ class Viewer(QWidget):
 			self.min_thresh_slider.valueChanged.connect(self.update_min_thresh)
 			self.max_thresh_slider.valueChanged.connect(self.update_max_thresh)
 
-		
-			
-		
 
 	def update(self):
 
