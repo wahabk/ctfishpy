@@ -12,7 +12,7 @@ class mainView(QMainWindow):
 		super().__init__()
 		self.thresh = thresh
 		self.label = label
-		self.stack_length = self.stack.shape[0]
+		self.stack_length = stack.shape[0]
 		# convert 16 bit grayscale to 8 bit
 		# by mapping the data range to 0 - 255
 		if stack.dtype == 'uint16':

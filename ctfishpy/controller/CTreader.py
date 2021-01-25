@@ -327,4 +327,3 @@ class CTreader:
 		array = array[x - l : x + l, y - l : y + l]
 		return array
 
-
