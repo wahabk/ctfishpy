@@ -23,7 +23,7 @@ class CTreader:
 		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
 		self.fish_nums = nums
-		self.anglePath = self.dataset_path / "angles.json"
+		self.anglePath = self.dataset_path / "Metadata/angles.json"
 
 	def mastersheet(self):
 		return self.master
@@ -150,10 +150,12 @@ class CTreader:
 		label = label to save as a numpy array
 		put n =0 if label is a cc template
 		'''
-		path = Path(f'{self.dataset_path}/Labels/{organ}/{organ}.h5')
+		folderPath =  Path(f'{self.dataset_path}/Labels/Organs/{organ}/')
+		folderPath.mkdir(parents=True, exist_ok=True)
+		path = Path(f'{self.dataset_path}/Labels/Organs/{organ}/{organ}.h5')
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 		f = h5py.File(path, "w")
-		dset = f.create_dataset(str(n), data = label, shape=canvas.shape, dtype='uint8', compression=1)
+		dset = f.create_dataset(str(n), data = label, shape=label.shape, dtype='uint8', compression=1)
 		f.close()
 
 	def read_max_projections(self, n):
