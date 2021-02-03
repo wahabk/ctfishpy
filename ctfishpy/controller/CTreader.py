@@ -88,7 +88,7 @@ class CTreader:
 				if align == True:
 					tiffslice = self.rotate_image(tiffslice, angle)
 				ct.append(tiffslice)
-			ct = np.array(ct)
+			ct = np.array(ct, dtype='uint16')
 
 		return ct, stack_metadata
 
@@ -148,15 +148,30 @@ class CTreader:
 		Write label to organ hdf5
 
 		parameters
-		label = label to save as a numpy array
-		put n =0 if label is a cc template
+		label : label to save as a numpy array
+		n : number of fish, put n = 0 if label is a cc template
 		'''
 		folderPath =  Path(f'{self.dataset_path}/Labels/Organs/{organ}/')
 		folderPath.mkdir(parents=True, exist_ok=True)
 		path = Path(f'{self.dataset_path}/Labels/Organs/{organ}/{organ}.h5')
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
-		f = h5py.File(path, "w")
-		dset = f.create_dataset(str(n), data = label, shape=label.shape, dtype='uint8', compression=1)
+		f = h5py.File(path, "a")
+		dset = f.create_dataset(str(n), shape=label.shape, dtype='uint8', data = label, compression=1)
+		f.close()
+
+	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
+		'''
+		Write scan to hdf5
+
+		parameters
+		label = label to save as a numpy array
+		put n =0 if label is a cc template
+		'''
+		folderPath = Path(f'{self.dataset_path}/Compressed/')
+		folderPath.mkdir(parents=True, exist_ok=True)
+		path = folderPath / f'{dataset}.h5'
+		f = h5py.File(path, 'a')
+		dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
 		f.close()
 
 	def read_max_projections(self, n):
