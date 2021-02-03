@@ -1,8 +1,9 @@
+# https://github.com/qubvel/segmentation_models/blob/master/examples/multiclass%20segmentation%20(camvid).ipynb
 from ..controller import CTreader
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-import json
+import json, codecs, pickle
 import segmentation_models as sm
 import tensorflow.keras as keras
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
@@ -10,19 +11,19 @@ from tensorflow.keras.layers import Input, Conv2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-
+sm.set_framework('tf.keras')
 
 class Unet():
-	def __init__(self):
+	def __init__(self, organ):
 		self.shape = (224,224)
 		self.roiZ = 125
-		self.organ = 'Otoliths'
+		self.organ = organ
 		self.sample = [200,218,240,277,330,337,341,462,464,40]
 		self.val_sample = [78, 364]
-		self.val_steps = 8
-		self.batch_size = 64
-		self.steps_per_epoch = 34
-		self.epochs = 100
+		self.val_steps = 4
+		self.batch_size = 32
+		self.steps_per_epoch = int((self.roiZ * len(self.sample)) / self.batch_size)
+		self.epochs = 200
 		self.lr = 1e-5
 		self.BACKBONE = 'resnet34'
 		self.weights = 'imagenet'
@@ -31,39 +32,44 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
+		self.class_weights = np.array([0.5,2,2])
+		self.metrics = [sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5, class_weights=self.class_weights)]
+
 
 	def getModel(self):
-
-		dice_loss = sm.losses.DiceLoss(class_weights=np.array([1,5,5])) 
-		focal_loss = sm.losses.CategoricalFocalLoss()
+		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
+		focal_loss = sm.losses.CategoricalFocalLoss()	
 		total_loss = dice_loss + (1 * focal_loss)
 
 		optimizer = Adam(learning_rate=self.lr)
 
-		base_model = sm.Unet(self.BACKBONE, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		#base_model = sm.Unet(self.BACKBONE, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		base_model = sm.Unet(self.BACKBONE, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=True)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
-		model = Model(inp, out, name=base_model.name)
 
-		model.compile(optimizer=optimizer, loss=total_loss, metrics=[])
+		
+		model = Model(inp, out, name=base_model.name)
+		model.load_weights(self.weightspath)
+		model.compile(optimizer=optimizer, loss=total_loss, metrics=self.metrics)
 		return model
 
 	def train(self):
-		self.trainstarttime = time.strftime("%Y-%m-%d-%H-%M")
+		trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
 		data_gen_args = dict(rotation_range=10, # degrees
-                    width_shift_range=10, #pixels
-                    height_shift_range=10,
-                    shear_range=5, #degrees
-                    zoom_range=0.1, # up to 1
-                    horizontal_flip=True,
-                    vertical_flip = True,
-                    fill_mode='constant',
-                    cval = 0)
+					width_shift_range=10, #pixels
+					height_shift_range=10,
+					shear_range=5, #degrees
+					zoom_range=0.1, # up to 1
+					horizontal_flip=True,
+					vertical_flip = True,
+					fill_mode='constant',
+					cval = 0)
 
 		xtrain, ytrain, sample_weights = self.dataGenie(batch_size=self.batch_size,
-                        data_gen_args = data_gen_args,
-                        fish_nums = self.sample)
+						data_gen_args = data_gen_args,
+						fish_nums = self.sample)
 
 		xval, yval, sample_weights = self.dataGenie(batch_size = self.batch_size,
 				data_gen_args = dict(),
@@ -79,19 +85,44 @@ class Unet():
 		]
 		
 		history = model.fit(xtrain, y=ytrain, validation_data=(xval, yval), steps_per_epoch = self.steps_per_epoch, 
-                    	epochs = self.epochs, callbacks=callbacks, validation_steps=self.val_steps)
-		self.history = history
+						epochs = self.epochs, callbacks=callbacks, validation_steps=self.val_steps)
+		self.history = history.history
+		self.history['time'] = trainStartTime
+		self.saveHistory(f'output/Model/History/{trainStartTime}_history.json', self.history)
 
-	def makeLossCurve(self):
-		history = self.history
-		plt.plot(history.history['loss'])
-		plt.plot(history.history['val_loss'])
+	def makeLossCurve(self, history=None):
+		if history == None: history = self.history
+
+		metrics = ['loss','val_loss','f1-score','val_f1-score','iou_score','val_iou_score']
+		for m in metrics:
+			plt.plot(history[m])
+		
 		plt.title(f'Unet-otolith loss (lr={self.lr})')
 		plt.ylabel('loss')
 		plt.xlabel('epoch')
-		plt.ylim(0,1)
-		plt.legend(['train', 'val'], loc='upper left')
-		plt.savefig(f'output/Model/loss_curves/{self.trainstarttime}_loss.png')
+		# plt.ylim(0,1)
+		plt.legend(metrics, loc='upper left')
+		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
+
+	def saveHistory(self, path, history):
+		'''
+		from https://stackoverflow.com/questions/41061457/keras-how-to-save-the-training-history-attribute-of-the-history-object
+		'''
+		with open(path, 'wb') as file_pi:
+			pickle.dump(history, file_pi)
+
+	def loadHistory(self, path):
+		'''
+		load history saved as pickle file
+
+		parameters:
+		path
+
+		from https://stackoverflow.com/questions/41061457/keras-how-to-save-the-training-history-attribute-of-the-history-object
+		'''
+		with open(path, 'rb') as file_pi:
+			history = pickle.load(file_pi)
+		return history
 
 	def test(self):
 		# TODO setup proper end test
@@ -112,8 +143,11 @@ class Unet():
 		for i in range(self.nclasses):
 			result = results[:, :, :, i]
 			label[result>0.5] = i
-			
-		return label
+		
+		ct = np.squeeze((test).astype('float32'), axis = 3)
+		ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
+
+		return label, ct
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums):
 		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
@@ -142,10 +176,13 @@ class Unet():
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
+			if self.organ == 'Otoliths':
+				# remove utricular otoliths
+				label[label == 2] = 0
+				label[label == 3] = 2
 
 			new_mask = np.zeros(label.shape + (num_classes,))
 			for i in range(num_classes):
-				if i == 2 and self.organ == 'Otoliths': continue # skip utricular otoliths
 				#for one pixel in the image, find the class in mask and convert it into one-hot vector
 				new_mask[label == i,i] = 1
 			
@@ -154,6 +191,7 @@ class Unet():
 			ct_list.append(ct)
 			label_list.append(label)
 			ct, label = None, None
+			
 		
 		ct_list = np.vstack(ct_list)
 		label_list = np.vstack(label_list)
@@ -221,6 +259,7 @@ def lr_scheduler(epoch, learning_rate):
 	return learning_rate
 
 def fixFormat(batch, label = False):
-    # change format of image batches to make viewable with ctreader
-    if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
-    if label: return np.squeeze(batch.astype('uint8'), axis = 3)
+	# change format of image batches to make viewable with ctreader
+	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
+	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
+

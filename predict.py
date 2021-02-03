@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ctreader = ctfishpy.CTreader()
-unet = ctfishpy.Unet()
-label = unet.predict(40)
+unet = ctfishpy.Unet('Otoliths')
+unet.weightspath = 'output/Model/unet_checkpoints.hdf5'
+label, ct = unet.predict(40)
 print(label.shape, np.max(label), np.unique(label))
-ctreader.write_label(label, 'Otoliths-unet', 40)
-plt.imsave('output/Images/second_prediction2.png', label[120])
+
+ctreader.make_gif(ct, 'output/prediction.gif', label = label, fps=15, scale = 300)

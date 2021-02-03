@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+from moviepy.editor import ImageSequenceClip
 from ..viewer import *
 from pathlib2 import Path
 import tifffile as tiff
@@ -329,3 +330,29 @@ class CTreader:
 		array = array[x - l : x + l, y - l : y + l]
 		return array
 
+	def make_gif(self, stack, file_name, fps = 7, label=None, scale=None):
+		#decompose grayscale numpy array into RGB
+		new_stack = np.array([np.stack((img,)*3, axis=-1) for img in stack], dtype='uint8')
+
+		colors = [(0,0,0), (255,0,0), (255,255,0), (0,0,255)]
+
+		if label is not None:
+			for i in np.unique(label):
+				if i != 0:
+					new_stack[label==i] = colors[i]
+		
+		if scale is not None:
+			im = new_stack[0]
+			width = int(im.shape[1] * scale / 100)
+			height = int(im.shape[0] * scale / 100)
+			dim = (width, height)
+
+			# resize image
+			resized = [cv2.resize(img, dim, interpolation = cv2.INTER_AREA) for img in new_stack]
+			new_stack = resized
+	
+
+		# write_gif(new_stack, file_name, fps = fps)
+		
+		clip = ImageSequenceClip(list(new_stack), fps=fps)
+		clip.write_gif(file_name, fps=fps)

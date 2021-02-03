@@ -1,5 +1,7 @@
 import ctfishpy
 
-unet = ctfishpy.model.Unet()
+unet = ctfishpy.model.Unet('Otoliths')
 unet.train()
 unet.makeLossCurve()
+
+
