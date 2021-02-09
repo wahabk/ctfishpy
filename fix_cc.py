@@ -9,9 +9,9 @@ import json
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
-	datapath = ctreader.dataset_path / 'cc_centres_otoliths.json'
+	datapath = ctreader.dataset_path / 'Metadata/cc_centres_Otoliths.json'
 
-	sample = [40,78,200,218,240,277,330,337,341,462,464,364]
+	sample = [385] #[40,78,200,218,240,277,330,337,341,462,464,364]
 	centres = {}
 	for fish in sample:
 		positions = ctreader.cc_fixer(fish)

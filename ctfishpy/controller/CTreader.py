@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 from moviepy.editor import ImageSequenceClip
+from read_amira import read_amira
 from ..viewer import *
 from pathlib2 import Path
 import tifffile as tiff
@@ -24,7 +25,8 @@ class CTreader:
 		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
 		self.fish_nums = nums
-		self.anglePath = self.dataset_path / "Metadata/angles.json"
+		self.anglePath = "ctfishpy/Metadata/angles.json"
+		self.centres_path = "ctfishpy/Metadata/cc_centers_Otoliths.json"
 
 	def mastersheet(self):
 		return self.master
@@ -102,7 +104,7 @@ class CTreader:
 			stack_metadata = json.load(metadatafile)
 		return stack_metadata
 
-	def read_label(self, organ, n, align=True):
+	def read_label(self, organ, n, align=True, is_amira=False):
 		"""
 		Read and return hdf5 label files
 
@@ -117,28 +119,34 @@ class CTreader:
 			raise Exception('organ not found')
 
 		if n==0:
-			labels_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
-			print(f"[CTFishPy] Reading labels fish: {n} {labels_path} ")
-			f = h5py.File(labels_path, "r")
+			label_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
+			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
+			f = h5py.File(label_path, "r")
 			label = np.array(f['0'])
 			f.close()
 
-		else:
-			labels_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
-			print(f"[CTFishPy] Reading labels fish: {n} {labels_path} ")
+		elif n!=0 and is_amira==False:
+			label_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
+			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 
-			f = h5py.File(labels_path, "r")
+			f = h5py.File(label_path, "r")
 			label = np.array(f[str(n)])
 			f.close()
 
-			if align:
-				# get manual alignment
-				with open(self.anglePath, "r") as fp:
-					angles = json.load(fp)
-				angle = angles[str(n)]
-				stack_metadata = self.read_metadata(n)
-				label = [self.rotate_image(i, angle) for i in label]
-				label = np.array(label)
+		elif n!=0 and is_amira==True:
+			label_path = self.dataset_path / f'Labels/Organs/{organ}/{n}.am'
+			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
+			label_dict = read_amira(label_path)
+			label = label_dict['data'][-1]['data'].T
+
+		if align:
+			# get manual alignment
+			with open(self.anglePath, "r") as fp:
+				angles = json.load(fp)
+			angle = angles[str(n)]
+			stack_metadata = self.read_metadata(n)
+			label = [self.rotate_image(i, angle) for i in label]
+			label = np.array(label)
 
 		print("Labels ready.")
 		return label
