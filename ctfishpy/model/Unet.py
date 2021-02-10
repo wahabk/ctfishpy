@@ -1,5 +1,5 @@
 # https://github.com/qubvel/segmentation_models/blob/master/examples/multiclass%20segmentation%20(camvid).ipynb
-from ..controller import CTreader
+from ..controller import CTreader, cc
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -16,7 +16,7 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ, sample, val_sample):
 		self.shape = (224,224)
-		self.roiZ = 125
+		self.roiZ = 224
 		self.organ = organ
 		self.n_samples = len(sample)
 		self.sample = sample
@@ -24,7 +24,7 @@ class Unet():
 		self.val_steps = 4
 		self.batch_size = 32
 		self.steps_per_epoch = int((self.roiZ * len(self.sample)) / self.batch_size)
-		self.epochs = 200
+		self.epochs = 100
 		self.lr = 1e-5
 		self.BACKBONE = 'resnet34'
 		self.weights = 'imagenet'
@@ -33,8 +33,9 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5,2,2])
+		self.class_weights = np.array([0.5,2,3])
 		self.metrics = [sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5, class_weights=self.class_weights)]
+		self.rerun = False
 
 
 	def getModel(self):
@@ -52,7 +53,7 @@ class Unet():
 
 		
 		model = Model(inp, out, name=base_model.name)
-		model.load_weights(self.weightspath)
+		if self.rerun: model.load_weights(self.weightspath)
 		model.compile(optimizer=optimizer, loss=total_loss, metrics=self.metrics)
 		return model
 
@@ -154,10 +155,12 @@ class Unet():
 		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
 		maskgen = ImageDataGenerator(**data_gen_args)
 		ctreader = CTreader()
+		template = ctreader.read_label(self.organ, 0)
 
-		centres_path = ctreader.centres_path / 'Metadata/cc_centres_Otoliths.json'
-		with open(centres_path, 'r') as fp:
-			centres = json.load(fp)
+
+		# centres_path = ctreader.centres_path
+		# with open(centres_path, 'r') as fp:
+		# 	centres = json.load(fp)
 
 		roiZ=self.roiZ
 		roiSize=self.shape[0]
@@ -167,8 +170,7 @@ class Unet():
 		ct_list, label_list = [], []
 		for num in fish_nums:
 			# take out cc for now
-			# center, error = cc(num, template, thresh=200, roiSize=50)
-			center = centres[str(num)]
+			center = cc(num, template, thresh=80, roiSize=224)
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
@@ -178,6 +180,9 @@ class Unet():
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
+
+			print('SHAPES: ', label.shape, ct.shape)
+
 			if self.organ == 'Otoliths':
 				# remove utricular otoliths
 				label[label == 2] = 0

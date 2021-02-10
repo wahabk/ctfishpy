@@ -26,7 +26,7 @@ def makeTemplate(samples, roiSize, thresh):
 	scanList = []
 	for n in samples:
 		ct, metadata = ctreader.read(n, align=True)
-		label = ctreader.read_label('Otoliths', n)
+		label = ctreader.read_label('Otoliths', n, align=True, is_amira=True)
 		
 		labelsList.append(label)
 		scanList.append(ct)
@@ -59,7 +59,7 @@ def makeTemplate(samples, roiSize, thresh):
 					 crop[2,0]: crop[2,1]]
 		otolith =  np.array(cropped)
 		
-		otolith = ctreader.thresh_stack(otolith, thresh)
+		# otolith = ctreader.thresh_stack(otolith, thresh)
 		otolithList.append(otolith)
 
 	otolithArray = np.array(otolithList)
@@ -68,16 +68,18 @@ def makeTemplate(samples, roiSize, thresh):
 	return template
 
 if __name__ == "__main__":
-	samples = [40, 78, 200, 218, 240, 277, 330, 337, 341, 364, 462, 464]
-	roiSize = 150
+	samples = [200,218,240,277,330,337,341,462,464,40,78]+[242,256,259,421,423,459,463,530,589]+[257,443,461,527,582]
+	roiSize = 224
 	thresh = 100
 	
 	ctreader = ctfishpy.CTreader()
 
 	template = makeTemplate(samples, roiSize, thresh)
+	print(template.shape, np.max(template), np.mean(template), np.min(template), template.dtype)
 	ctreader.write_label(template, 'Otoliths', 0)
-	template = ctreader.read_label('Otoliths', 0, align=False)
 	ctreader.view(template)
+	# template = ctreader.read_label('Otoliths', 0, align=False)
+
 
 
 #/home/wahab/Data/HDD/uCT/Labels/Otolith1

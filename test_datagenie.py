@@ -24,8 +24,8 @@ if __name__ == "__main__":
 	sample = [200]
 	batch_size = 32
 	# change label path to read labels directly
-
-	datagenie = ctfishpy.dataGenie(  batch_size = batch_size,
+	unet = ctfishpy.model.Unet()
+	datagenie = unet.dataGenie(  batch_size = batch_size,
 							data_gen_args = data_gen_args,
 							fish_nums = sample)
 

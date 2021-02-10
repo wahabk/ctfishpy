@@ -1,7 +1,8 @@
 from dotenv import load_dotenv
 from moviepy.editor import ImageSequenceClip
-from read_amira import read_amira
-from ..viewer import *
+from .read_amira import read_amira
+try: from ..viewer import * 
+except: from ..viewer import cc_fixer, mainViewer, spinner
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
@@ -26,7 +27,9 @@ class CTreader:
 		nums.sort()
 		self.fish_nums = nums
 		self.anglePath = "ctfishpy/Metadata/angles.json"
-		self.centres_path = "ctfishpy/Metadata/cc_centers_Otoliths.json"
+		self.centres_path = "ctfishpy/Metadata/cc_centres_Otoliths.json"
+		with open(self.centres_path, "r") as fp:
+			self.manual_centers = json.load(fp)
 
 	def mastersheet(self):
 		return self.master
@@ -139,7 +142,7 @@ class CTreader:
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
-		if align:
+		if align and n!=0:
 			# get manual alignment
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
@@ -151,7 +154,7 @@ class CTreader:
 		print("Labels ready.")
 		return label
 
-	def write_label(self, label, organ, n):
+	def write_label(self, label, organ, n, dtype='uint16'):
 		'''
 		Write label to organ hdf5
 
@@ -164,7 +167,7 @@ class CTreader:
 		path = Path(f'{self.dataset_path}/Labels/Organs/{organ}/{organ}.h5')
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 		f = h5py.File(path, "a")
-		dset = f.create_dataset(str(n), shape=label.shape, dtype='uint8', data = label, compression=1)
+		dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
 		f.close()
 
 	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
@@ -184,7 +187,7 @@ class CTreader:
 
 	def read_max_projections(self, n):
 		"""
-		Return x, y, z which represent axial, saggital, and coronal max projections
+		Return z,y,x which represent axial, saggital, and coronal max projections
 		This reads them instead of generating them
 		"""
 		# import pdb; pdb.set_trace()
@@ -192,17 +195,17 @@ class CTreader:
 		z = cv2.imread(f"{dpath}/projections/z/z_{n}.png")
 		y = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
 		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
-		return [z, y, x]
+		return np.array([z, y, x])
 
 	def make_max_projections(self, stack):
 		"""
-		Make x, y, z which represent axial, saggital, and coronal max projections
+		Make z,y,x which represent axial, saggital, and coronal max projections
 		"""
 		# import pdb; pdb.set_trace()
 		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
 		x = np.max(stack, axis=2)
-		return [z, y, x]
+		return np.array([z, y, x])
 
 	def view(self, ct, label=None, thresh=False):
 		"""
@@ -285,7 +288,7 @@ class CTreader:
 			new_slice = (slice_ > thresh_16) * slice_
 			thresholded.append(new_slice)
 
-		return np.array(thresholded)
+		return np.array(thresholded, dtype='uint16')
 
 	def thresh_img(self, img, thresh_8, is_16bit=False):
 		"""
