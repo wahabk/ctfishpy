@@ -13,6 +13,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 sm.set_framework('tf.keras')
 
+unweighted = sm.metrics.FScore(threshold=0.5)
+
 class Unet():
 	def __init__(self, organ, sample, val_sample):
 		self.shape = (224,224)
@@ -24,8 +26,8 @@ class Unet():
 		self.val_steps = 4
 		self.batch_size = 32
 		self.steps_per_epoch = int((self.roiZ * len(self.sample)) / self.batch_size)
-		self.epochs = 100
-		self.lr = 1e-5
+		self.epochs = 25
+		self.lr = 1e-6
 		self.BACKBONE = 'resnet34'
 		self.weights = 'imagenet'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
@@ -33,8 +35,8 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5,2,3])
-		self.metrics = [sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5, class_weights=self.class_weights)]
+		self.class_weights = np.array([0.5,2,2.5])
+		self.metrics = [sm.metrics.FScore(threshold=0.5, class_weights=self.class_weights), unweighted]
 		self.rerun = False
 
 
@@ -181,7 +183,9 @@ class Unet():
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
 
-			print('SHAPES: ', label.shape, ct.shape)
+			if label.shape != ct.shape:
+				raise Exception('X and Y shapes are different')
+				
 
 			if self.organ == 'Otoliths':
 				# remove utricular otoliths
