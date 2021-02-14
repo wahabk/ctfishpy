@@ -8,4 +8,4 @@ unet.weightspath = 'output/Model/unet_checkpoints.hdf5'
 label, ct = unet.predict(40)
 print(label.shape, np.max(label), np.unique(label))
 
-ctreader.make_gif(ct, 'output/prediction.gif', label = label, fps=15, scale = 300)
+ctreader.make_gif(ct, 'output/prediction.gif', label = label, fps=20, scale = 300)

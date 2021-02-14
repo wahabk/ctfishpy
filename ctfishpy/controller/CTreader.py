@@ -358,6 +358,7 @@ class CTreader:
 
 	def make_gif(self, stack, file_name, fps = 7, label=None, scale=None):
 		#decompose grayscale numpy array into RGB
+		if stack.dtype == 'uint16': stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
 		new_stack = np.array([np.stack((img,)*3, axis=-1) for img in stack], dtype='uint8')
 
 		colors = [(0,0,0), (255,0,0), (255,255,0), (0,0,255)]
