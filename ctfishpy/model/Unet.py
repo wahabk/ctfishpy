@@ -164,9 +164,9 @@ class Unet():
 		template = ctreader.read_label(self.organ, 0)
 
 
-		# centres_path = ctreader.centres_path
-		# with open(centres_path, 'r') as fp:
-		# 	centres = json.load(fp)
+		centres_path = ctreader.centres_path
+		with open(centres_path, 'r') as fp:
+			centres = json.load(fp)
 
 		roiZ=self.roiZ
 		roiSize=self.shape[0]
@@ -176,7 +176,8 @@ class Unet():
 		ct_list, label_list = [], []
 		for num in fish_nums:
 			# take out cc for now
-			center = cc(num, template, thresh=80, roiSize=224)
+			# center = cc(num, template, thresh=80, roiSize=224)
+			center = centres[num]
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
