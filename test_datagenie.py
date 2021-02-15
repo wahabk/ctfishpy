@@ -19,8 +19,12 @@ if __name__ == "__main__":
 				vertical_flip = True,
 				fill_mode='constant',
 				cval = 0)
-
-	sample = [240,277,330,337,341,462,40,78]
+	wahab_samples 	= [40,78,200,218,240,277,330,337,341,462]
+	mariel_samples	= [421,423,242,463,259,459]
+	zac_samples		= [257,443,461] 
+	# removing 527, 530, 582, 589
+	sample = wahab_samples+mariel_samples
+	val_samples = [464,364,385,40]
 	batch_size = 32
 	# change label path to read labels directly
 	unet = ctfishpy.model.Unet('Otoliths')
@@ -29,7 +33,7 @@ if __name__ == "__main__":
 	xdata, ydata, sample_weights = unet.dataGenie(  batch_size = batch_size,
 							data_gen_args = data_gen_args,
 							fish_nums = sample,
-							shuffle=False)
+							shuffle=True)
 
 	label = np.zeros(ydata.shape[:-1], dtype = 'uint8')
 	for i in range(3):
@@ -41,7 +45,7 @@ if __name__ == "__main__":
 	xdata = fixFormat(xdata*65535)  # remove last weird axis
 	#ydata = fixFormat(ydata, label = True)  # remove last weird axis
 
-	# ctreader.make_gif(xdata[:125], 'output/datagenie.gif', fps=3, label = label[:125])
-	ctreader.view(xdata, label)
+	ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
+	# ctreader.view(xdata, label)
 
 	#break
