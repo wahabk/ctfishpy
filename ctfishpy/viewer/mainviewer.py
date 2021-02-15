@@ -66,9 +66,13 @@ class Viewer(QWidget):
 			# unpack images to convert each one to grayscale
 			self.ogstack = np.array([np.stack((img,)*3, axis=-1) for img in self.ogstack])
 			# change pixels to red if in label
+
+			
 			self.ogstack[label == 1, :] = [255, 0, 0]
 			self.ogstack[label == 2, :] = [255, 255, 0]
 			self.ogstack[label == 3, :] = [0, 0, 255]
+			self.ogstack[label == 4, :] = [0, 255, 0]
+			self.ogstack[label == 5, :] = [255, 0, 255]
 
 		#if self.ogstack.shape[0] == self.ogstack.shape[1]: self.is_single_image = True
 		if len(self.ogstack.shape) == 2: self.is_single_image = True
