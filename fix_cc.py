@@ -9,15 +9,25 @@ import json
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
-	datapath = ctreader.dataset_path / 'Metadata/cc_centres_Otoliths.json'
+	datapath = ctreader.centres_path
 
-	sample = [385] #[40,78,200,218,240,277,330,337,341,462,464,364]
-	centres = {}
+	wahab_samples 	= [200,218,240,277,330,337,341,462,40,78, 464,385] # cc doesnt work on 464 385
+	mariel_samples	= [242,256,259,459,463,530,589,421,423] # 421 423 removed
+	zac_samples		= [257,443,461,527,582]
+
+	sample = wahab_samples+mariel_samples+zac_samples
+
+	with open(datapath, 'r') as fp:
+		data = json.load(fp)
+	done = list(data.keys())
+
 	for fish in sample:
-		positions = ctreader.cc_fixer(fish)
-		centres[str(fish)] = positions
+		if str(fish) not in done:
+			print(fish)
+			positions = ctreader.cc_fixer(fish)
+			data[str(fish)] = positions
 	with open(datapath, 'w') as f:
-		json.dump(centres, f, sort_keys=True, indent=4)
+		json.dump(data, f, sort_keys=True, indent=4)
 	with open(datapath, 'r') as fp:
 		data = json.load(fp)
 	print(data)
