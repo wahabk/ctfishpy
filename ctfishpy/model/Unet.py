@@ -17,7 +17,7 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (224,224)
-		self.roiZ = 100
+		self.roiZ = 110
 		self.organ = organ
 		self.val_steps = 5
 		self.batch_size = 32
@@ -62,10 +62,10 @@ class Unet():
 		
 		
 		trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
-		data_gen_args = dict(rotation_range=2, # degrees
-					width_shift_range=2, #pixels
-					height_shift_range=2,
-					shear_range=2, #degrees
+		data_gen_args = dict(rotation_range=1, # degrees
+					width_shift_range=1, #pixels
+					height_shift_range=1,
+					shear_range=1, #degrees
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
@@ -177,7 +177,7 @@ class Unet():
 		for num in fish_nums:
 			# take out cc for now
 			# center = cc(num, template, thresh=80, roiSize=224)
-			center = centres[num]
+			center = centres[str(num)]
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
