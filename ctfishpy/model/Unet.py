@@ -17,11 +17,11 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (224,224)
-		self.roiZ = 100
+		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 60
-		self.lr = 1e-5
+		self.epochs = 25
+		self.lr = 1e-4
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
@@ -32,8 +32,9 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(threshold=0.5), sm.metrics.IOUScore(threshold=0.5)]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.3
-		self.loss=self.focal_tversky_loss
+		self.alpha = 0.7
+		self.loss=None
+		self.seed=420
 		# 'output/Model/unet_checkpoints.hdf5'
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
@@ -41,9 +42,8 @@ class Unet():
 
 	def saveParams(self):
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
-		with open('output/Model/trainingParameters.csv', 'w') as f:  
+		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
 			w = csv.DictWriter(f, members.keys())
-			w.writeheader()
 			w.writerow(members)
 
 	def getModel(self):
@@ -64,22 +64,22 @@ class Unet():
 		model = Model(inp, out, name=base_model.name)
 
 		if self.rerun: model.load_weights(self.weightspath)
-		model.compile(optimizer=optimizer, loss=self.focal_tversky_loss, metrics=self.metrics)
+		model.compile(optimizer=optimizer, loss=class_tversky_loss, metrics=self.metrics)
 		return model
 
-	def train(self, sample, val_sample):
+	def train(self, sample, val_sample, test_sample=None):
 		self.sample = sample
 		self.val_sample = val_sample
 		
 		
 		trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
-		data_gen_args = dict(rotation_range=2, # degrees
-					width_shift_range=2, #pixels
-					height_shift_range=2,
-					shear_range=2, #degrees
-					zoom_range=0.2, # up to 1
+		data_gen_args = dict(rotation_range=5, # degrees
+					width_shift_range=5, #pixels
+					height_shift_range=5,
+					shear_range=5, #degrees
+					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
-					vertical_flip = False,
+					vertical_flip = True,
 					fill_mode='constant',
 					cval = 0)
 
@@ -104,11 +104,17 @@ class Unet():
 			model_checkpoint
 		]
 		
-		history = model.fit(xtrain, y=ytrain, sample_weight=sample_weights, validation_data=(xval, yval, val_sample_weights), steps_per_epoch = self.steps_per_epoch, 
+		history = model.fit(xtrain, y=ytrain, validation_data=(xval, yval), steps_per_epoch = self.steps_per_epoch, 
 						epochs = self.epochs, callbacks=callbacks, validation_steps=self.val_steps)
 		
-		# test_sample=
-		# self.score = model.evaluate()
+		if test_sample:
+			xtest, ytest, test_sample_weights = self.dataGenie(batch_size = self.batch_size,
+						data_gen_args = dict(),
+						fish_nums = test_sample)
+			self.score = model.evaluate(xtest, ytest, batch_size=self.batch_size)
+			print(self.score)
+			
+
 		self.saveParams()
 		self.history = history.history
 		self.history['time'] = trainStartTime
@@ -170,7 +176,7 @@ class Unet():
 
 		roiZ=self.roiZ
 		roiSize=self.shape[0]
-		seed = 2
+		seed = self.seed
 
 		ct_list, label_list = [], []
 		for num in fish_nums:
@@ -180,7 +186,8 @@ class Unet():
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-			align = True if num in [200,218,240,277,330,337,341,462,464,40,385,78] else False
+									
+			align = True if num in [40,78,200,218,240,277,330,337,341,462,464,364,385] else False
 			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
@@ -189,6 +196,7 @@ class Unet():
 
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
+
 				
 
 			if self.organ == 'Otoliths':
@@ -252,20 +260,29 @@ class Unet():
 			y = ydata[:, :, :, i]
 			temp[y==1] = i
 
-		distrib1 = [np.any(temp[i]) for i in range(total)]
-		distrib2 = [np.any(temp[i]) for i in range(total)]
-		distrib = [any(tup) for tup in zip(distrib1, distrib2)]
+		distrib = [np.any(temp[i]) for i in range(total)]
 		distrib = np.array(distrib)
 		sample_weights = np.ones(shape=(total))
 		sample_weights[distrib == True] = self.slice_weighting
-		# xdata = xdata[distrib==True]
-		# ydata = ydata[distrib==True]
-
-
 		
-		print(F'[dataGenie] Done. distrib: {sum(distrib)}/{total} ratio: {sum(distrib)/total} sample_weights={sample_weights.shape[0]}')
-		print(distrib.shape, sample_weights.shape)
+		# print(F'\n\n[dataGenie] Found full slices. distrib: {sum(distrib)}/{total} ratio: {sum(distrib)/total} sample_weights={sample_weights.shape[0]}')
+		
+		# xdata = xdata[distrib==True]#take only slices that have otoliths in them
+		# ydata = ydata[distrib==True]
+		# total = ydata.shape[0]
+		# temp = np.zeros(ydata.shape[:-1], dtype = 'uint8')
+		# for i in [1,2]:
+		# 	y = ydata[:, :, :, i]
+		# 	temp[y==1] = i
+		# distrib = [np.any(temp[i]) for i in range(total)]
+		# distrib = np.array(distrib)
+		
+
+		# print(F'\n\n[dataGenie] Done. Final distrib: {sum(distrib)}/{total} ratio: {sum(distrib)/total} sample_weights={sample_weights.shape[0]}')
+
 		return xdata, ydata, sample_weights
+
+
 
 	def testGenie(self, n):
 		ctreader = CTreader()
@@ -335,9 +352,31 @@ class Unet():
 		return 1 - self.tversky(y_true, y_pred)
 
 
-	def focal_tversky_loss(self, y_true, y_pred, gamma=0.75):
-		tv = self.tversky(y_true, y_pred)
-		return K.pow((1 - tv), gamma)
+	# def focal_tversky_loss(self, y_true, y_pred, gamma=0.75):
+	# 	tv = self.tversky(y_true, y_pred)
+	# 	return K.pow((1 - tv), gamma)
+
+def class_tversky(y_true, y_pred):
+	smooth = 1
+	alpha=0.7
+
+	y_true = K.permute_dimensions(y_true, (3,1,2,0))
+	y_pred = K.permute_dimensions(y_pred, (3,1,2,0))
+
+	y_true_pos = K.batch_flatten(y_true)
+	y_pred_pos = K.batch_flatten(y_pred)
+	true_pos = K.sum(y_true_pos * y_pred_pos, 1)
+	false_neg = K.sum(y_true_pos * (1-y_pred_pos), 1)
+	false_pos = K.sum((1-y_true_pos)*y_pred_pos, 1)
+	return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
+
+def class_tversky_loss(y_true, y_pred):
+	return (1-class_tversky(y_true, y_pred))
+
+def focal_tversky_loss(y_true,y_pred):
+	pt_1 = class_tversky(y_true, y_pred)
+	gamma = 0.75
+	return K.sum(K.pow((1-pt_1), gamma))
 
 def lr_scheduler(epoch, learning_rate):
 	decay_rate =  1
