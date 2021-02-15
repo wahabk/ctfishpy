@@ -17,13 +17,13 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (224,224)
-		self.roiZ = 224
+		self.roiZ = 100
 		self.organ = organ
 		self.val_steps = 5
 		self.batch_size = 32
 		
 		self.epochs = 25
-		self.lr = 1e-5
+		self.lr = 1e-4
 		self.BACKBONE = 'resnet34'
 		self.weights = 'imagenet'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
@@ -62,10 +62,10 @@ class Unet():
 		
 		
 		trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
-		data_gen_args = dict(rotation_range=5, # degrees
+		data_gen_args = dict(rotation_range=2, # degrees
 					width_shift_range=2, #pixels
 					height_shift_range=2,
-					shear_range=5, #degrees
+					shear_range=2, #degrees
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
@@ -81,7 +81,8 @@ class Unet():
 				data_gen_args = dict(),
 				fish_nums = self.val_sample)
 		model = self.getModel()
-		self.steps_per_epoch = int((self.roiZ * len(xtrain)) / self.batch_size)
+		self.steps_per_epoch = int((self.roiZ * len(self.sample)) / self.batch_size)
+		print('\n\n\nSTEPS\n\n\n', self.steps_per_epoch, self.roiZ, len(xtrain))
 
 		model_checkpoint = ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True)
 
@@ -156,7 +157,7 @@ class Unet():
 
 		return label, ct
 	
-	def dataGenie(self, batch_size, data_gen_args, fish_nums):
+	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
 		maskgen = ImageDataGenerator(**data_gen_args)
 		ctreader = CTreader()
@@ -179,7 +180,7 @@ class Unet():
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-			align = True if num in [200,218,240,277,330,337,341,462,464,40,385] else False
+			align = True if num in [200,218,240,277,330,337,341,462,464,40,385,78] else False
 			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
@@ -220,14 +221,14 @@ class Unet():
 			#save_to_dir = 'output/Keras/',
 			save_prefix = 'dataGenie',
 			seed = seed,
-			shuffle=True,
+			shuffle=shuffle,
 			)
 		mask_generator = maskgen.flow(label_list, 
 			batch_size = batch_size,
 			#save_to_dir = 'output/Keras/',
 			save_prefix = 'dataGenie',
 			seed = seed,
-			shuffle=True
+			shuffle=shuffle
 			)
 		
 		print('[dataGenie] Ready... Extracting data')
@@ -255,8 +256,8 @@ class Unet():
 		distrib = np.array(distrib)
 		sample_weights = np.ones(shape=(total))
 		sample_weights[distrib == True] = self.slice_weighting
-		xdata = xdata[distrib==True]
-		ydata = ydata[distrib==True]
+		# xdata = xdata[distrib==True]
+		# ydata = ydata[distrib==True]
 
 
 		
@@ -297,7 +298,7 @@ def fixFormat(batch, label = False):
 	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
 
 
-def tversky(y_true, y_pred, smooth=1, alpha=0.7):
+def tversky(y_true, y_pred, smooth=1, alpha=0.8):
 	'''
 	Ref: salehi17, "Twersky loss function for image segmentation using 3D FCDN"
 	-> the score is computed for each class separately and then summed
