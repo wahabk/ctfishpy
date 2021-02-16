@@ -28,7 +28,7 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5,2,2.5])
+		self.class_weights = np.array([0.5,1.25,1.5])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
@@ -62,10 +62,11 @@ class Unet():
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
 		model = Model(inp, out, name=base_model.name)
-
+		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
 		if self.rerun: model.load_weights(self.weightspath)
-		model.compile(optimizer=optimizer, loss=self.multi_class_tversky_loss, metrics=self.metrics)
-		self.loss = self.multi_class_tversky_loss.__name__
+		model.compile(optimizer=optimizer, loss=dice_loss, metrics=self.metrics)
+		# self.loss = self.multi_class_tversky_loss.__name__
+		self.loss = dice_loss.__name__
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
