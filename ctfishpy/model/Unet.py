@@ -44,7 +44,6 @@ class Unet():
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
 			w = csv.DictWriter(f, members.keys())
-			w.writeheader()
 			w.writerow(members)
 
 	def getModel(self):
@@ -65,7 +64,8 @@ class Unet():
 		model = Model(inp, out, name=base_model.name)
 
 		if self.rerun: model.load_weights(self.weightspath)
-		model.compile(optimizer=optimizer, loss=class_tversky_loss, metrics=self.metrics)
+		model.compile(optimizer=optimizer, loss=self.multi_class_tversky_loss, metrics=self.metrics)
+		self.loss = self.multi_class_tversky_loss.__name__
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
@@ -116,7 +116,7 @@ class Unet():
 						fish_nums = self.test_sample)
 			self.score = model.evaluate(testgenie, batch_size=self.batch_size, steps=int(len(self.test_sample)*self.roiZ / self.batch_size))
 			print(self.score)
-			
+		
 		self.saveParams()
 		
 		self.history = history.history
@@ -299,27 +299,27 @@ class Unet():
 		return history
 
 
-def class_tversky(y_true, y_pred):
-	smooth = 1
-	alpha=0.7
+	def multi_class_tversky(self, y_true, y_pred):
+		smooth = 1
+		alpha=self.alpha
 
-	y_true = K.permute_dimensions(y_true, (3,1,2,0))
-	y_pred = K.permute_dimensions(y_pred, (3,1,2,0))
+		y_true = K.permute_dimensions(y_true, (3,1,2,0))
+		y_pred = K.permute_dimensions(y_pred, (3,1,2,0))
 
-	y_true_pos = K.batch_flatten(y_true)
-	y_pred_pos = K.batch_flatten(y_pred)
-	true_pos = K.sum(y_true_pos * y_pred_pos, 1)
-	false_neg = K.sum(y_true_pos * (1-y_pred_pos), 1)
-	false_pos = K.sum((1-y_true_pos)*y_pred_pos, 1)
-	return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
+		y_true_pos = K.batch_flatten(y_true)
+		y_pred_pos = K.batch_flatten(y_pred)
+		true_pos = K.sum(y_true_pos * y_pred_pos, 1)
+		false_neg = K.sum(y_true_pos * (1-y_pred_pos), 1)
+		false_pos = K.sum((1-y_true_pos)*y_pred_pos, 1)
+		return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
 
-def class_tversky_loss(y_true, y_pred):
-	return (1-class_tversky(y_true, y_pred))
+	def multi_class_tversky_loss(self, y_true, y_pred):
+		return (1-self.multi_class_tversky(y_true, y_pred))
 
-def focal_class_tversky_loss(y_true,y_pred):
-	pt_1 = class_tversky(y_true, y_pred)
-	gamma = 0.75
-	return K.sum(K.pow((1-pt_1), gamma))
+	def focal_multi_class_tversky_loss(self, y_true,y_pred):
+		pt_1 = self.class_tversky(y_true, y_pred)
+		gamma = 0.75
+		return K.sum(K.pow((1-pt_1), gamma))
 
 def lr_scheduler(epoch, learning_rate):
 	decay_rate =  1
