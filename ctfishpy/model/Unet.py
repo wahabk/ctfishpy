@@ -21,19 +21,19 @@ class Unet():
 		self.organ = organ
 		self.batch_size = 32
 		self.epochs = 30
-		self.lr = 1e-4
+		self.lr = 1e-3
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5,1.25,1.5])
+		self.class_weights = np.array([1,1,1])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.7
-		self.loss=sm.losses.CategoricalCELoss()
+		self.loss=self.multi_class_tversky_loss
 		self.seed=69
 		# 'output/Model/unet_checkpoints.hdf5'
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
