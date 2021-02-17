@@ -33,7 +33,7 @@ class Unet():
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.7
-		self.loss=None
+		self.loss=sm.losses.CategoricalCELoss()
 		self.seed=69
 		# 'output/Model/unet_checkpoints.hdf5'
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
@@ -47,9 +47,8 @@ class Unet():
 			w.writerow(members)
 
 	def getModel(self):
-		# dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
-		# focal_loss = sm.losses.CategoricalFocalLoss()	
-		# total_loss = dice_loss + (1 * focal_loss)
+
+		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
 		if self.pretrain:
 			self.weights = 'imagenet'
 		else:
@@ -62,11 +61,11 @@ class Unet():
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
 		model = Model(inp, out, name=base_model.name)
-		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
+		
 		if self.rerun: model.load_weights(self.weightspath)
-		model.compile(optimizer=optimizer, loss=dice_loss, metrics=self.metrics)
+		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 		# self.loss = self.multi_class_tversky_loss.__name__
-		self.loss = dice_loss.__name__
+		self.loss = self.loss.__name__
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
