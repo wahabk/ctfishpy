@@ -21,7 +21,7 @@ class CTreader:
 		# This .env file is not uploaded by git
 		load_dotenv()
 		self.dataset_path = Path(os.getenv("DATASET_PATH"))
-		self.master = pd.read_csv("./uCT_mastersheet.csv")
+		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		low_res_clean_path = self.dataset_path / "low_res_clean/"
 		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 		nums.sort()
