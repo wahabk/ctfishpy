@@ -21,19 +21,19 @@ class Unet():
 		self.organ = organ
 		self.batch_size = 32
 		self.epochs = 30
-		self.lr = 1e-4
+		self.lr = 1e-3
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5,1.25,1.5])
+		self.class_weights = np.array([1,1,1])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.7
-		self.loss=None
+		self.loss=self.multi_class_tversky_loss
 		self.seed=69
 		# 'output/Model/unet_checkpoints.hdf5'
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
@@ -47,9 +47,8 @@ class Unet():
 			w.writerow(members)
 
 	def getModel(self):
-		# dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
-		# focal_loss = sm.losses.CategoricalFocalLoss()	
-		# total_loss = dice_loss + (1 * focal_loss)
+
+		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
 		if self.pretrain:
 			self.weights = 'imagenet'
 		else:
@@ -62,11 +61,11 @@ class Unet():
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
 		model = Model(inp, out, name=base_model.name)
-		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
+		
 		if self.rerun: model.load_weights(self.weightspath)
-		model.compile(optimizer=optimizer, loss=dice_loss, metrics=self.metrics)
+		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 		# self.loss = self.multi_class_tversky_loss.__name__
-		self.loss = dice_loss.__name__
+		self.loss = self.loss.__name__
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
