@@ -19,9 +19,9 @@ class Unet():
 		self.shape = (224,224)
 		self.roiZ = 150
 		self.organ = organ
-		self.batch_size = 32
-		self.epochs = 30
-		self.lr = 1e-3
+		self.batch_size = 16
+		self.epochs = 200
+		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
@@ -32,7 +32,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.7
+		self.alpha = 0.5
 		self.loss=self.multi_class_tversky_loss
 		self.seed=69
 		# 'output/Model/unet_checkpoints.hdf5'
