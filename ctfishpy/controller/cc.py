@@ -26,7 +26,6 @@ def thresh_img(img, thresh_8, is_16bit=False):
 	if not is_16bit:
 		thresh = thresh_8
 
-
 	img[img<thresh] = 0
 	return img
 
@@ -70,39 +69,22 @@ def cc(n, template, thresh, roiSize):
 	cz = correlate(z, zt, mode='same', method='fft')
 	cy = correlate(y, yt, mode='same', method='fft')
 	cx = correlate(x, xt, mode='same', method='fft')
-	
-
-
 
 	# Find coordinates of the peak of cross correlates
-
-
 	centerZ = find_max_value_coords(cz)
 	centerY = find_max_value_coords(cy)
 	centerX = find_max_value_coords(cx)
 
-
+	#average positions from each projection
 	center=[int((centerX[0]+centerY[0])/2),
 			int((centerZ[0]+centerX[1])/2),
 			int((centerZ[1]+centerY[1])/2)]
 	
 
-
-
-	# mancenters = ctreader.manual_centers
-	# mancenter = mancenters[str(n)]
-	# x_diff = (center[2] - mancenter[2])**2
-	# y_diff = (center[1] - mancenter[1])**2
-	# z_diff = (center[0] - mancenter[0])**2
-	# square_error = x_diff + y_diff + z_diff
-	# error = int(math.sqrt(square_error))
-	# print('CENTERS', centerZ,centerY,centerX)
-	
-
-	# cmap = 'Spectral'
-	# plt.imsave('output/cc_corr_x.png', cx, cmap =cmap)
-	# plt.imsave('output/cc_corr_y.png', cy, cmap =cmap)
-	# plt.imsave('output/cc_corr_z.png', cz, cmap =cmap)
+	cmap = 'Spectral'
+	plt.imsave('output/cc/current_cc_corr_x.png', cx, cmap =cmap)
+	plt.imsave('output/cc/current_cc_corr_y.png', cy, cmap =cmap)
+	plt.imsave('output/cc/current_cc_corr_z.png', cz, cmap =cmap)
 
 	return center
 
