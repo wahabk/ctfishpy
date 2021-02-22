@@ -12,6 +12,9 @@ from tensorflow.keras.layers import Input, Conv2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from keras_contrib.callbacks import CyclicLR
+from ktrain.lroptimize.lrfinder import LRFinder
+from tensorflow.keras.callbacks import Callback
 sm.set_framework('tf.keras')
 
 class Unet():
@@ -20,7 +23,7 @@ class Unet():
 		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 16
-		self.epochs = 200
+		self.epochs = 75
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -35,6 +38,9 @@ class Unet():
 		self.alpha = 0.5
 		self.loss=self.multi_class_tversky_loss
 		self.seed=69
+		self.CLR_MIN_LR = 1e-7
+		self.CLR_MAX_LR = 1e-4
+		self.CLR_METHOD = "triangular"
 		# 'output/Model/unet_checkpoints.hdf5'
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
@@ -44,6 +50,7 @@ class Unet():
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
 			w = csv.DictWriter(f, members.keys())
+			# w.writeheader()
 			w.writerow(members)
 
 	def getModel(self):
@@ -53,7 +60,7 @@ class Unet():
 			self.weights = 'imagenet'
 		else:
 			self.weights = None
-		optimizer = Adam(learning_rate=self.lr)
+		optimizer = Adam() #(learning_rate=self.lr)
 
 		base_model = sm.Unet(self.BACKBONE, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		#base_model = sm.Unet(self.BACKBONE, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=False)
@@ -100,10 +107,33 @@ class Unet():
 
 		model_checkpoint = ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True)
 
+		# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)
+		# define the minimum learning rate, maximum learning rate, batch size,
+		# step size, CLR method, and number of epochs
+		
+		BATCH_SIZE = self.batch_size
+		STEP_SIZE = 2 * (int(len(self.sample)*self.roiZ) // BATCH_SIZE)
+		
+		NUM_EPOCHS = self.epochs
+		NUM_CLR_CYCLES = NUM_EPOCHS / STEP_SIZE / 2
+		CLR_PLOT_PATH = 'output/Model/CLR_plot.png'
 
+		clr = CyclicLR(base_lr=self.CLR_MIN_LR, max_lr=self.CLR_MAX_LR, mode=self.CLR_METHOD, step_size=STEP_SIZE)
+
+		# lrrf_cb = LrRangeTest(lr_range = (1e-7, 1),
+        #          wd_list = [0],  # grid search for weight decay
+        #          steps=100,
+        #          batches_per_step=8,
+        #          threshold_multiplier=5.0,
+        #          validation_data=valdatagenie,
+        #          batches_per_val = self.batch_size,
+        #          verbose=True)
+
+		term = TerminateOnBaseline('val_f1-score', baseline=0.9)
 		callbacks = [
-			keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0),
-			model_checkpoint
+			clr,
+			model_checkpoint,
+			term,
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -123,10 +153,22 @@ class Unet():
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
 
+		# # plot the learning rate history
+		# N = np.arange(0, len(clr.history["lr"]))
+		# plt.figure()
+		# plt.plot(N, clr.history["lr"])
+		# plt.title("Cyclical Learning Rate (CLR)")
+		# plt.xlabel("Training Iterations")
+		# plt.ylabel("Learning Rate")
+		# plt.savefig(CLR_PLOT_PATH)
+
 
 
 	def makeLossCurve(self, history=None):
 		if history == None: history = self.history
+		lrlist = history['lr']
+		if isinstance(lrlist, list): 
+			self.lr=f'CLR {min(lrlist)}, {max(lrlist)}'
 
 		metrics = ['loss','val_loss','f1-score','val_f1-score']
 		for m in metrics:
@@ -136,6 +178,7 @@ class Unet():
 		plt.ylabel('loss')
 		plt.xlabel('epoch')
 		plt.ylim(0,1)
+		# plt.xlim(0,len(history['loss']))
 		plt.legend(metrics, loc='upper left')
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 
@@ -153,7 +196,7 @@ class Unet():
 		# out = base_model(l1)
 
 
-		test = self.testGenie(n)
+		test, og_center, og_shape = self.testGenie(n)
 		results = model.predict(test, self.batch_size) # read about this one
 
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
@@ -161,10 +204,18 @@ class Unet():
 			result = results[:, :, :, i]
 			label[result>0.5] = i
 		
-		ct = np.squeeze((test).astype('float32'), axis = 3)
-		ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
+		# ct = np.squeeze((test).astype('float32'), axis = 3)
+		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
 
-		return label, ct
+		new_stack = np.zeros(og_shape, dtype='uint8')
+		z, x, y = og_center
+		# import pdb;pdb.set_trace()
+		zl, length = label.shape[:2]
+		zl = int(zl/2)
+		length = int(length/2)
+		new_stack[z - zl : z + zl, x - length : x + length, y - length : y + length] = label
+		label = np.array(new_stack, dtype='uint8')
+		return label
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
@@ -256,9 +307,6 @@ class Unet():
 		# 	ydata.extend(np.array(test_batches[1][i]))
 
 
-
-
-
 	def testGenie(self, n):
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
@@ -267,16 +315,21 @@ class Unet():
 		with open(centres_path, 'r') as fp:
 			centres = json.load(fp)	
 		center = centres[str(n)]
+		og_center = center[:]
 		z_center = center[0] # Find center of cc result and only read roi from slices
+
 		roiZ=self.roiZ
 		roiSize=self.shape[0]
-		ct, stack_metadata = ctreader.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)#(1400,1600))
+		ct, stack_metadata = ctreader.read(n, align=True)#(1400,1600))
+		og_shape = ct.shape
+		ct = ct[z_center - int(roiZ/2): z_center + int(roiZ/2)]
+		
 		center[0] = int(roiZ/2)
 		ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
 		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
 		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 		print(ct.shape)
-		return ct
+		return ct, og_center, og_shape
 
 	def saveHistory(self, path, history):
 		'''
@@ -332,6 +385,24 @@ def fixFormat(batch, label = False):
 	# change format of image batches to make viewable with ctreader
 	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
 	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
+
+
+class TerminateOnBaseline(Callback):
+    """Callback that terminates training when either acc or val_acc reaches a specified baseline
+    """
+    def __init__(self, monitor='val_f1-score', baseline=0.9):
+        super(TerminateOnBaseline, self).__init__()
+        self.monitor = monitor
+        self.baseline = baseline
+
+    def on_epoch_end(self, epoch, logs=None):
+        logs = logs or {}
+        acc = logs.get(self.monitor)
+        if acc is not None:
+            if acc >= self.baseline:
+                print('Epoch %d: Reached baseline, terminating training' % (epoch))
+                self.model.stop_training = True
+
 
 
 
