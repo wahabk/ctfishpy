@@ -24,13 +24,13 @@ class Unet():
 		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 16
-		self.epochs = 75
+		self.epochs = 150
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightsname = 'unet_checkpoints'
 		self.comment = self.weightsname
-		self.encoder_freeze=False
+		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
 		self.class_weights = np.array([0.5, 1.25, 1.5])
@@ -38,8 +38,8 @@ class Unet():
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.5
-		self.loss =self.multi_class_tversky_loss
-		self.seed =420
+		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
+		self.seed = 420
 		self.fold = 0
 		
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
@@ -50,18 +50,18 @@ class Unet():
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
 			w = csv.DictWriter(f, members.keys())
-			w.writeheader()
+			# w.writeheader()
 			w.writerow(members)
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
-		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
+		
 		if self.pretrain:
 			self.weights = 'imagenet'
 		else:
 			self.weights = None
-		optimizer = Adam() #(learning_rate=self.lr)
-
+		optimizer = Adam()
+		optimizer.learning_rate = self.lr
 		base_model = sm.Unet(self.BACKBONE, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		#base_model = sm.Unet(self.BACKBONE, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=False)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
@@ -133,9 +133,6 @@ class Unet():
 
 	def makeLossCurve(self, history=None):
 		if history == None: history = self.history
-		lrlist = history['lr']
-		if isinstance(lrlist, list): 
-			self.lr=f'CLR {min(lrlist)}, {max(lrlist)}'
 
 		metrics = ['loss','val_loss','f1-score','val_f1-score']
 		for m in metrics:

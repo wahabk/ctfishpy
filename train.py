@@ -12,7 +12,20 @@ val_sample = [464,364,385,40,461]
 
 
 unet = ctfishpy.Unet('Otoliths')
+
+unet.weightsname = 'Final_Tversky'
+unet.comment = 'Final_Tversky'
+
 unet.train(sample, val_sample, test_sample=zac_samples)
 unet.makeLossCurve()
 
+unet = None
+
+unet = ctfishpy.Unet('Otoliths')
+
+unet.weightsname = 'Final_Weighted_Dice'
+unet.comment = 'Final_Weighted_Dice'
+
+unet.train(sample, val_sample, test_sample=zac_samples)
+unet.makeLossCurve()
 

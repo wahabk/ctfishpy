@@ -4,11 +4,15 @@ import matplotlib.pyplot as plt
 
 ctreader = ctfishpy.CTreader()
 
-z, y, x = ctreader.read_max_projections(40)
-label = ctreader.read_label('Otoliths', 40)
-zt, zy, zx = ctreader.make_max_projections(label)
+n=40
 
-print(y.shape)
-y[zy != 0] = [255,0,0]
-plt.imshow(y)
-plt.show()
+projections = ctreader.read_max_projections(n)
+label = ctreader.read_label('Otoliths', n)
+labelprojections = ctreader.make_max_projections(label)
+
+for i, p in enumerate(projections):
+	p[labelprojections[i]==1]=[255,0,0]
+
+
+plt.imsave('output/Zac/x_')
+
