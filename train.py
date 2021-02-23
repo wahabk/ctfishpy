@@ -8,12 +8,11 @@ mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218]
 # removing 527, 530, 582, 589
 sample = wahab_samples+mariel_samples
-val_samples = [464,364,385,40,461]
+val_sample = [464,364,385,40,461]
 
 
 unet = ctfishpy.Unet('Otoliths')
-unet.train(sample, val_samples, test_sample=zac_samples)
-
+unet.train(sample, val_sample, test_sample=zac_samples)
 unet.makeLossCurve()
 
 
