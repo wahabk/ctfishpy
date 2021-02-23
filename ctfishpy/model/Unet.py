@@ -15,6 +15,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from keras_contrib.callbacks import CyclicLR
 from ktrain.lroptimize.lrfinder import LRFinder
 from tensorflow.keras.callbacks import Callback
+from sklearn.model_selection import KFold
 sm.set_framework('tf.keras')
 
 class Unet():
@@ -27,21 +28,20 @@ class Unet():
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
-		self.weightspath = 'output/Model/unet_checkpoints.hdf5'
-		self.encoder_freeze=True
+		self.weightsname = 'unet_checkpoints'
+		self.comment = self.weightsname
+		self.encoder_freeze=False
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([1,1,1])
+		self.class_weights = np.array([0.5, 1.25, 1.5])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.5
-		self.loss=self.multi_class_tversky_loss
-		self.seed=69
-		self.CLR_MIN_LR = 1e-7
-		self.CLR_MAX_LR = 1e-4
-		self.CLR_METHOD = "triangular"
-		# 'output/Model/unet_checkpoints.hdf5'
+		self.loss =self.multi_class_tversky_loss
+		self.seed =420
+		self.fold = 0
+		
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
 		
@@ -50,11 +50,11 @@ class Unet():
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
 			w = csv.DictWriter(f, members.keys())
-			# w.writeheader()
+			w.writeheader()
 			w.writerow(members)
 
 	def getModel(self):
-
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 		dice_loss = sm.losses.DiceLoss(class_weights=self.class_weights) 
 		if self.pretrain:
 			self.weights = 'imagenet'
@@ -69,6 +69,7 @@ class Unet():
 		out = base_model(l1)
 		model = Model(inp, out, name=base_model.name)
 		
+
 		if self.rerun: model.load_weights(self.weightspath)
 		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 		# self.loss = self.multi_class_tversky_loss.__name__
@@ -76,6 +77,7 @@ class Unet():
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 		self.sample = sample
 		self.val_sample = val_sample
 		self.test_sample = test_sample
@@ -105,35 +107,10 @@ class Unet():
 		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
 		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
 
-		model_checkpoint = ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True)
-
 		# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)
-		# define the minimum learning rate, maximum learning rate, batch size,
-		# step size, CLR method, and number of epochs
-		
-		BATCH_SIZE = self.batch_size
-		STEP_SIZE = 2 * (int(len(self.sample)*self.roiZ) // BATCH_SIZE)
-		
-		NUM_EPOCHS = self.epochs
-		NUM_CLR_CYCLES = NUM_EPOCHS / STEP_SIZE / 2
-		CLR_PLOT_PATH = 'output/Model/CLR_plot.png'
-
-		clr = CyclicLR(base_lr=self.CLR_MIN_LR, max_lr=self.CLR_MAX_LR, mode=self.CLR_METHOD, step_size=STEP_SIZE)
-
-		# lrrf_cb = LrRangeTest(lr_range = (1e-7, 1),
-        #          wd_list = [0],  # grid search for weight decay
-        #          steps=100,
-        #          batches_per_step=8,
-        #          threshold_multiplier=5.0,
-        #          validation_data=valdatagenie,
-        #          batches_per_val = self.batch_size,
-        #          verbose=True)
-
-		term = TerminateOnBaseline('val_f1-score', baseline=0.9)
 		callbacks = [
-			clr,
-			model_checkpoint,
-			term,
+			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
+			TerminateOnBaseline('val_f1-score', baseline=0.9)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -152,16 +129,6 @@ class Unet():
 		self.history = history.history
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
-
-		# # plot the learning rate history
-		# N = np.arange(0, len(clr.history["lr"]))
-		# plt.figure()
-		# plt.plot(N, clr.history["lr"])
-		# plt.title("Cyclical Learning Rate (CLR)")
-		# plt.xlabel("Training Iterations")
-		# plt.ylabel("Learning Rate")
-		# plt.savefig(CLR_PLOT_PATH)
-
 
 
 	def makeLossCurve(self, history=None):
@@ -183,6 +150,7 @@ class Unet():
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 
 	def predict(self, n):
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
@@ -374,19 +342,6 @@ class Unet():
 		gamma = 0.75
 		return K.sum(K.pow((1-pt_1), gamma))
 
-def lr_scheduler(epoch, learning_rate):
-	decay_rate =  1
-	decay_step = 12
-	if epoch == decay_step and epoch != 0 and epoch != 1:
-		return learning_rate * decay_rate
-	return learning_rate
-
-def fixFormat(batch, label = False):
-	# change format of image batches to make viewable with ctreader
-	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
-	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
-
-
 class TerminateOnBaseline(Callback):
     """Callback that terminates training when either acc or val_acc reaches a specified baseline
     """
@@ -402,6 +357,21 @@ class TerminateOnBaseline(Callback):
             if acc >= self.baseline:
                 print('Epoch %d: Reached baseline, terminating training' % (epoch))
                 self.model.stop_training = True
+
+def lr_scheduler(epoch, learning_rate):
+	decay_rate =  1
+	decay_step = 12
+	if epoch == decay_step and epoch != 0 and epoch != 1:
+		return learning_rate * decay_rate
+	return learning_rate
+
+def fixFormat(batch, label = False):
+	# change format of image batches to make viewable with ctreader
+	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
+	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
+
+
+
 
 
 
