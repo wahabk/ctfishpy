@@ -1,0 +1,15 @@
+,n,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Value,Arb Value
+322,459,7.0,het,col11a2,col11a2 +/-,,,7 months,EK_Phantom_230518,6.747484,2.5
+123,259,18.0,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+205,341,18.0,het,mcf2l,mcf2l +/-,,,1.5 year,EKPhantoms_22Sep17_PM2,6.509225,2.5
+325,462,28.0,het,col11a2,col11a2 +/-,,,2.3 years,EK_Phantom_230518,6.747484,2.5
+326,463,28.0,het,col11a2,col11a2 +/-,,,2.3 years,EK_Phantom_230518,6.747484,2.5
+201,337,12.0,hom,mcf2l,mcf2l -/-,,,1 year,EKPhantoms_22Sep17_PM2,6.509225,2.5
+285,421,12.0,hom,col11a2,col11a2-/-,"*(401,403,405,421)",HR head and ribs,1 year,EK_Phantoms_211117_PM,6.2740290000000005,2.5
+287,423,3.0,wt,col11a2,col11a2 sibs,*(423-430),,3 months,EK_Phantom_10-01-18_AM,6.123677,2.5
+38,78,7.0,wt,,col2:mcherry,,,7 months,,,
+64,200,12.0,wt,,UAS:kaeda,* (200_207),"8 fish per scan. Fixed in 4% PFA, Dehydrated to 70% ethanol, wrapped in wet paper and parafilm. Fish in first position has a plastic cap.  * first position . palaeo folder",1 year,EKPhantoms_21SepLowRes,6.6315,2.5
+194,330,18.0,wt,barx1,barx1 sibs,," For high res: head ribs, tail ",1.5 year,EKPhantoms_22Sep17_PM2,6.509225,2.5
+141,277,30.0,wt,chst11,chst11 talen SIBS,,HR head and ribs,2.5 year,EKPhantoms22Sep17AM,7.130796000000001,2.5
+104,240,36.0,wt,,wnt:gfp col2a1:mch,* (240_247),shg+ histology,3 year,EKPhantoms_21SepPM,7.312511,2.5
+106,242,36.0,wt,,wnt:gfp col2a1:mch,,,3 year,EKPhantoms_21SepPM,7.312511,2.5

@@ -33,15 +33,18 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = np.array([0.5, 1.25, 1.5])
+		self.class_weights = 1
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.5
+		self.alpha = 0.7
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
 		
+		if self.loss.__name__ == 'dice_loss':
+			self.class_weights = np.array([0.5, 1.25, 1.5])
+
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
 		
@@ -107,9 +110,10 @@ class Unet():
 		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
 		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
 
-		# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=0)
+		
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
+			keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
 			TerminateOnBaseline('val_f1-score', baseline=0.9)
 		]
 		
@@ -123,9 +127,15 @@ class Unet():
 						fish_nums = self.test_sample)
 			self.score = model.evaluate(testgenie, batch_size=self.batch_size, steps=int(len(self.test_sample)*self.roiZ / self.batch_size))
 			print(self.score)
-		
+		else:
+			h = history.history
+			loss = h['loss']
+			valf1 = h['val_f1-score']
+			best_val = valf1[loss.index(min(loss))]
+			self.score=[min(loss), best_val]
+			print(f'\n\n Score best loss, val-f1 :{self.score}')
+
 		self.saveParams()
-		
 		self.history = history.history
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
@@ -356,9 +366,9 @@ class TerminateOnBaseline(Callback):
                 self.model.stop_training = True
 
 def lr_scheduler(epoch, learning_rate):
-	decay_rate =  1
-	decay_step = 12
-	if epoch == decay_step and epoch != 0 and epoch != 1:
+	decay_rate =  0.1
+	decay_step = 75
+	if epoch == decay_step:
 		return learning_rate * decay_rate
 	return learning_rate
 
