@@ -23,8 +23,8 @@ class Unet():
 		self.shape = (224,224)
 		self.roiZ = 150
 		self.organ = organ
-		self.batch_size = 16
-		self.epochs = 150
+		self.batch_size = 32
+		self.epochs = 250
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -33,17 +33,15 @@ class Unet():
 		self.encoder_freeze=True
 		self.nclasses = 3
 		self.activation = 'softmax'
-		self.class_weights = 1
+		self.class_weights = np.array([0.5, 1.25, 1.5])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
 		self.alpha = 0.7
-		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
+		self.loss = sm.losses.DiceLoss(class_weights=self.class_weights) # self.multi_class_tversky_loss 
 		self.seed = 420
 		self.fold = 0
 		
-		if self.loss.__name__ == 'dice_loss':
-			self.class_weights = np.array([0.5, 1.25, 1.5])
 
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
@@ -113,7 +111,7 @@ class Unet():
 		
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
-			keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
+			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
 			TerminateOnBaseline('val_f1-score', baseline=0.9)
 		]
 		
@@ -155,6 +153,8 @@ class Unet():
 		# plt.xlim(0,len(history['loss']))
 		plt.legend(metrics, loc='upper left')
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
+		plt.clf()
+
 
 	def predict(self, n):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -366,10 +366,10 @@ class TerminateOnBaseline(Callback):
                 self.model.stop_training = True
 
 def lr_scheduler(epoch, learning_rate):
-	decay_rate =  0.1
-	decay_step = 75
+	decay_rate =  1
+	decay_step = 50
 	if epoch == decay_step:
-		return learning_rate * decay_rate
+		return 1e-7
 	return learning_rate
 
 def fixFormat(batch, label = False):

@@ -25,8 +25,6 @@ master = master[master['n'].isin(sample)]
 master = master.sort_values(['genotype', 'age'])
 master.to_csv('output/otoliths2segFINAL.csv')
 
-
-
 # 40 218 removed from cv
 # mcf2l = 341,337 
 # 78 is odd 7 month
@@ -54,8 +52,8 @@ for i in range(len(folds)):
 for n, train, val in final_folds:
 	print('\n',n,train,val,'\n')
 	unet = ctfishpy.Unet('Otoliths')
-	unet.weightsname = 'CV_Tversky'
-	unet.comment = 'CV_Tversky'
+	unet.weightsname = 'CV_Weighted_Dice'
+	unet.comment = 'CV_Weighted_Dice'
 	unet.fold = n
 	unet.train(train, val)
 	unet.makeLossCurve()
