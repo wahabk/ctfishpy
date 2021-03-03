@@ -11,16 +11,25 @@ sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
 
-params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
-			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
-			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.5,1.5],		32, True],
-			[1e-5, 150, 'tversky', 			0.7, 	[1,1,1],			32, True],
-			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1.5,1.5],		32, True],
-			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.25,1.5],		32, True],
-			[1e-5, 150, 'dice_loss', 		0.7, 	[1,2,2],			32, True],
-			[1e-5, 150, 'tversky',			0.8,	[1,1,1],			32, True],
-			[1e-5, 150, 'tversky',			0.6,	[1,1,1],			32, True],
-			[1e-5, 150, 'tversky',			0.5,	[1,1,1],			32, True]]
+# params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
+# 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
+# 			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.5,1.5],		32, True],
+# 			[1e-5, 150, 'tversky', 			0.7, 	[1,1,1],			32, True],
+# 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1.5,1.5],		32, True],
+# 			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.25,1.5],		32, True],
+# 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,2,2],			32, True],
+# 			[1e-5, 150, 'tversky',			0.8,	[1,1,1],			32, True],
+# 			[1e-5, 150, 'tversky',			0.6,	[1,1,1],			32, True],
+# 			[1e-5, 150, 'tversky',			0.5,	[1,1,1],			32, True]]
+
+
+params = [	[1e-5, 150, 'tversky', 0.5, [1,1,1], 16 ,True],
+			[1e-5, 150, 'tversky', 0.5, [1,1,1], 10 ,True],
+			[1e-5, 150, 'tversky', 0.5, [1,1,1], 25 ,True],
+			[1e-3, 150, 'tversky', 0.5, [1,1,1], 32 ,True],
+			[1e-4, 150, 'tversky', 0.5, [1,1,1], 32 ,True],
+			[1e-6, 150, 'tversky', 0.5, [1,1,1], 32 ,True],
+			[1e-5, 150, 'tversky', 0.5, [1,1,1], 16 ,False]]
 
 
 
