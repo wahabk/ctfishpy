@@ -24,7 +24,7 @@ class Unet():
 		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 250
+		self.epochs = 150
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -110,9 +110,9 @@ class Unet():
 
 		
 		callbacks = [
-			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
+			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True)
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			TerminateOnBaseline('val_f1-score', baseline=0.9)
+			#TerminateOnBaseline('val_f1-score', baseline=0.9)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 

@@ -1,6 +1,6 @@
 import ctfishpy
 import segmentation_models as sm
-
+import numpy as np
 # cc doesnt work on 464 385 421 423, 78
 #256 mariel needs to be redone
 wahab_samples 	= [78,200,240,277,330,337,341,462]
@@ -11,22 +11,38 @@ sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
 
-unet = ctfishpy.Unet('Otoliths')
+params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
+			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
+			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.5,1.5],		32, True],
+			[1e-5, 150, 'tversky', 			0.7, 	[1,1,1],			32, True],
+			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1.5,1.5],		32, True],
+			[1e-5, 150, 'dice_loss', 		0.7, 	[0.5,1.25,1.5],		32, True],
+			[1e-5, 150, 'dice_loss', 		0.7, 	[1,2,2],			32, True],
+			[1e-5, 150, 'tversky',			0.8,	[1,1,1],			32, True],
+			[1e-5, 150, 'tversky',			0.6,	[1,1,1],			32, True],
+			[1e-5, 150, 'tversky',			0.5,	[1,1,1],			32, True]]
 
-unet.weightsname = 'Final_Tversky'
-unet.comment = 'Final_Tversky'
 
-unet.train(sample, val_sample, test_sample=zac_samples)
-unet.makeLossCurve()
 
-del unet
 
-# unet = ctfishpy.Unet('Otoliths')
+for lr, epochs, loss, alpha, class_weights, batch_size, encoder_freeze in params:
+	unet = ctfishpy.Unet('Otoliths')
+	unet.weightsname = 'unet'
+	unet.comment = 'Mariel_parameters'
+	unet.lr = lr
+	unet.epochs = epochs
+	unet.alpha = alpha
+	unet.class_weights = np.array(class_weights)
+	unet.batch_size = batch_size
+	unet.encoder_freeze = encoder_freeze
 
-# unet.weightsname = 'Final_Weighted_Dice'
-# unet.comment = 'Final_Weighted_Dice'
-# unet.loss = sm.losses.DiceLoss(class_weights=unet.class_weights) 
+	if loss == 'tversky': unet.loss = unet.multi_class_tversky_loss
+	if loss == 'dice_loss': unet.loss = sm.losses.DiceLoss(class_weights=unet.class_weights)
+	if loss == 'cross_entropy': unet.loss = sm.losses.categorical_crossentropy
 
-# unet.train(sample, val_sample, test_sample=zac_samples)
-# unet.makeLossCurve()
+	unet.train(sample, val_sample, zac_samples)
+	unet.makeLossCurve()
+	del unet
+
+
 
