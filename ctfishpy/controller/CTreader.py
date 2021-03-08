@@ -118,8 +118,8 @@ class CTreader:
 
 		"""
 
-		if organ not in ['Otoliths']:
-			raise Exception('organ not found')
+		# if organ not in ['Otoliths']:
+		# 	raise Exception('organ not found')
 
 		if n==0:
 			label_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')

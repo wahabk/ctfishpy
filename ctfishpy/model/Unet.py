@@ -12,8 +12,6 @@ from tensorflow.keras.layers import Input, Conv2D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from keras_contrib.callbacks import CyclicLR
-from ktrain.lroptimize.lrfinder import LRFinder
 from tensorflow.keras.callbacks import Callback
 from sklearn.model_selection import KFold
 sm.set_framework('tf.keras')
