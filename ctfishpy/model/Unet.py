@@ -22,7 +22,7 @@ class Unet():
 		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 150
+		self.epochs = 200
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -35,7 +35,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.7
+		self.alpha = 0.5
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
