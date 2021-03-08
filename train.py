@@ -13,9 +13,8 @@ sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
 unet = ctfishpy.Unet('Otoliths')
-unet.weightsname = 'unet'
-unet.comment = 'no_class_weights'
-unet.loss = sm.losses.DiceLoss()
+unet.weightsname = 'final'
+unet.comment = 'final'
 unet.train(sample, val_sample, zac_samples)
 unet.makeLossCurve()
 
