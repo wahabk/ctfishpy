@@ -141,7 +141,7 @@ class CTreader:
 			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
-			mariel_samples	= [421,423,242,463,259,459,256]
+			mariel_samples	= [421,423,242,463,259,459,256,530,589]
 			if n in mariel_samples and organ == 'Otoliths':
 				label[label==2]=1
 				label[label==3]=2

@@ -6,7 +6,7 @@ ctreader = ctfishpy.CTreader()
 unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'final'
 
-sample = [40,256,421,530]
+sample = [582,589]#[530, 40,256,421,]
 
 for n in sample:
 	ct, metadata = ctreader.read(n, align = True)
