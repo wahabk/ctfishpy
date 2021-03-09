@@ -15,6 +15,7 @@ for n in sample:
 
 	align = True if n in [40,78,200,218,240,277,330,337,341,462,464,364,385] else False
 	label = ctreader.read_label('Otoliths', n, align=align, is_amira=True)
+	label[label==2]=0
 	predlabel = unet.predict(n)
 
 	projections 			= ctreader.read_max_projections(n)
