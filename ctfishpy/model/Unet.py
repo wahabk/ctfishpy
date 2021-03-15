@@ -5,6 +5,7 @@ import numpy as np
 import time
 import json, codecs, pickle, csv
 import segmentation_models as sm
+import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
@@ -191,7 +192,8 @@ class Unet():
 		return label
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
-		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
+		imagegen = ImageDataGenerator(**data_gen_args, brightness_range=[0.1,0.9], rescale = 1./65535)
+		#if 'brightness_range' in data_gen_args.keys(): data_gen_args.pop('brightness_range')
 		maskgen = ImageDataGenerator(**data_gen_args)
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
@@ -266,7 +268,6 @@ class Unet():
 			shuffle=shuffle
 			)
 		
-		print('[dataGenie] Ready... Extracting data')
 
 		train_generator = zip(image_generator, mask_generator)
 		for (img,mask) in train_generator:
@@ -348,20 +349,20 @@ class Unet():
 		return K.sum(K.pow((1-pt_1), gamma))
 
 class TerminateOnBaseline(Callback):
-    """Callback that terminates training when either acc or val_acc reaches a specified baseline
-    """
-    def __init__(self, monitor='val_f1-score', baseline=0.9):
-        super(TerminateOnBaseline, self).__init__()
-        self.monitor = monitor
-        self.baseline = baseline
+	"""Callback that terminates training when either acc or val_acc reaches a specified baseline
+	"""
+	def __init__(self, monitor='val_f1-score', baseline=0.9):
+		super(TerminateOnBaseline, self).__init__()
+		self.monitor = monitor
+		self.baseline = baseline
 
-    def on_epoch_end(self, epoch, logs=None):
-        logs = logs or {}
-        acc = logs.get(self.monitor)
-        if acc is not None:
-            if acc >= self.baseline:
-                print('Epoch %d: Reached baseline, terminating training' % (epoch))
-                self.model.stop_training = True
+	def on_epoch_end(self, epoch, logs=None):
+		logs = logs or {}
+		acc = logs.get(self.monitor)
+		if acc is not None:
+			if acc >= self.baseline:
+				print('Epoch %d: Reached baseline, terminating training' % (epoch))
+				self.model.stop_training = True
 
 def lr_scheduler(epoch, learning_rate):
 	decay_rate =  1
@@ -377,7 +378,41 @@ def fixFormat(batch, label = False):
 
 
 
+class myDataGenerator(tf.keras.utils.Sequence):
+	def __init__(self, df, x_col, y_col=None, batch_size=32, num_classes=None, shuffle=True):
+		self.batch_size = batch_size
+		self.df = dataframe
+		self.indices = self.df.index.tolist()
+		self.num_classes = num_classes
+		self.shuffle = shuffle
+		self.x_col = x_col
+		self.y_col = y_col
+		self.on_epoch_end()
 
+	def __len__(self): # this is basically steps oer eoicg
+		return len(self.indices) // self.batch_size
+
+	def __getitem__(self, index):
+		index = self.index[index * self.batch_size:(index + 1) * self.batch_size]
+		batch = [self.indices[k] for k in index]
+		
+		X, y = self.__get_data(batch)
+		return X, y
+
+	def on_epoch_end(self):
+		return
+		# none 
+
+	def __get_data(self, batch):
+		pass
+		# X  # logic
+		# y  # logic
+		
+		# for i, id in enumerate(batch):
+		#     X[i,] = # logic
+		#     y[i] = # labels
+
+		# return X, y
 
 
 
