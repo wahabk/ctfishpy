@@ -23,7 +23,7 @@ class Unet():
 		self.roiZ = 150
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 200
+		self.epochs = 100
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'

@@ -13,8 +13,9 @@ sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
 unet = ctfishpy.Unet('Otoliths')
-unet.weightsname = 'final'
-unet.comment = 'final'
+unet.weightsname = 'bright_aug_1-10%'
+unet.comment = 'bright_aug_1-10%'
+unet.epochs = 100
 unet.train(sample, val_sample, zac_samples)
 unet.makeLossCurve()
 
