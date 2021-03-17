@@ -394,11 +394,13 @@ class myDataGenerator(tf.keras.utils.Sequence):
 			# This creates a dictionary with the params
 			params = self.imgaug.get_random_transform(X[i].shape)
 			# We can now deterministicly augment all the images
-			X[i] = X[i]/np.max(X[i])
-			y[i] = y[i]/np.max(y[i])
+			
 			X[i] = self.imgaug.apply_transform(X[i], params)
+			# print(params)
 			params.pop('brightness')
 			y[i] = self.imgaug.apply_transform(y[i], params)
+			X[i] = X[i]/np.max(X[i])
+			y[i] = y[i]/np.max(y[i])
 			
 
 		return X, y

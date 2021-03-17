@@ -10,26 +10,27 @@ def fixFormat(batch, label = False):
 
 
 if __name__ == "__main__":
-	data_gen_args = dict(rotation_range=10, # degrees
-				width_shift_range=10, #pixels
-				height_shift_range=10,
-				shear_range=10, #degrees
+	data_gen_args = dict(rotation_range=5, # degrees
+				width_shift_range=5, #pixels
+				height_shift_range=5,
+				shear_range=5, #degrees
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
-				brightness_range = [0.01,0.1],
+				brightness_range = [0.01,0.05],
 				fill_mode='constant',
 				cval = 0) 
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462]
 	mariel_samples	= [421,423,242,463,259,459]
-	zac_samples		= [257,443,461] 
+	zac_samples		= [257,443,461]
 	# removing 527, 530, 582, 589
 	val_samples = [464,364,385,40]
-	sample = [40,385]
+	sample = [582]
 	
 	batch_size = 32
 	# change label path to read labels directly
 	unet = ctfishpy.model.Unet('Otoliths')
+	unet.steps_per_epoch = 2
 	ctreader = ctfishpy.CTreader()
 
 	datagenie = unet.dataGenie(batch_size = batch_size,
@@ -39,8 +40,8 @@ if __name__ == "__main__":
 	# import pdb; pdb.set_trace()
 	for s in range(len(datagenie)):
 		xdata, ydata  = datagenie[s]
-		print(ydata.shape, np.max(ydata), np.min(ydata))
-		print(xdata.shape, np.max(xdata), np.min(xdata))
+		print('y',ydata.shape, np.max(ydata), np.min(ydata))
+		print('x',xdata.shape, np.max(xdata), np.min(xdata))
 
 		label = np.zeros(ydata.shape[:-1], dtype = 'uint8')
 		for i in range(3):
