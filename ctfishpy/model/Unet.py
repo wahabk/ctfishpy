@@ -24,7 +24,7 @@ class Unet():
 		self.organ = organ
 		self.batch_size = 32
 		self.epochs = 100
-		self.lr = 1e-5
+		self.lr = 1e-4
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightsname = 'unet_checkpoints'
@@ -36,7 +36,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.5
+		self.alpha = 0.7
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
@@ -91,6 +91,7 @@ class Unet():
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
+					brightness_range = [0.01,0.1],
 					fill_mode='constant',
 					cval = 0)
 
@@ -393,15 +394,17 @@ class myDataGenerator(tf.keras.utils.Sequence):
 			# This creates a dictionary with the params
 			params = self.imgaug.get_random_transform(X[i].shape)
 			# We can now deterministicly augment all the images
+			X[i] = X[i]/np.max(X[i])
+			y[i] = y[i]/np.max(y[i])
 			X[i] = self.imgaug.apply_transform(X[i], params)
 			params.pop('brightness')
 			y[i] = self.imgaug.apply_transform(y[i], params)
-			X[i] = X[i]/np.max(X[i])
-			y[i] = y[i]/np.max(y[i])
+			
 
 		return X, y
-
-
+	
+	def on_epoch_end():
+		self.ct_list, self.label_list = unison_shuffled_copies(self.ct_list, self.label_list)
 
 
 
