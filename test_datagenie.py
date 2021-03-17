@@ -6,8 +6,8 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 
 def fixFormat(batch, label = False):
 	# change format of image batches to make viewable with ctreader
-	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
-	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
+	return np.squeeze(batch.astype('uint16'), axis = 3)
+
 
 if __name__ == "__main__":
 	data_gen_args = dict(rotation_range=10, # degrees
@@ -17,6 +17,7 @@ if __name__ == "__main__":
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
+				brightness_range = [0.01,0.1],
 				fill_mode='constant',
 				cval = 0) 
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462]
@@ -31,25 +32,26 @@ if __name__ == "__main__":
 	unet = ctfishpy.model.Unet('Otoliths')
 	ctreader = ctfishpy.CTreader()
 
-	datagenie = unet.dataGenie(  batch_size = batch_size,
+	datagenie = unet.dataGenie(batch_size = batch_size,
 							data_gen_args = data_gen_args,
 							fish_nums = sample,
 							shuffle=True)
+	# import pdb; pdb.set_trace()
+	for s in range(len(datagenie)):
+		xdata, ydata  = datagenie[s]
+		print(ydata.shape, np.max(ydata), np.min(ydata))
+		print(xdata.shape, np.max(xdata), np.min(xdata))
 
-	xdata, ydata  = next(datagenie)
-	print(xdata.shape, ydata.shape)
-	print(ydata.shape, np.max(ydata), np.min(ydata))
-	
+		label = np.zeros(ydata.shape[:-1], dtype = 'uint8')
+		for i in range(3):
+			y = ydata[:, :, :, i]
+			label[y==1] = i
 
-	label = np.zeros(ydata.shape[:-1], dtype = 'uint8')
-	for i in range(3):
-		y = ydata[:, :, :, i]
-		label[y==1] = i
+		xdata = fixFormat(xdata*65535)  # remove last weird axis
+		print(xdata.shape, np.max(xdata), np.min(xdata))
+		#ydata = fixFormat(ydata, label = True)  # remove last weird axis
 
-	xdata = fixFormat(xdata*65535)  # remove last weird axis
-	#ydata = fixFormat(ydata, label = True)  # remove last weird axis
-
-	#ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
-	ctreader.view(xdata, label)
+		#ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
+		ctreader.view(xdata, label)
 
 	#break

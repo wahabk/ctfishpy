@@ -45,7 +45,6 @@ class Unet():
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
 		
-
 	def saveParams(self):
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
@@ -81,7 +80,8 @@ class Unet():
 		self.sample = sample
 		self.val_sample = val_sample
 		self.test_sample = test_sample
-		
+		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
+		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
 		
 		self.trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
 		data_gen_args = dict(rotation_range=10, # degrees
@@ -104,8 +104,7 @@ class Unet():
 						fish_nums = self.val_sample)
 		
 		model = self.getModel()
-		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
-		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
+		
 
 		
 		callbacks = [
@@ -137,7 +136,6 @@ class Unet():
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
 
-
 	def makeLossCurve(self, history=None):
 		if history == None: history = self.history
 
@@ -153,7 +151,6 @@ class Unet():
 		plt.legend(metrics, loc='upper left')
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 		plt.clf()
-
 
 	def predict(self, n):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -192,9 +189,9 @@ class Unet():
 		return label
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
-		imagegen = ImageDataGenerator(**data_gen_args, brightness_range=[0.1,0.9], rescale = 1./65535)
-		#if 'brightness_range' in data_gen_args.keys(): data_gen_args.pop('brightness_range')
-		maskgen = ImageDataGenerator(**data_gen_args)
+		# imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
+		# maskgen = ImageDataGenerator(**data_gen_args)
+		
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
 
@@ -252,26 +249,26 @@ class Unet():
 		ct_list      = ct_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 
 		print('[dataGenie] Initialising image and mask generators')
-
-		image_generator = imagegen.flow(ct_list,
-			batch_size = batch_size,
-			#save_to_dir = 'output/Keras/',
-			save_prefix = 'dataGenie',
-			seed = seed,
-			shuffle=shuffle,
-			)
-		mask_generator = maskgen.flow(label_list, 
-			batch_size = batch_size,
-			#save_to_dir = 'output/Keras/',
-			save_prefix = 'dataGenie',
-			seed = seed,
-			shuffle=shuffle
-			)
+		datagen = myDataGenerator(ct_list, label_list, data_gen_args, self.steps_per_epoch, self.batch_size)
 		
 
-		train_generator = zip(image_generator, mask_generator)
-		for (img,mask) in train_generator:
-			yield (img,mask)
+		# image_generator = imagegen.flow(ct_list,
+		# 	batch_size = batch_size,
+		# 	#save_to_dir = 'output/Keras/',
+		# 	# save_prefix = 'dataGenie',
+		# 	seed = seed,
+		# 	shuffle=shuffle,
+		# 	)
+		# mask_generator = maskgen.flow(label_list, 
+		# 	batch_size = batch_size,
+		# 	seed = seed,
+		# 	shuffle=shuffle
+		# 	)
+		# train_generator = zip(image_generator, mask_generator)
+		# for (img,mask) in train_generator:
+		# 	yield (img,mask)
+
+		return datagen
 
 		# #extract data frin generatirs
 		# test_batches = [image_generator, mask_generator]
@@ -279,7 +276,6 @@ class Unet():
 		# for i in range(0,int(len(ct_list)*self.epochs/batch_size)):
 		# 	xdata.extend(np.array(test_batches[0][i]))
 		# 	ydata.extend(np.array(test_batches[1][i]))
-
 
 	def testGenie(self, n):
 		ctreader = CTreader()
@@ -324,7 +320,6 @@ class Unet():
 		with open(path, 'rb') as file_pi:
 			history = pickle.load(file_pi)
 		return history
-
 
 	def multi_class_tversky(self, y_true, y_pred):
 		smooth = 1
@@ -371,48 +366,42 @@ def lr_scheduler(epoch, learning_rate):
 		return 1e-7
 	return learning_rate
 
-def fixFormat(batch, label = False):
-	# change format of image batches to make viewable with ctreader
-	if not label: return np.squeeze(batch.astype('uint16'), axis = 3)
-	if label: return np.squeeze(batch.astype('uint8'), axis = 3)
-
-
+def unison_shuffled_copies(a, b):
+	assert len(a) == len(b)
+	p = np.random.permutation(len(a))
+	return a[p], b[p]
 
 class myDataGenerator(tf.keras.utils.Sequence):
-	def __init__(self, df, x_col, y_col=None, batch_size=32, num_classes=None, shuffle=True):
+	def __init__(self, ct_list, label_list, data_gen_args, steps_per_epoch, batch_size):
+		self.steps_per_epoch = steps_per_epoch
+		self.indices = np.arange(0, self.steps_per_epoch)
+		ct_list, label_list = unison_shuffled_copies(ct_list, label_list)
+		self.ct_list = ct_list
+		self.label_list = label_list
 		self.batch_size = batch_size
-		self.df = dataframe
-		self.indices = self.df.index.tolist()
-		self.num_classes = num_classes
-		self.shuffle = shuffle
-		self.x_col = x_col
-		self.y_col = y_col
-		self.on_epoch_end()
+		self.imgaug = ImageDataGenerator(**data_gen_args)
 
-	def __len__(self): # this is basically steps oer eoicg
-		return len(self.indices) // self.batch_size
 
-	def __getitem__(self, index):
-		index = self.index[index * self.batch_size:(index + 1) * self.batch_size]
-		batch = [self.indices[k] for k in index]
-		
-		X, y = self.__get_data(batch)
+	def __len__(self):
+		return self.steps_per_epoch
+
+	def __getitem__(self, idx):
+		X = self.ct_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
+		y = self.label_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
+
+		for i in range(len(X)):
+			# This creates a dictionary with the params
+			params = self.imgaug.get_random_transform(X[i].shape)
+			# We can now deterministicly augment all the images
+			X[i] = self.imgaug.apply_transform(X[i], params)
+			params.pop('brightness')
+			y[i] = self.imgaug.apply_transform(y[i], params)
+			X[i] = X[i]/np.max(X[i])
+			y[i] = y[i]/np.max(y[i])
+
 		return X, y
 
-	def on_epoch_end(self):
-		return
-		# none 
 
-	def __get_data(self, batch):
-		pass
-		# X  # logic
-		# y  # logic
-		
-		# for i, id in enumerate(batch):
-		#     X[i,] = # logic
-		#     y[i] = # labels
-
-		# return X, y
 
 
 
@@ -449,3 +438,4 @@ class myDataGenerator(tf.keras.utils.Sequence):
 		# print(F'\n\n[dataGenie] Done. Final distrib: {sum(distrib)}/{total} ratio: {sum(distrib)/total} sample_weights={sample_weights.shape[0]}')
 
 		# return xdata, ydata, sample_weights
+
