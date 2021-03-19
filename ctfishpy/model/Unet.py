@@ -91,7 +91,7 @@ class Unet():
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
-					brightness_range = [0.01,0.1],
+					brightness_range = [0.01,1],
 					fill_mode='constant',
 					cval = 0) 
 
@@ -384,14 +384,12 @@ class myDataGenerator(tf.keras.utils.Sequence):
 		return self.steps_per_epoch
 
 	def __getitem__(self, idx):
-		print(idx)
-		X = self.ct_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
-		y = self.label_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
+		X = self.ct_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size)]
+		Y = self.label_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size)]
 
 		currentX = X.copy()
-		currentY = y.copy()
-
-		assert len(X) == self.batch_size
+		currentY = Y.copy()
+		
 
 		for i in range(len(X)):
 			# This creates a dictionary with the params
@@ -404,11 +402,12 @@ class myDataGenerator(tf.keras.utils.Sequence):
 			currentY[i] = self.imgaug.apply_transform(currentY[i], params)
 			currentX[i] = currentX[i]/np.max(currentX[i])
 			currentY[i] = currentY[i]/np.max(currentY[i])
-			
-
+		if len(currentX) != self.batch_size:
+			print(f'batch {idx} has length {len(currentX)}!')
+		# print(len(currentX))
 		return currentX, currentY
 	
-	def on_epoch_end():
+	def on_epoch_end(self):
 		self.ct_list, self.label_list = unison_shuffled_copies(self.ct_list, self.label_list)
 
 
