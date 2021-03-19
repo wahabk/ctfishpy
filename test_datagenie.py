@@ -17,7 +17,7 @@ if __name__ == "__main__":
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
-				brightness_range = [0.01,0.05],
+				# brightness_range = [0.1,0.5],
 				fill_mode='constant',
 				cval = 0) 
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462]
@@ -25,7 +25,7 @@ if __name__ == "__main__":
 	zac_samples		= [257,443,461]
 	# removing 527, 530, 582, 589
 	val_samples = [464,364,385,40]
-	sample = [582]
+	sample = wahab_samples
 	
 	batch_size = 32
 	# change label path to read labels directly
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 		print(xdata.shape, np.max(xdata), np.min(xdata))
 		#ydata = fixFormat(ydata, label = True)  # remove last weird axis
 
-		#ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
-		ctreader.view(xdata, label)
+		ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
+		#ctreader.view(xdata, label)
 
 	#break

@@ -24,7 +24,7 @@ class Unet():
 		self.organ = organ
 		self.batch_size = 32
 		self.epochs = 100
-		self.lr = 1e-4
+		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightsname = 'unet_checkpoints'
@@ -91,9 +91,9 @@ class Unet():
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
-					brightness_range = [0.01,0.1],
+					# brightness_range = [0.5,0.8],
 					fill_mode='constant',
-					cval = 0)
+					cval = 0) 
 
 		
 		datagenie = self.dataGenie(batch_size=self.batch_size,
@@ -109,9 +109,9 @@ class Unet():
 
 		
 		callbacks = [
-			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True)
+			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			#TerminateOnBaseline('val_f1-score', baseline=0.9)
+			TerminateOnBaseline('val_f1-score', baseline=0.85)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -196,7 +196,6 @@ class Unet():
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
 
-
 		centres_path = ctreader.centres_path
 		with open(centres_path, 'r') as fp:
 			centres = json.load(fp)
@@ -224,8 +223,6 @@ class Unet():
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
 
-				
-
 			if self.organ == 'Otoliths':
 				# remove utricular otoliths
 				label[label == 2] = 0
@@ -251,7 +248,7 @@ class Unet():
 
 		print('[dataGenie] Initialising image and mask generators')
 		datagen = myDataGenerator(ct_list, label_list, data_gen_args, self.steps_per_epoch, self.batch_size)
-		
+		return datagen
 
 		# image_generator = imagegen.flow(ct_list,
 		# 	batch_size = batch_size,
@@ -269,7 +266,7 @@ class Unet():
 		# for (img,mask) in train_generator:
 		# 	yield (img,mask)
 
-		return datagen
+		
 
 		# #extract data frin generatirs
 		# test_batches = [image_generator, mask_generator]
@@ -405,7 +402,7 @@ class myDataGenerator(tf.keras.utils.Sequence):
 
 		return X, y
 	
-	def on_epoch_end():
+	def on_epoch_end(self):
 		self.ct_list, self.label_list = unison_shuffled_copies(self.ct_list, self.label_list)
 
 
