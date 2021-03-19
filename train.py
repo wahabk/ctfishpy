@@ -15,8 +15,9 @@ val_sample = [464,364,385,40,461]
 unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'bright_aug_1-10%'
 unet.comment = 'bright_aug_1-10%'
-unet.epochs = 100
-unet.train(sample, val_sample, zac_samples)
+unet.lr = 1e-5
+unet.epochs = 200
+unet.train(sample[:1], val_sample[:1], zac_samples[:1])
 unet.makeLossCurve()
 
 # params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],

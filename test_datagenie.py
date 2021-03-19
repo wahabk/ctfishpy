@@ -25,7 +25,7 @@ if __name__ == "__main__":
 	zac_samples		= [257,443,461]
 	# removing 527, 530, 582, 589
 	val_samples = [464,364,385,40]
-	sample = [582]
+	sample = wahab_samples
 	
 	batch_size = 32
 	# change label path to read labels directly
