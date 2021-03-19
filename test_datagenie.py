@@ -17,7 +17,7 @@ if __name__ == "__main__":
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
-				brightness_range = [0.01,0.05],
+				# brightness_range = [0.01,0.05],
 				fill_mode='constant',
 				cval = 0) 
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462]
@@ -38,8 +38,8 @@ if __name__ == "__main__":
 							fish_nums = sample,
 							shuffle=True)
 	# import pdb; pdb.set_trace()
-	for s in range(len(datagenie)):
-		xdata, ydata  = datagenie[s]
+	while True:
+		xdata, ydata  = datagenie[0]
 		print('y',ydata.shape, np.max(ydata), np.min(ydata))
 		print('x',xdata.shape, np.max(xdata), np.min(xdata))
 
@@ -53,6 +53,6 @@ if __name__ == "__main__":
 		#ydata = fixFormat(ydata, label = True)  # remove last weird axis
 
 		#ctreader.make_gif(xdata[:30], 'output/datagenie.gif', fps=3, label = label[:30])
-		ctreader.view(xdata, label)
+		# ctreader.view(xdata, label)
 
 	#break

@@ -387,8 +387,11 @@ class myDataGenerator(tf.keras.utils.Sequence):
 		return self.steps_per_epoch
 
 	def __getitem__(self, idx):
+		print(idx)
 		X = self.ct_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
 		y = self.label_list[ (idx*self.batch_size) : (idx*self.batch_size+self.batch_size) ]
+
+		assert len(X) == self.batch_size
 
 		for i in range(len(X)):
 			# This creates a dictionary with the params
@@ -405,8 +408,8 @@ class myDataGenerator(tf.keras.utils.Sequence):
 
 		return X, y
 	
-	def on_epoch_end():
-		self.ct_list, self.label_list = unison_shuffled_copies(self.ct_list, self.label_list)
+	# def on_epoch_end():
+	# 	self.ct_list, self.label_list = unison_shuffled_copies(self.ct_list, self.label_list)
 
 
 
