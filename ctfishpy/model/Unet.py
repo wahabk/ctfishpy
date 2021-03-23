@@ -41,10 +41,6 @@ class Unet():
 		self.seed = 420
 		self.fold = 0
 		
-
-		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
-		print(members)
-		
 	def saveParams(self):
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		with open('output/Model/trainingParameters.csv', 'a', newline='') as f:  
@@ -82,6 +78,8 @@ class Unet():
 		self.test_sample = test_sample
 		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
 		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
+		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
+		print(members)
 		
 		self.trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
 		data_gen_args = dict(rotation_range=10, # degrees
