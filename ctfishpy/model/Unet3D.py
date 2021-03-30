@@ -20,10 +20,11 @@ from .generator import customImageDataGenerator
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (96,96,96,1)
+		self.shape = (128,128,128,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
-		self.batch_size = 1
+		self.weights = 'imagenet'
+		self.batch_size = 2
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -35,13 +36,7 @@ class Unet3D(Unet):
 		
 		optimizer = Adam()
 		optimizer.learning_rate = self.lr
-		print(self.shape)
 		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
-		# base_model = sm3d.Unet(self.BACKBONE, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=False)
-		# inp = Input(shape=(self.shape[0], self.shape[1], 1))
-		# l1 = Conv3D(3, (1, 1))(inp) # map N channels data to 3 channels
-		# out = base_model(l1)
-		# model = Model(inp, out, name=base_model.name)
 		
 
 		if self.rerun: model.load_weights(self.weightspath)

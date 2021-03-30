@@ -16,7 +16,7 @@ unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'bright_aug_1-10%'
 unet.comment = 'bright_aug_1-10%'
 unet.lr = 1e-5
-unet.epochs = 200
+unet.epochs = 300
 unet.train(sample, val_sample, zac_samples)
 unet.makeLossCurve()
 
