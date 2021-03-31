@@ -24,7 +24,8 @@ class Unet3D(Unet):
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = 'imagenet'
-		self.batch_size = 2
+		self.batch_size = 1
+		self.alpha = 0.7
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'

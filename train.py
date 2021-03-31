@@ -12,13 +12,17 @@ zac_samples		= [257,443,218]
 sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
-unet = ctfishpy.Unet('Otoliths')
-unet.weightsname = 'bright_aug_1-10%'
-unet.comment = 'bright_aug_1-10%'
-unet.lr = 1e-5
-unet.epochs = 300
-unet.train(sample, val_sample, zac_samples)
-unet.makeLossCurve()
+for i in range(2, 16, 2):
+	unet = ctfishpy.Unet('Otoliths')
+	unet.weightsname = 'test'
+	unet.comment = f'trainN{i}'
+	unet.lr = 1e-5
+	unet.epochs = 200
+	unet.train(sample[:i], val_sample, zac_samples)
+	unet.makeLossCurve()
+	del unet
+
+
 
 # params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
 # 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
