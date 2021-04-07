@@ -1,23 +1,35 @@
-from qtpy.QtWidgets import QApplication
-from .. CTreader import CTreader
-from . import view
+from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToolTip, QLabel, QVBoxLayout, QSlider, QGridLayout
+from qtpy.QtGui import QFont, QPixmap, QImage, QCursor
+from qtpy.QtCore import Qt, QTimer
+import qtpy.QtCore as QtCore
+from ..controller import *
+from .mainviewer import mainView
 import numpy as np
 import cv2
 import sys
 
-class order_labeller(view.Window):
+class order_labeller(QApplication):
 	def __init__(self, stack, circles):
-		super().__init__(stack) #inherit methods from vie.wwindow
-		self.og_stack = stack
+		self.stack = stack
 		self.circles = circles
 		self.ordered_circles = []
+		self.qlabel = QLabel(self)
 		self.initUI()
+
+	def update(self):
+
+		self.image = self.stack
+
+		# transform image to qimage and set pixmap
+		self.image = self.np2qt(self.image)
+		self.pixmap = QPixmap(QPixmap.fromImage(self.image))
+		self.qlabel.setPixmap(self.pixmap)
 
 	def initUI(self):
 		#initialise UI
 		self.setWindowTitle('CTFishPy: please click on the circles in order')
 		self.update()
-		self.label.mousePressEvent = self.getPixel
+		self.qlabel.mousePressEvent = self.getPixel
 		self.resize(self.pixmap.width(), self.pixmap.height())
 
 	def getPixel(self , event):

@@ -54,15 +54,16 @@ def cc(n, template, thresh, roiSize):
 	template = ctreader.crop_around_center3d(template, roiSize=roiSize)
 	
 	template_projections = ctreader.make_max_projections(template)
+	# plt.imsave('output/cc/temp_proj_z.png', template_projections[0], cmap = 'gray')
+	# plt.imsave('output/cc/temp_proj_y.png', template_projections[1], cmap = 'gray')
+	# plt.imsave('output/cc/temp_proj_x.png', template_projections[2], cmap = 'gray')
 	template_projections = [thresh_img(i, thresh, is_16bit=True) for i in template_projections]
 
-	#print(template.shape, np.max(template), np.mean(template), np.min(template), template.dtype)
-	
 	# Renorm images and template to intensities of 1 to -1
 	projections = [minmax_scale(i, feature_range=(-1,1)) for i in projections]
 	template_projections = [minmax_scale(i, feature_range=(-1,1)) for i in template_projections]
 	
-	z, y, x = projections
+	z, y, x = projections 
 	zt, yt, xt = template_projections
 
 	# Scipy correlate in x and y projections
@@ -82,9 +83,9 @@ def cc(n, template, thresh, roiSize):
 	
 
 	cmap = 'Spectral'
-	plt.imsave('output/cc/current_cc_corr_x.png', cx, cmap =cmap)
-	plt.imsave('output/cc/current_cc_corr_y.png', cy, cmap =cmap)
-	plt.imsave('output/cc/current_cc_corr_z.png', cz, cmap =cmap)
+	# plt.imsave('output/cc/current_cc_corr_x.png', cx, cmap =cmap)
+	# plt.imsave('output/cc/current_cc_corr_y.png', cy, cmap =cmap)
+	# plt.imsave('output/cc/current_cc_corr_z.png', cz, cmap =cmap)
 
 	return center
 

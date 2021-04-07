@@ -27,16 +27,19 @@ if __name__ == "__main__":
 		print(f'fish: {n}')
 		# ct, metadata = ctreader.read(n, align = True)
 		z,y,x = ctreader.read_max_projections(n)
-		try:
-			center = ctfishpy.cc(n, template, thresh, roiSize)
-		except:
-			print('failed')
-			failed.append(n)
-			continue
-		if center == [0,0,0]: 
-			print('failed')
-			failed.append(n)
-			continue
+		center = ctfishpy.cc(n, template, thresh, roiSize)
+		exit()
+		# try:
+		# 	center = ctfishpy.cc(n, template, thresh, roiSize)
+		# except:
+		# 	print('failed')
+		# 	failed.append(n)
+		# 	continue
+		# if center == [0,0,0]: 
+		# 	print('failed')
+		# 	failed.append(n)
+		# 	continue
+		
 
 		# if n in labelled:
 		# 	mancenter = mancenters[str(n)]

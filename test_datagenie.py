@@ -10,10 +10,10 @@ def fixFormat(batch, label = False):
 
 
 if __name__ == "__main__":
-	data_gen_args = dict(rotation_range=5, # degrees
-				width_shift_range=5, #pixels
-				height_shift_range=5,
-				shear_range=5, #degrees
+	data_gen_args = dict(rotation_range=10, # degrees
+				width_shift_range=10, #pixels
+				height_shift_range=10,
+				shear_range=10, #degrees
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
