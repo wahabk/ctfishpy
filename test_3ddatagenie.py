@@ -11,11 +11,18 @@ def fixFormat(batch, label = False):
 
 if __name__ == "__main__":
 
-	data_gen_args = dict(zoom_range=0.1,
-					horizontal_flip=True,
-					vertical_flip = True,
-					fill_mode='constant',
-					cval = 0)
+	data_gen_args = dict(zoom_range=0.1, # up to 1
+				horizontal_flip=True,
+				vertical_flip = True,
+				# brightness_range = [0.01,0.05],
+				fill_mode='constant',
+				cval = 0)
+
+				# zoom_range=0.1,
+				# 	horizontal_flip=True,
+				# 	vertical_flip = True,
+				# 	fill_mode='constant',
+				# 	cval = 0)
 
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462]
 	mariel_samples	= [421,423,242,463,259,459]
@@ -28,6 +35,7 @@ if __name__ == "__main__":
 	# change label path to read labels directly
 	unet = ctfishpy.model.Unet3D('Otoliths')
 	unet.steps_per_epoch = 2
+	unet.shape = [128,128,128]
 	ctreader = ctfishpy.CTreader()
 
 	datagenie = unet.dataGenie(batch_size = batch_size,
