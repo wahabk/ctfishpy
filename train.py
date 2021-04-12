@@ -5,24 +5,33 @@ import numpy as np
 
 # cc doesnt work on 464 385 421 423, 78
 #256 mariel needs to be redone
-wahab_samples 	= [78,200,240,277,330,337,341,462,589]
+wahab_samples 	= [78,200,240,277,330,337,341,462, 582]
 mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218]
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589]
 sample = wahab_samples+mariel_samples
 val_sample = [464,364,385,40,461]
 
+
+unet = ctfishpy.Unet('Otoliths')
+unet.weightsname = 'test'
+unet.comment = 'Full_CCE'
+unet.lr = 1e-5
+unet.epochs = 600
+unet.loss = sm.losses.categorical_crossentropy
+unet.train(sample, val_sample, zac_samples)
+unet.makeLossCurve()
+del unet
+
 for i in range(2, 16, 2):
 	unet = ctfishpy.Unet('Otoliths')
 	unet.weightsname = 'test'
-	unet.comment = f'trainN{i}'
+	unet.comment = f'nTrain{i}'
 	unet.lr = 1e-5
-	unet.epochs = 200
+	unet.epochs = 300
 	unet.train(sample[:i], val_sample, zac_samples)
 	unet.makeLossCurve()
 	del unet
-
-
 
 # params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
 # 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
@@ -60,7 +69,7 @@ for i in range(2, 16, 2):
 
 # 	if loss == 'tversky': unet.loss = unet.multi_class_tversky_loss
 # 	if loss == 'dice_loss': unet.loss = sm.losses.DiceLoss(class_weights=unet.class_weights)
-# 	if loss == 'cross_entropy': unet.loss = sm.losses.categorical_crossentropy
+# 	if loss == 'cross_entropy': 
 
 # 	unet.train(sample, val_sample, zac_samples)
 # 	unet.makeLossCurve()

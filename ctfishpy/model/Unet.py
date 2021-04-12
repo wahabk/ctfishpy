@@ -76,7 +76,7 @@ class Unet():
 		self.sample = sample
 		self.val_sample = val_sample
 		self.test_sample = test_sample
-		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
+		self.steps_per_epoch = 65 #int(len(self.sample)*self.roiZ / self.batch_size)
 		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
