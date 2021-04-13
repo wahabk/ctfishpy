@@ -54,9 +54,27 @@ if __name__ == '__main__':
 	utr_acc = df.iloc[:]['2']
 	sag_acc = df.iloc[:]['3']
 
-	x = [lag_acc, utr_acc, sag_acc]
+	# x = [lag_acc, utr_acc, sag_acc]
+	df = df.drop('n', axis=1)
+	df = df.drop('0', axis=1)
+	df.rename(columns={"1": "Lagenal"}, inplace=True)
+	df.rename(columns={"2": "Utricular"}, inplace=True)
+	df.rename(columns={"3": "Saggital"}, inplace=True)
 
-	plt.boxplot(x)
+	vals, names, xs = [],[],[]
+	for i, col in enumerate(df.columns):
+		vals.append(df[col].values)
+		names.append(col)
+		xs.append(np.random.normal(i + 1, 0.04, df[col].values.shape[0]))  # adds jitter to the data points - can be adjusted
+
+	plt.boxplot(vals, labels=names)
+	palette = ['r', 'g', 'b']
+	for x, val, c in zip(xs, vals, palette):
+		plt.scatter(x, val, alpha=0.4, color=c)
+
+
+
 	plt.title('Interoperator DICE similarity')
+	plt.ylabel('DICE similarity')
 	plt.show()
 	
