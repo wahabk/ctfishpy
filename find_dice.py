@@ -13,35 +13,50 @@ def dice(y, yhat, k=1):
 # plt.imshow(seg)
 # plt.show()
 
+'''Making analysis'''
+# if __name__ == '__main__':
+
+# 	ctreader = ctfishpy.CTreader()
+# 	sample = [40, 242, 256,421,423]
+# 	scores = {}
+# 	for n in sample:
+# 		gt = ctreader.read_label('Otoliths_Mariele', n, align=False, is_amira=True)
+# 		if n == 40:
+# 			gt[gt==4]=1
+# 			gt[gt==3]=5
+# 			gt[gt==2]=3
+# 			gt[gt==5]=2
+# 		else:
+# 			gt[gt==2]=1
+# 			gt[gt==3]=2
+# 			gt[gt==4]=3
+# 		pr = ctreader.read_label('Otoliths_Zac', n, align=False, is_amira=True)
+# 		print(gt.shape, pr.shape)
+
+# 		# ctreader.view(gt, label=gt)
+# 		# ctreader.view(pr, label = pr)
+# 		dices = []
+# 		for i in range(0,4):
+# 			d = dice(gt, pr, k=i)
+# 			print(f'Dice similarity score for class {i} is {d}')
+# 			dices.append(d)
+# 		scores[str(n)] = dices
+# 	path = 'output/Zac&Mariel/manual_dice_scores.csv'
+# 	df = pd.DataFrame.from_dict(scores, orient="index")
+# 	df.to_csv(path)
+
+''' This is for analysing and making figures '''
 if __name__ == '__main__':
-
-	ctreader = ctfishpy.CTreader()
-	sample = [40, 242, 256,421,423]
-	scores = {}
-	for n in sample:
-		gt = ctreader.read_label('Otoliths_Mariele', n, align=False, is_amira=True)
-		if n == 40:
-			gt[gt==4]=1
-			gt[gt==3]=5
-			gt[gt==2]=3
-			gt[gt==5]=2
-		else:
-			gt[gt==2]=1
-			gt[gt==3]=2
-			gt[gt==4]=3
-		pr = ctreader.read_label('Otoliths_Zac', n, align=False, is_amira=True)
-		print(gt.shape, pr.shape)
-
-		# ctreader.view(gt, label=gt)
-		# ctreader.view(pr, label = pr)
-		dices = []
-		for i in range(0,4):
-			d = dice(gt, pr, k=i)
-			print(f'Dice similarity score for class {i} is {d}')
-			dices.append(d)
-		scores[str(n)] = dices
 	path = 'output/Zac&Mariel/manual_dice_scores.csv'
-	df = pd.DataFrame.from_dict(scores, orient="index")
-	df.to_csv(path)
+	df = pd.read_csv(path)
 
+	lag_acc = df.iloc[:]['1']
+	utr_acc = df.iloc[:]['2']
+	sag_acc = df.iloc[:]['3']
 
+	x = [lag_acc, utr_acc, sag_acc]
+
+	plt.boxplot(x)
+	plt.title('Interoperator DICE similarity')
+	plt.show()
+	
