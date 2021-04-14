@@ -188,8 +188,6 @@ class Unet():
 		return label
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
-		# imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
-		# maskgen = ImageDataGenerator(**data_gen_args)
 		
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
@@ -211,7 +209,7 @@ class Unet():
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
 									
-			align = True if num in [40,78,200,218,240,277,330,337,341,462,464,364,385] else False
+			align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
 			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
@@ -245,24 +243,30 @@ class Unet():
 		ct_list      = ct_list[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 
 		print('[dataGenie] Initialising image and mask generators')
-		datagen = myDataGenerator(ct_list, label_list, data_gen_args, self.steps_per_epoch, self.batch_size)
-		return datagen
+		# datagen = myDataGenerator(ct_list, label_list, data_gen_args, self.steps_per_epoch, self.batch_size)
+		# return datagen
+		imagegen = ImageDataGenerator(**data_gen_args, rescale = 1./65535)
+		maskgen = ImageDataGenerator(**data_gen_args)
 
-		# image_generator = imagegen.flow(ct_list,
-		# 	batch_size = batch_size,
-		# 	#save_to_dir = 'output/Keras/',
-		# 	# save_prefix = 'dataGenie',
-		# 	seed = seed,
-		# 	shuffle=shuffle,
-		# 	)
-		# mask_generator = maskgen.flow(label_list, 
-		# 	batch_size = batch_size,
-		# 	seed = seed,
-		# 	shuffle=shuffle
-		# 	)
-		# train_generator = zip(image_generator, mask_generator)
-		# for (img,mask) in train_generator:
-		# 	yield (img,mask)
+		image_generator = imagegen.flow(ct_list,
+			batch_size = batch_size,
+			save_to_dir = 'output/datagenie/',
+			save_prefix = 'dataGenie',
+			
+			seed = seed,
+			shuffle=shuffle,
+			)
+
+		
+		mask_generator = maskgen.flow(label_list, 
+			batch_size = batch_size,
+			seed = seed,
+			shuffle=shuffle
+			)
+
+		train_generator = zip(image_generator, mask_generator)
+		for (img,mask) in train_generator:
+			yield (img,mask)
 
 		
 
