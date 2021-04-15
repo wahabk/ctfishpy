@@ -184,13 +184,15 @@ if __name__ == "__main__":
 	master = ctreader.mastersheet()
 
 	bins = [12,24,36] # for age in months
+	labelled = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78, 218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589]
 	conditions = ['wt', 'het', 'hom']
 
 	#remove genotypes injected or mosaic etc
 	master = master[master['genotype'].isin(conditions)]
+	master = master[master['n'].isin(labelled)]
 	
-	master = stratified_sample(master, ['age', 'genotype'], size=25, seed = 69)
-	master.to_csv('output/otoliths2seg.csv')
+	# master = stratified_sample(master, ['age', 'genotype'], size=25, seed = 69)
+	# master.to_csv('output/otoliths2seg.csv')
 	print(master)
 
 	# Group all ages into 6, 12, 24, 36 months old
