@@ -7,8 +7,8 @@ unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'final'
 
 sample = [527,40,200,218]#[530, 40,256,421,]
-
-for n in sample:
+labelled = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78, 218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589]
+for n in labelled:
 	ct, metadata = ctreader.read(n, align = True)
 	centers = ctreader.manual_centers
 	center = centers[str(n)]

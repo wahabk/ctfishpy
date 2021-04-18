@@ -68,13 +68,13 @@ if __name__ == '__main__':
 		xs.append(np.random.normal(i + 1, 0.04, df[col].values.shape[0]))  # adds jitter to the data points - can be adjusted
 
 	plt.boxplot(vals, labels=names)
-	palette = ['r', 'g', 'b']
+	palette = ['r', 'y', 'b']
 	for x, val, c in zip(xs, vals, palette):
 		plt.scatter(x, val, alpha=0.4, color=c)
 
 
 
-	plt.title('Interoperator DICE similarity')
-	plt.ylabel('DICE similarity')
+	plt.title('Interoperator Dice similarity')
+	plt.ylabel('Dice similarity', fontsize=14)
 	plt.show()
 	

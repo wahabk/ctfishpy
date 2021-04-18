@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib import rcParams
 
 if __name__ == "__main__":
 
@@ -77,13 +78,23 @@ if __name__ == "__main__":
 	
 	# data = pd.DataFrame.from_dict(data)
 	print(data)
+	datapath = 'output/cc/cc_error@thresh.csv'
+	df = pd.DataFrame(data)
+	df.to_csv(datapath)
+
+	# datapath = 'output/cc/cc_error@thresh.csv'
+	# df = pd.read_csv(datapath)
+	# data = df.to_dict('split')
 
 
-	import pdb; pdb.set_trace()
+	# import pdb; pdb.set_trace()
 
 	names = data.keys()
 	vals = data.values()
-	plt.boxplot(vals)
+	plt.boxplot(vals, labels = names)
+	plt.title('Localisation error at different thresholds', fontsize=14)
+	plt.ylabel('Error from true centre (pixels)', fontsize=14)
+	plt.xlabel('Threshold', fontsize=14)
 	plt.show()
 
 
