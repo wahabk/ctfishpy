@@ -183,7 +183,7 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	master = ctreader.mastersheet()
 
-	bins = [12,24,36] # for age in months
+	bins = [6,12,24] # for age in months
 	labelled = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78, 218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589]
 	conditions = ['wt', 'het', 'hom']
 
