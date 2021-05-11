@@ -19,18 +19,18 @@ sm.set_framework('tf.keras')
 
 class Unet():
 	def __init__(self, organ):
-		self.shape = (224,224)
-		self.roiZ = 150
+		self.shape = (320,320)
+		self.roiZ = 200
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 200
+		self.epochs = 300
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightsname = 'unet_checkpoints'
 		self.comment = self.weightsname
 		self.encoder_freeze=True
-		self.nclasses = 3
+		self.nclasses = 4
 		self.activation = 'softmax'
 		self.class_weights = np.array([0.5, 1.25, 1.5])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
@@ -89,7 +89,7 @@ class Unet():
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
-					brightness_range = [0.01,1],
+					# brightness_range = [0.01,1],
 					fill_mode='constant',
 					cval = 0) 
 
@@ -219,10 +219,11 @@ class Unet():
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
 
-			if self.organ == 'Otoliths':
-				# remove utricular otoliths
-				label[label == 2] = 0
-				label[label == 3] = 2
+			# remove utricles
+			# if self.organ == 'Otoliths':
+			# 	# remove utricular otoliths
+			# 	label[label == 2] = 0
+			# 	label[label == 3] = 2
 
 			new_mask = np.zeros(label.shape + (self.nclasses,))
 			for i in range(self.nclasses):

@@ -3,7 +3,6 @@ import segmentation_models as sm
 import numpy as np
 
 
-# cc doesnt work on 464 385 421 423, 78
 #256 mariel needs to be redone
 wahab_samples 	= [78,200,240,277,330,337,341,462, 582]
 mariel_samples	= [421,423,242,463,259,459]
@@ -23,15 +22,15 @@ unet.train(sample, val_sample, zac_samples)
 unet.makeLossCurve()
 del unet
 
-for i in range(2, 16, 2):
-	unet = ctfishpy.Unet('Otoliths')
-	unet.weightsname = 'test'
-	unet.comment = f'nTrain{i}'
-	unet.lr = 1e-5
-	unet.epochs = 300
-	unet.train(sample[:i], val_sample, zac_samples)
-	unet.makeLossCurve()
-	del unet
+# for i in range(2, 16, 2):
+# 	unet = ctfishpy.Unet('Otoliths')
+# 	unet.weightsname = 'test'
+# 	unet.comment = f'nTrain{i}'
+# 	unet.lr = 1e-5
+# 	unet.epochs = 300
+# 	unet.train(sample[:i], val_sample, zac_samples)
+# 	unet.makeLossCurve()
+# 	del unet
 
 # params = [[1e-5, 150, 'cross_entropy', 	0.7, 	[1,1,1],			32, True],
 # 			[1e-5, 150, 'dice_loss', 		0.7, 	[1,1,1],			32, True],
