@@ -14,10 +14,7 @@ val_sample = [464,364,385,40,461]
 
 unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'test'
-unet.comment = 'Full_CCE'
-unet.lr = 1e-5
-unet.epochs = 600
-unet.loss = sm.losses.categorical_crossentropy
+unet.comment = 'train_utr'
 unet.train(sample, val_sample, zac_samples)
 unet.makeLossCurve()
 del unet

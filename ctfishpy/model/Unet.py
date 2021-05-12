@@ -23,7 +23,7 @@ class Unet():
 		self.roiZ = 200
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 300
+		self.epochs = 200
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -36,7 +36,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.5
+		self.alpha = 0.7
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
@@ -251,9 +251,8 @@ class Unet():
 
 		image_generator = imagegen.flow(ct_list,
 			batch_size = batch_size,
-			save_to_dir = 'output/datagenie/',
-			save_prefix = 'dataGenie',
-			
+			# save_to_dir = 'output/datagenie/',
+			# save_prefix = 'dataGenie',
 			seed = seed,
 			shuffle=shuffle,
 			)
