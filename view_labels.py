@@ -14,9 +14,10 @@ organ = 'Otoliths'
 ctreader = ctfishpy.CTreader()
 
 
-for n in my_sample:
+for n in [277]:
 	ct, stack_metadata = ctreader.read(n, align=True)
 	datapath = ctreader.dataset_path
-	label = ctreader.read_label(organ, n, align=False, is_amira=True)
+	align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False
+	label = ctreader.read_label(organ, n, align=align, is_amira=True)
 	
 	ctreader.view(ct, label=label)
