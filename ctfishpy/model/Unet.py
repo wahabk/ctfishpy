@@ -36,7 +36,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.5
+		self.alpha = 0.7
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
