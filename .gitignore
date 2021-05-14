@@ -131,10 +131,9 @@ dmypy.json
 # Weird mac files
 .DS_Store
 
-# VScode stuff
-.vscode
 
 *.h5
 *.hdf5
 Data
-output/Model/weights
+output/Model/weights/*
+output/Model/datagenie_Test/*

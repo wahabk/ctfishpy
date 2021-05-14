@@ -159,7 +159,7 @@ class CTreader:
 		print("Labels ready.")
 		return label
 
-	def write_label(self, label, organ, n, dtype='uint16'):
+	def write_label(self, organ, label, n, dtype='uint16'):
 		'''
 		Write label to organ hdf5
 
@@ -171,9 +171,10 @@ class CTreader:
 		folderPath.mkdir(parents=True, exist_ok=True)
 		path = Path(f'{self.dataset_path}/Labels/Organs/{organ}/{organ}.h5')
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
-		f = h5py.File(path, "a")
-		dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
-		f.close()
+
+		with h5py.File(path, "a") as f:
+			dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
+
 
 	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
 		'''

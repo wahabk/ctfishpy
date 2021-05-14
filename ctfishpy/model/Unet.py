@@ -20,17 +20,17 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (224,224)
-		self.roiZ = 150
+		self.roiZ = 200
 		self.organ = organ
 		self.batch_size = 32
-		self.epochs = 200
+		self.epochs = 250
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
 		self.weightsname = 'unet_checkpoints'
 		self.comment = self.weightsname
 		self.encoder_freeze=True
-		self.nclasses = 3
+		self.nclasses = 4
 		self.activation = 'softmax'
 		self.class_weights = np.array([0.5, 1.25, 1.5])
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
@@ -76,7 +76,7 @@ class Unet():
 		self.sample = sample
 		self.val_sample = val_sample
 		self.test_sample = test_sample
-		self.steps_per_epoch = 65 #int(len(self.sample)*self.roiZ / self.batch_size)
+		self.steps_per_epoch = int(len(self.sample)*self.roiZ / self.batch_size)
 		self.val_steps = int(len(self.val_sample)*self.roiZ / self.batch_size)
 		members = {attr: getattr(self, attr) for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")}
 		print(members)
@@ -89,7 +89,7 @@ class Unet():
 					zoom_range=0.1, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
-					brightness_range = [0.01,1],
+					# brightness_range = [0.01,1],
 					fill_mode='constant',
 					cval = 0) 
 
@@ -109,7 +109,7 @@ class Unet():
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			TerminateOnBaseline('val_f1-score', baseline=0.85)
+			TerminateOnBaseline('val_f1-score', baseline=0.8)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -219,10 +219,11 @@ class Unet():
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
 
-			if self.organ == 'Otoliths':
-				# remove utricular otoliths
-				label[label == 2] = 0
-				label[label == 3] = 2
+			# remove utricles
+			# if self.organ == 'Otoliths':
+			# 	# remove utricular otoliths
+			# 	label[label == 2] = 0
+			# 	label[label == 3] = 2
 
 			new_mask = np.zeros(label.shape + (self.nclasses,))
 			for i in range(self.nclasses):
@@ -250,9 +251,8 @@ class Unet():
 
 		image_generator = imagegen.flow(ct_list,
 			batch_size = batch_size,
-			save_to_dir = 'output/datagenie/',
-			save_prefix = 'dataGenie',
-			
+			# save_to_dir = 'output/datagenie/',
+			# save_prefix = 'dataGenie',
 			seed = seed,
 			shuffle=shuffle,
 			)
