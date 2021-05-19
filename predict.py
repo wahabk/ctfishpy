@@ -1,17 +1,19 @@
 import ctfishpy
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 
 ctreader = ctfishpy.CTreader()
 unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = '2dutr'
+nums = ctreader.fish_nums
+random.shuffle(nums)
 
-for n in [589]: #ctreader.fishnums:
-	label = unet.predict(n)
-	ct, metadata = ctreader.read(n, align=True)
-
+for n in nums:
+	label, ct = unet.predict(n)
 	print(label.shape, np.max(label))
 
 	# ctreader.write_label('Otoliths_unet2d', label, n)
-	ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=30, label = label[1200:1500])
+	ctreader.view(ct, label)
+	# ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=30, label = label[1200:1500])
 

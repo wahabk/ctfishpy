@@ -107,7 +107,7 @@ class CTreader:
 			stack_metadata = json.load(metadatafile)
 		return stack_metadata
 
-	def read_label(self, organ, n, align=True, is_amira=False):
+	def read_label(self, organ, n, align=True, is_amira=True):
 		"""
 		Read and return hdf5 label files
 

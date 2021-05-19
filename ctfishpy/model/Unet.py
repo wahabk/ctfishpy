@@ -19,7 +19,7 @@ sm.set_framework('tf.keras')
 
 class Unet():
 	def __init__(self, organ):
-		self.shape = (256,256)
+		self.shape = (128,320)
 		self.roiZ = 200
 		self.organ = organ
 		self.batch_size = 16
@@ -151,7 +151,7 @@ class Unet():
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 		plt.clf()
 
-	def predict(self, n):
+	def predict(self, n, test_batch_size=8):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
@@ -166,8 +166,8 @@ class Unet():
 		# out = base_model(l1)
 
 
-		test, og_center, og_shape = self.testGenie(n)
-		results = model.predict(test, self.batch_size) # read about this one
+		test, og_center, og_shape, og_ct = self.testGenie(n)
+		results = model.predict(test, test_batch_size) # read about this one
 
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
 		for i in range(self.nclasses):
@@ -185,7 +185,7 @@ class Unet():
 		length = int(length/2)
 		new_stack[z - zl : z + zl, x - length : x + length, y - length : y + length] = label
 		label = np.array(new_stack, dtype='uint8')
-		return label
+		return label, og_ct
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		
@@ -279,8 +279,7 @@ class Unet():
 
 	def testGenie(self, n):
 		ctreader = CTreader()
-		template = ctreader.read_label(self.organ, 0)
-		# center = cc(n, template, thresh=80, roiSize=224)
+
 		centres_path = ctreader.centres_path
 		with open(centres_path, 'r') as fp:
 			centres = json.load(fp)	
@@ -291,6 +290,7 @@ class Unet():
 		roiZ=self.roiZ
 		roiSize=self.shape[0]
 		ct, stack_metadata = ctreader.read(n, align=True)#(1400,1600))
+		og_ct = ct.copy()
 		og_shape = ct.shape
 		ct = ct[z_center - int(roiZ/2): z_center + int(roiZ/2)]
 		
@@ -299,7 +299,7 @@ class Unet():
 		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
 		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 		print(ct.shape)
-		return ct, og_center, og_shape
+		return ct, og_center, og_shape, og_ct
 
 	def saveHistory(self, path, history):
 		'''
