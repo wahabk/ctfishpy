@@ -12,7 +12,6 @@ from tensorflow.keras.layers import Input, Conv3D
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import Callback
-from sklearn.model_selection import KFold
 sm3d.set_framework('tf.keras')
 from .Unet import *
 from .generator import customImageDataGenerator
@@ -136,10 +135,10 @@ class Unet3D(Unet):
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
 
-			if self.organ == 'Otoliths':
-				# remove utricular otoliths
-				label[label == 2] = 0
-				label[label == 3] = 2
+			# if self.organ == 'Otoliths':
+			# 	# remove utricular otoliths
+			# 	label[label == 2] = 0
+			# 	label[label == 3] = 2
 
 			new_mask = np.zeros(label.shape + (self.nclasses,))
 

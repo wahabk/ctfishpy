@@ -4,8 +4,6 @@ import numpy as np
 import itertools
 import gc
 
-
-
 def genGridSearchParams(params):
 	'''
 	Generate series of params
@@ -29,10 +27,11 @@ sample = wahab_samples+mariel_samples+zac_samples
 val_sample = [40,461]
 
 params = {
-	'epochs' : [250],
-	'alpha' : [0.9,0.8],
-	'batch_size' : [8,16,32],
-	'lr'		: [1e-6,1e-5]
+	'epochs' : [100],
+	'alpha' : [0.9],
+	'batch_size' : [16],
+	'lr'		: [1e-5],
+	'encoder_freeze': [False]
 }
 
 grid = genGridSearchParams(params)

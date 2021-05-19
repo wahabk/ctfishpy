@@ -19,10 +19,10 @@ sm.set_framework('tf.keras')
 
 class Unet():
 	def __init__(self, organ):
-		self.shape = (224,224)
+		self.shape = (256,256)
 		self.roiZ = 200
 		self.organ = organ
-		self.batch_size = 32
+		self.batch_size = 16
 		self.epochs = 250
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
@@ -36,7 +36,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.7
+		self.alpha = 0.9
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
@@ -86,7 +86,7 @@ class Unet():
 					width_shift_range=10, #pixels
 					height_shift_range=10,
 					shear_range=10, #degrees
-					zoom_range=0.1, # up to 1
+					zoom_range=0.01, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
 					# brightness_range = [0.01,1],
@@ -108,7 +108,7 @@ class Unet():
 		
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
-			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
+			# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1)
 			TerminateOnBaseline('val_f1-score', baseline=0.8)
 		]
 		
@@ -339,7 +339,7 @@ class Unet():
 		return (1-self.multi_class_tversky(y_true, y_pred))
 
 	def focal_multi_class_tversky_loss(self, y_true,y_pred):
-		pt_1 = self.class_tversky(y_true, y_pred)
+		pt_1 = self.multi_class_tversky(y_true, y_pred)
 		gamma = 0.75
 		return K.sum(K.pow((1-pt_1), gamma))
 
@@ -361,9 +361,9 @@ class TerminateOnBaseline(Callback):
 
 def lr_scheduler(epoch, learning_rate):
 	decay_rate =  1
-	decay_step = 50
+	decay_step = 75
 	if epoch == decay_step:
-		return 1e-7
+		return 1e-6
 	return learning_rate
 
 def unison_shuffled_copies(a, b):
