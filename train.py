@@ -19,7 +19,7 @@ unet.rerun = False
 unet.batch_size = 32
 unet.lr = 1e-5
 unet.alpha = 0.8
-unet.epochs = 100
+unet.epochs = 200
 unet.train(sample, val_sample)
 unet.makeLossCurve()
 del unet
