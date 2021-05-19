@@ -337,16 +337,15 @@ class CTreader:
 		Also possible to set different ROI size for XY and Z
 		"""
 
-		l = int(roiSize / 2)
-		if roiZ:
-			zl = int(roiZ / 2)
-		else:
-			zl = l
+		xl = int(roiSize[0] / 2)
+		yl = int(roiSize[1] / 2)
+		zl = int(roiZ / 2)
+
 		if center == None:
 			c = int(array.shape[0] / 2)
 			center = [c, c, c]
 		z, x, y = center
-		array = array[z - zl : z + zl, x - l : x + l, y - l : y + l]
+		array = array[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl]
 		return array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):

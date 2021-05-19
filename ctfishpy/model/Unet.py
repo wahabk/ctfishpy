@@ -19,7 +19,7 @@ sm.set_framework('tf.keras')
 
 class Unet():
 	def __init__(self, organ):
-		self.shape = (256,256)
+		self.shape = (128,320)
 		self.roiZ = 200
 		self.organ = organ
 		self.batch_size = 16
@@ -109,7 +109,7 @@ class Unet():
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1)
-			TerminateOnBaseline('val_f1-score', baseline=0.8)
+			TerminateOnBaseline('val_f1-score', baseline=0.95)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -197,7 +197,7 @@ class Unet():
 			centres = json.load(fp)
 
 		roiZ=self.roiZ
-		roiSize=self.shape[0]
+		roiSize=self.shape
 		seed = self.seed
 
 		ct_list, label_list = [], []
@@ -208,7 +208,7 @@ class Unet():
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-									
+			
 			align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
 			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			
@@ -235,8 +235,7 @@ class Unet():
 			ct_list.append(ct)
 			label_list.append(label)
 			ct, label = None, None
-			
-		
+
 		ct_list = np.vstack(ct_list)
 		label_list = np.vstack(label_list)
 		ct_list = np.array(ct_list, dtype='float32')
