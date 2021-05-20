@@ -15,18 +15,18 @@ if __name__ == "__main__":
 	# mariel_samples	= [242,256,259,459,463,530,589,421,423] # 421 423 removed
 	# zac_samples		= [257,443,461,527,582]
 
-	# with open(datapath, 'r') as fp:
-	# 	data = json.load(fp)
-	# done = list(data.keys())
+	with open(datapath, 'r') as fp:
+		centers = json.load(fp)
+	done = list(centers.keys())
 
-	data={}
-	for fish in fishnums:
+	centers={}
+	for fish in [589, 421, 459, 463, 462, 218, 240, 464, 385]:
 		# if str(fish) not in done:
 			print(fish)
-			positions = ctreader.cc_fixer(fish)
-			data[str(fish)] = positions
+			center = ctreader.cc_fixer(fish)
+			centers[str(fish)] = center
 	with open(datapath, 'w') as f:
-		json.dump(data, f, sort_keys=True, indent=4)
+		json.dump(centers, f, sort_keys=True, indent=4)
 	with open(datapath, 'r') as fp:
-		data = json.load(fp)
-	print(data)
+		centers = json.load(fp)
+	print(centers)
