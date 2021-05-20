@@ -1,5 +1,5 @@
 # https://github.com/qubvel/segmentation_models/blob/master/examples/multiclass%20segmentation%20(camvid).ipynb
-from ..controller import CTreader, cc
+from ..controller import CTreader
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -151,7 +151,7 @@ class Unet():
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 		plt.clf()
 
-	def predict(self, n):
+	def predict(self, n, test_batch_size=8):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
@@ -166,8 +166,8 @@ class Unet():
 		# out = base_model(l1)
 
 
-		test, og_center, og_shape = self.testGenie(n)
-		results = model.predict(test, self.batch_size) # read about this one
+		test, og_center, og_shape, og_ct = self.testGenie(n)
+		results = model.predict(test, test_batch_size) # read about this one
 
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
 		for i in range(self.nclasses):
@@ -177,24 +177,25 @@ class Unet():
 		# ct = np.squeeze((test).astype('float32'), axis = 3)
 		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
 
+		# create empty stack with the size of original scan and insert label into original position
 		new_stack = np.zeros(og_shape, dtype='uint8')
 		z, x, y = og_center
-		# import pdb;pdb.set_trace()
-		zl, length = label.shape[:2]
-		zl = int(zl/2)
-		length = int(length/2)
-		new_stack[z - zl : z + zl, x - length : x + length, y - length : y + length] = label
+		roiSize = label.shape
+		
+		xl = int(roiSize[1] / 2)
+		yl = int(roiSize[2] / 2)
+		zl = int(roiSize[0] / 2)
+		
+		new_stack[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl] = label
 		label = np.array(new_stack, dtype='uint8')
-		return label
+		return label, og_ct
 	
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		
 		ctreader = CTreader()
 		template = ctreader.read_label(self.organ, 0)
 
-		centres_path = ctreader.centres_path
-		with open(centres_path, 'r') as fp:
-			centres = json.load(fp)
+		centres = ctreader.manual_centers
 
 		roiZ=self.roiZ
 		roiSize=self.shape
@@ -202,8 +203,6 @@ class Unet():
 
 		ct_list, label_list = [], []
 		for num in fish_nums:
-			# take out cc for now
-			# center = cc(num, template, thresh=80, roiSize=224)
 			center = centres[str(num)]
 			z_center = center[0] # Find center of cc result and only read roi from slices
 
@@ -278,8 +277,7 @@ class Unet():
 
 	def testGenie(self, n):
 		ctreader = CTreader()
-		template = ctreader.read_label(self.organ, 0)
-		# center = cc(n, template, thresh=80, roiSize=224)
+
 		centres_path = ctreader.centres_path
 		with open(centres_path, 'r') as fp:
 			centres = json.load(fp)	
@@ -288,8 +286,9 @@ class Unet():
 		z_center = center[0] # Find center of cc result and only read roi from slices
 
 		roiZ=self.roiZ
-		roiSize=self.shape[0]
+		roiSize=self.shape
 		ct, stack_metadata = ctreader.read(n, align=True)#(1400,1600))
+		og_ct = ct.copy()
 		og_shape = ct.shape
 		ct = ct[z_center - int(roiZ/2): z_center + int(roiZ/2)]
 		
@@ -298,7 +297,7 @@ class Unet():
 		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
 		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 		print(ct.shape)
-		return ct, og_center, og_shape
+		return ct, og_center, og_shape, og_ct
 
 	def saveHistory(self, path, history):
 		'''
