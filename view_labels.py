@@ -18,7 +18,7 @@ mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218,464,364,385]
 check = mariele_samples+zac_samples+my_samples
 
-for n in check:
+for n in [459, 464, 385]:
 	ct, stack_metadata = ctreader.read(n, align=True)
 	datapath = ctreader.dataset_path
 	align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False

@@ -19,8 +19,7 @@ if __name__ == "__main__":
 		centers = json.load(fp)
 	done = list(centers.keys())
 
-	centers={}
-	for fish in [589, 421, 459, 463, 462, 218, 240, 464, 385]:
+	for fish in [459, 464, 385]:
 		# if str(fish) not in done:
 			print(fish)
 			center = ctreader.cc_fixer(fish)
