@@ -20,10 +20,10 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (128,320)
-		self.roiZ = 200
+		self.roiZ = 160
 		self.organ = organ
-		self.batch_size = 16
-		self.epochs = 250
+		self.batch_size = 32
+		self.epochs = 200
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
 		self.BACKBONE = 'resnet34'
@@ -33,10 +33,10 @@ class Unet():
 		self.nclasses = 4
 		self.activation = 'softmax'
 		self.class_weights = np.array([0.5, 1.25, 1.5])
-		self.metrics = [sm.metrics.FScore(), sm.metrics.IOUScore()]
+		self.metrics = [sm.metrics.FScore(threshold=0.3), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.9
+		self.alpha = 0.8
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
@@ -82,10 +82,10 @@ class Unet():
 		print(members)
 		
 		self.trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
-		data_gen_args = dict(rotation_range=10, # degrees
-					width_shift_range=10, #pixels
-					height_shift_range=10,
-					shear_range=10, #degrees
+		data_gen_args = dict(rotation_range=2, # degrees
+					width_shift_range=5, #pixels
+					height_shift_range=5,
+					shear_range=5, #degrees
 					zoom_range=0.01, # up to 1
 					horizontal_flip=True,
 					vertical_flip = True,
@@ -109,7 +109,7 @@ class Unet():
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1)
-			TerminateOnBaseline('val_f1-score', baseline=0.95)
+			TerminateOnBaseline('val_f1-score', baseline=0.85)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 

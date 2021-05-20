@@ -27,11 +27,11 @@ sample = wahab_samples+mariel_samples+zac_samples
 val_sample = [40,461]
 
 params = {
-	'epochs' : [100],
-	'alpha' : [0.9],
-	'batch_size' : [16],
+	'epochs' : [120],
+	'alpha' : [0.9,0.8,0.3,0.5,0.7],
+	'batch_size' : [32],
 	'lr'		: [1e-5],
-	'encoder_freeze': [False]
+	'encoder_freeze': [True, False]
 }
 
 grid = genGridSearchParams(params)
@@ -45,7 +45,6 @@ for g in grid:
 	unet.comment = 'grdsrch_utr'
 	for key in g:
 		setattr(unet, key, g[key])
-	unet.roiZ = 150
 	unet.train(sample, val_sample)
 	unet.makeLossCurve()
 	del unet

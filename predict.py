@@ -12,6 +12,6 @@ for n in [589]: #ctreader.fishnums:
 
 	print(label.shape, np.max(label))
 
-	# ctreader.write_label('Otoliths_unet2d', label, n)
-	ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=30, label = label[1200:1500])
+	ctreader.write_label('Otoliths_unet2d', label, n)
+	# ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=30, label = label[1200:1500])
 
