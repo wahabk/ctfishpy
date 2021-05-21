@@ -5,7 +5,7 @@ import random
 
 ctreader = ctfishpy.CTreader()
 unet = ctfishpy.Unet('Otoliths')
-unet.weightsname = '2dutr'
+unet.weightsname = 'new_roi'
 nums = ctreader.fish_nums
 random.shuffle(nums)
 

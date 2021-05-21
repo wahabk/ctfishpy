@@ -20,7 +20,7 @@ sm.set_framework('tf.keras')
 class Unet():
 	def __init__(self, organ):
 		self.shape = (128,320)
-		self.roiZ = 200
+		self.roiZ = 160
 		self.organ = organ
 		self.batch_size = 16
 		self.epochs = 250
