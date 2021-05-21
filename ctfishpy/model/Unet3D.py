@@ -19,7 +19,7 @@ from .generator import customImageDataGenerator
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (128,128,128,1)
+		self.shape = (128,320,160,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = 'imagenet'
@@ -76,7 +76,7 @@ class Unet3D(Unet):
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			TerminateOnBaseline('val_f1-score', baseline=0.85)
+			TerminateOnBaseline('val_f1-score', baseline=0.80)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -118,16 +118,22 @@ class Unet3D(Unet):
 
 		ct_list, label_list = [], []
 		for num in fish_nums:
-			# take out cc for now
-			# center = cc(num, template, thresh=80, roiSize=224)
 			center = centres[str(num)]
 			z_center = center[0] # Find center of cc result and only read roi from slices
-
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+
+			# train on manual and auto
+			if num in manuals:
+				organ = 'Otoliths'
+				align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
+				is_amira = True
+			elif num not in manuals:
+				organ = 'Otoliths-unet'
+				align = False
+				is_amira = False
 									
-			align = True if num in [40,78,200,218,240,277,330,337,341,462,464,364,385] else False
-			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			
+			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
@@ -135,19 +141,13 @@ class Unet3D(Unet):
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
 
-			# if self.organ == 'Otoliths':
-			# 	# remove utricular otoliths
-			# 	label[label == 2] = 0
-			# 	label[label == 3] = 2
-
 			new_mask = np.zeros(label.shape + (self.nclasses,))
-
 			for i in range(self.nclasses):
 				#for one pixel in the image, find the class in mask and convert it into one-hot vector
 				new_mask[label == i, i] = 1
-			
 			mask = np.reshape(new_mask,(new_mask.shape[0],new_mask.shape[1],new_mask.shape[2],new_mask.shape[3]))
 			label = mask
+
 			ct_list.append(ct)
 			label_list.append(label)
 			ct, label = None, None
