@@ -172,7 +172,7 @@ class Unet():
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
 		for i in range(self.nclasses):
 			result = results[:, :, :, i]
-			label[result>0.5] = i
+			label[result>0.3] = i
 		
 		# ct = np.squeeze((test).astype('float32'), axis = 3)
 		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices

@@ -8,12 +8,11 @@ def fixFormat(batch, label = False):
 	# change format of image batches to make viewable with ctreader
 	return np.squeeze(batch.astype('uint16'), axis = 3)
 
-
 if __name__ == "__main__":
-	data_gen_args = dict(rotation_range=10, # degrees
-				width_shift_range=10, #pixels
-				height_shift_range=10,
-				shear_range=10, #degrees
+	data_gen_args = dict(rotation_range=5, # degrees
+				width_shift_range=5, #pixels
+				height_shift_range=5,
+				shear_range=5, #degrees
 				zoom_range=0.1, # up to 1
 				horizontal_flip=True,
 				vertical_flip = True,
@@ -24,8 +23,8 @@ if __name__ == "__main__":
 	mariel_samples	= [421,423,242,463,259,459]
 	zac_samples		= [257,443,461]
 	# removing 527, 530, 582, 589
-	val_samples = [464,364,385,40]
-	sample = wahab_samples
+	val_samples = [364,40]
+	sample = val_samples
 	
 	batch_size = 32
 	# change label path to read labels directly

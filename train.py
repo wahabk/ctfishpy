@@ -15,12 +15,12 @@ val_sample = [40,461]
 unet = ctfishpy.Unet('Otoliths')
 unet.weightsname = 'new_roi'
 unet.comment = 'new_roi'
-unet.rerun = False
+unet.rerun = True
 unet.encoder_freeze = False
-unet.batch_size = 32
+unet.batch_size = 16
 unet.lr = 1e-5
 unet.alpha = 0.8
-unet.epochs = 120
+unet.epochs = 50
 unet.train(sample, val_sample)
 unet.makeLossCurve()
 del unet
