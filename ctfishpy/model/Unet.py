@@ -151,9 +151,9 @@ class Unet():
 		plt.savefig('output/Model/loss_curves/'+history['time']+'_loss.png')
 		plt.clf()
 
-	def predict(self, n, test_batch_size=8):
+	def predict(self, n, test_batch_size=8, thresh=0.5):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
-		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
@@ -172,7 +172,7 @@ class Unet():
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
 		for i in range(self.nclasses):
 			result = results[:, :, :, i]
-			label[result>0.3] = i
+			label[result>thresh] = i
 		
 		# ct = np.squeeze((test).astype('float32'), axis = 3)
 		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
