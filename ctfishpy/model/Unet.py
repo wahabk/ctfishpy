@@ -22,7 +22,7 @@ class Unet():
 		self.shape = (192,288)
 		self.roiZ = 128
 		self.organ = organ
-		self.batch_size = 32
+		self.batch_size = 8
 		self.epochs = 200
 		self.lr = 1e-5
 		self.pretrain = True #write this into logic
@@ -36,7 +36,7 @@ class Unet():
 		self.metrics = [sm.metrics.FScore(threshold=0.3), sm.metrics.IOUScore()]
 		self.rerun = False
 		self.slice_weighting = 1
-		self.alpha = 0.8
+		self.alpha = 0.3
 		self.loss = self.multi_class_tversky_loss # sm.losses.DiceLoss(class_weights=self.class_weights) 
 		self.seed = 420
 		self.fold = 0
@@ -109,7 +109,7 @@ class Unet():
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			# keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1)
-			TerminateOnBaseline('val_f1-score', baseline=0.85)
+			TerminateOnBaseline('val_f1-score', baseline=0.95)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 

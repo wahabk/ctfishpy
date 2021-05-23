@@ -19,19 +19,20 @@ def genGridSearchParams(params):
 	# experiment = dict(zip(keys, v))
 	return grid
 
+#256 mariel needs to be redone, 421 is barx1 464 385 bad loc
 wahab_samples 	= [78,200,240,330,337,341,462]
-mariel_samples	= [421,423,242,463,259,459]
-zac_samples		= [257,443,218,464,364,385]
+mariel_samples	= [423,242,463,259,459]
+zac_samples		= [257,443,218,364]
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589], 277
 sample = wahab_samples+mariel_samples+zac_samples
 val_sample = [40,461]
 
 params = {
-	'epochs' : [120],
-	'alpha' : [0.9,0.8,0.3,0.5,0.7],
-	'batch_size' : [32],
+	'epochs' : [150],
+	'alpha' : [0.8,0.3,0.5,0.7],
+	'batch_size' : [8,16,32],
 	'lr'		: [1e-5],
-	'encoder_freeze': [True, False]
+	'encoder_freeze': [True]
 }
 
 grid = genGridSearchParams(params)
