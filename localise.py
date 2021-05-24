@@ -19,13 +19,13 @@ if __name__ == "__main__":
 		centers = json.load(fp)
 	done = list(centers.keys())
 
-	for fish in [459, 464, 385]:
+	for fish in [464, 385]:
 		# if str(fish) not in done:
 			print(fish)
 			center = ctreader.cc_fixer(fish)
 			centers[str(fish)] = center
-	with open(datapath, 'w') as f:
-		json.dump(centers, f, sort_keys=True, indent=4)
-	with open(datapath, 'r') as fp:
-		centers = json.load(fp)
+	# with open(datapath, 'w') as f:
+	# 	json.dump(centers, f, sort_keys=True, indent=4)
+	# with open(datapath, 'r') as fp:
+	# 	centers = json.load(fp)
 	print(centers)

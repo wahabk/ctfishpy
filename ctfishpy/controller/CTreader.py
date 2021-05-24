@@ -107,7 +107,7 @@ class CTreader:
 			stack_metadata = json.load(metadatafile)
 		return stack_metadata
 
-	def read_label(self, organ, n, align=True, is_amira=True):
+	def read_label(self, organ, n, align, is_amira=True):
 		"""
 		Read and return hdf5 label files
 
@@ -124,24 +124,26 @@ class CTreader:
 		if n==0:
 			label_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
-			f = h5py.File(label_path, "r")
-			label = np.array(f['0'])
-			f.close()
+			with h5py.File(label_path, "r") as f:
+				label = np.array(f['0'])
+			
 
 		elif n!=0 and is_amira==False:
 			label_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
 			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 
-			f = h5py.File(label_path, "r")
-			label = np.array(f[str(n)])
-			f.close()
+			with h5py.File(label_path, "r") as f:
+				label = np.array(f[str(n)])
+			
 
 		elif n!=0 and is_amira==True:
 			label_path = self.dataset_path / f'Labels/Organs/{organ}/{n}.am'
 			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
+			
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
-			mariel_samples	= [421,423,242,463,259,459,256,530,589]
+
+			mariel_samples	= [421,423,242,463,259,459,256,530,589] # fix for different ordering from mariel labels
 			if n in mariel_samples and organ == 'Otoliths':
 				label[label==2]=1
 				label[label==3]=2
@@ -187,9 +189,9 @@ class CTreader:
 		folderPath = Path(f'{self.dataset_path}/Compressed/')
 		folderPath.mkdir(parents=True, exist_ok=True)
 		path = folderPath / f'{dataset}.h5'
-		f = h5py.File(path, 'a')
-		dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
-		f.close()
+		with h5py.File(path, 'a') as f:
+			dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
+		
 
 	def read_max_projections(self, n):
 		"""
