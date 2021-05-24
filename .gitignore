@@ -137,3 +137,4 @@ dmypy.json
 Data
 output/Model/weights/*
 output/Model/datagenie_Test/*
+.vscode/settings.json

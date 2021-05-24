@@ -22,11 +22,15 @@ if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
 	segs = 'Otoliths_unet2d'
 	nclasses = 3
+	datapath = 'output/otolithddata.csv'
+
 	nums = ctreader.fish_nums
 	nums = nums[:nums.index(423)+1]
 	print(nums)
 
-	data = {}
+	with open(datapath, 'r') as fr:
+		d = json.load(fr)
+
 	for n in nums:
 		print(n)
 
@@ -38,10 +42,8 @@ if __name__ == '__main__':
 		print(densities, volumes)
 		data[n] = {'densities': list(densities), 'vols': list(volumes)}
 
-	datapath = 'output/otolithddata.csv'
-	with open(datapath, 'w') as f:
-		json.dump(data, f, sort_keys=True, indent=4)
+		with open(datapath, 'w') as f:
+			json.dump(data, f, sort_keys=True, indent=4)
 
-	with open(datapath, 'r') as fr:
-		d = json.load(fr)
-	print(d)
+	
+	print(data)
