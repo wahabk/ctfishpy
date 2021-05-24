@@ -159,7 +159,7 @@ class CTreader:
 		print("Labels ready.")
 		return label
 
-	def write_label(self, organ, label, n, dtype='uint16'):
+	def write_label(self, organ, label, n, dtype='uint8'):
 		'''
 		Write label to organ hdf5
 

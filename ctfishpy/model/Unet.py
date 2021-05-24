@@ -153,7 +153,7 @@ class Unet():
 
 	def predict(self, n, test_batch_size=8, thresh=0.5):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
-		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation)
+		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		inp = Input(shape=(self.shape[0], self.shape[1], 1))
 		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
 		out = base_model(l1)
