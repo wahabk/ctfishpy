@@ -10,7 +10,8 @@ nums = ctreader.fish_nums
 # random.shuffle(nums)
 
 for n in nums:
-	label, ct = unet.predict(n)
+	print(n)
+	label, ct = unet.predict(n, thresh = 0.3)
 	print(label.shape, np.max(label))
 
 	ctreader.write_label('Otoliths_unet2d', label, n)
