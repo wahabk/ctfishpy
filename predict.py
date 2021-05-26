@@ -19,13 +19,12 @@ if __name__ == '__main__':
 	unet.weightsname = 'new_roi'
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
-	'''
-	424 cant read
-	434 
-	'''
 
-	nums = nums[nums.index(434)+1:]
+	skip = [424,434,405,465,467]
+
+	nums = nums[nums.index(523)+1:]
 	for n in nums:
+		if n in skip: continue
 		print(n)
 		label, ct = unet.predict(n, thresh = 0.3)
 		print(label.shape, np.max(label))
