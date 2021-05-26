@@ -23,24 +23,33 @@ if __name__ == '__main__':
 	segs = 'Otoliths_unet2d'
 	nclasses = 3
 	datapath = 'output/otolithddata.csv'
-
+	centers = ctreader.manual_centers
 	nums = ctreader.fish_nums
 	nums = nums[:nums.index(423)+1]
 	print(nums)
 
 	with open(datapath, 'r') as fr:
-		d = json.load(fr)
-
+		data = json.load(fr)
+	
 	for n in nums:
 		print(n)
+		center = centers[str(n)]
+		z_center = center[0]
+		roiZ = 150
 
-		ct, stack_metadata = ctreader.read(n, align=True)
 		label = ctreader.read_label(segs, n, align = False, is_amira=False)
+		label = ctreader.crop_around_center3d(label, (256,256), center, roiZ=roiZ)
+
+		center[0] = 75
+		ct, stack_metadata = ctreader.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+		ct = ctreader.crop_around_center3d(ct, (256,256), center, roiZ=roiZ)
+
+		print(label.shape, ct.shape)
 
 		densities = getDens(ct, label, stack_metadata, nclasses)
 		volumes = getVol(label, stack_metadata, nclasses)
 		print(densities, volumes)
-		data[n] = {'densities': list(densities), 'vols': list(volumes)}
+		data[str(n)] = {'densities': list(densities), 'vols': list(volumes)}
 
 		with open(datapath, 'w') as f:
 			json.dump(data, f, sort_keys=True, indent=4)
