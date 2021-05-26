@@ -22,17 +22,22 @@ if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
 	segs = 'Otoliths_unet2d'
 	nclasses = 3
-	datapath = 'output/otolithddata.csv'
+	datapath = 'output/otolithddatacol11.csv'
 	centers = ctreader.manual_centers
 	nums = ctreader.fish_nums
 	nums = nums[:nums.index(423)+1]
 	print(nums)
 
-	with open(datapath, 'r') as fr:
-		data = json.load(fr)
+	# with open(datapath, 'r') as fr:
+	# 	data = json.load(fr)
+	data = {}
+	skip = [424,434,405,465,467]
 	
-	for n in nums:
+	col11s = [256, 257, 258, 259, 421, 423, 424, 425, 431, 432, 433, 434, 443, 456, 457, 458, 459, 460, 461, 462, 463, 464, 582, 583, 584, 585, 586, 587, 588, 589]
+
+	for n in col11s:
 		print(n)
+		if n in skip: continue
 		center = centers[str(n)]
 		z_center = center[0]
 		roiZ = 150

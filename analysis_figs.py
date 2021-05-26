@@ -8,7 +8,7 @@ if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
 	segs = 'Otoliths_unet2d'
 	nclasses = 3
-	datapath = 'output/otolithddata.csv'
+	datapath = 'output/otolithddatacol11.csv'
 
 	with open(datapath, 'r') as fr:
 		data = json.load(fr)

@@ -78,6 +78,15 @@ class Viewer(QWidget):
 		if len(self.ogstack.shape) == 2: self.is_single_image = True
 		else: self.is_single_image = False
 
+		scale = 200
+		im = self.ogstack[0]
+		width = int(im.shape[1] * scale / 100)
+		height = int(im.shape[0] * scale / 100)
+		dim = (width, height)
+
+		# resize image
+		resized = [cv2.resize(img, dim, interpolation = cv2.INTER_AREA) for img in self.ogstack]
+		self.ogstack = np.array(resized)
 
 		# set background colour to cyan
 		p = self.palette()
