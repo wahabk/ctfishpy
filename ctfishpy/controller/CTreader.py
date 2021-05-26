@@ -76,6 +76,7 @@ class CTreader:
 		# images = list(tifpath.iterdir())
 		images = [str(i) for i in tifpath.iterdir()]
 		images.sort()
+		# print(images)
 
 		ct = []
 		print(f"[CTFishPy] Reading uCT scan. Fish: {fish}")
@@ -85,7 +86,7 @@ class CTreader:
 				if align == True:
 					tiffslice = self.rotate_image(tiffslice, angle)
 				ct.append(tiffslice)
-			ct = np.array(ct)
+			ct = np.array(ct, dtype='uint16')
 
 		else:
 			for i in tqdm(images):
@@ -175,6 +176,8 @@ class CTreader:
 		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
 
 		with h5py.File(path, "a") as f:
+			# print(f.keys())
+			# exit()
 			dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
 
 
@@ -390,3 +393,18 @@ class CTreader:
 		
 		clip = ImageSequenceClip(list(new_stack), fps=fps)
 		clip.write_gif(file_name, fps=fps)
+
+
+	def getVol(self, label, metadata, nclasses):
+		counts = np.array([np.count_nonzero(label == i) for i in range(1, nclasses+1)])
+		voxel_size = float(metadata['VoxelSizeX']) * float(metadata['VoxelSizeY']) * float(metadata['VoxelSizeZ'])
+		volumes = counts * voxel_size
+
+		return volumes
+
+	def getDens(self, scan, label, metadata, nclasses):
+		dens_calib = 0.0000381475547417411
+		voxel_values = np.array([np.mean(scan[label == i]) for i in range(1, nclasses+1)])
+		densities = voxel_values * dens_calib
+
+		return densities
