@@ -7,8 +7,9 @@ import gc
 wahab_samples 	= [78,200,240,330,337,341,462]
 mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218,464,364,385]
+auto = [41,43,44,45,46,56,57,69,70,72,74,77,78,79,80,90,92,200,201,203]
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589], 277
-sample = wahab_samples+mariel_samples+zac_samples
+sample = wahab_samples+mariel_samples+zac_samples+auto
 val_sample = [40,461]
 
 

@@ -1,0 +1,31 @@
+,n,age,genotype,strain,name,re-uCT scan,Comments,age(old),Phantom,Scaling Value,Arb Value
+120,256,18.0,het,col11a2,col11a2 +/-,* (256_263),HR  + contrast,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+121,257,18.0,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+122,258,18.0,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+123,259,18.0,het,col11a2,col11a2 +/-,,shg+ histology,1.5 year,EKPhantoms_21Sep End Day,7.393011,2.5
+285,421,12.0,hom,col11a2,col11a2-/-,"*(401,403,405,421)",HR head and ribs,1 year,EK_Phantoms_211117_PM,6.2740290000000005,2.5
+287,423,3.0,wt,col11a2,col11a2 sibs,*(423-430),,3 months,EK_Phantom_10-01-18_AM,6.123677,2.5
+288,424,3.0,wt,col11a2,col11a2 sibs,,,3 months,EK_Phantom_10-01-18_AM,6.123677,2.5
+289,425,3.0,wt,col11a2,col11a2 sibs,,,3 months,EK_Phantom_10-01-18_AM,6.123677,2.5
+295,431,12.0,wt,col11a2,col11a2 sibs,*(431-438),*HR,1 year,EK_Phantom_10-01-18_AM,6.123677,2.5
+296,432,12.0,wt,col11a2,col11a2 sibs,,,1 year,EK_Phantom_10-01-18_AM,6.123677,2.5
+297,433,12.0,wt,col11a2,col11a2 sibs,,,1 year,EK_Phantom_10-01-18_AM,6.123677,2.5
+298,434,12.0,wt,col11a2,col11a2 sibs,,,1 year,EK_Phantom_10-01-18_AM,6.123677,2.5
+306,443,12.0,hom,col11a2,col11a2 -/- ,,HR head and ribs,1 year,,,
+319,456,7.0,wt,col11a2,col11a2 +/+,(456-463),HR,7 months,EK_Phantom_230518,6.747484,2.5
+320,457,7.0,wt,col11a2,col11a2 +/+,,,7 months,EK_Phantom_230518,6.747484,2.5
+321,458,7.0,wt,col11a2,col11a2 +/+,,,7 months,EK_Phantom_230518,6.747484,2.5
+322,459,7.0,het,col11a2,col11a2 +/-,,,7 months,EK_Phantom_230518,6.747484,2.5
+323,460,7.0,het,col11a2,col11a2 +/-,,HR,7 months,EK_Phantom_230518,6.747484,2.5
+324,461,7.0,het,col11a2,col11a2 +/-,,,7 months,EK_Phantom_230518,6.747484,2.5
+325,462,28.0,het,col11a2,col11a2 +/-,,,2.3 years,EK_Phantom_230518,6.747484,2.5
+326,463,28.0,het,col11a2,col11a2 +/-,,,2.3 years,EK_Phantom_230518,6.747484,2.5
+327,464,28.0,het,col11a2,col11a2 +/-,(464-470),HR,2.3 years,EK_464_470_,6.137297,2.5
+445,582,12.0,hom,col11a2,Col11a2 -/-,582_589 ,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+446,583,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+447,584,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+448,585,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+449,586,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+450,587,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+451,588,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5
+452,589,12.0,hom,col11a2,Col11a2 -/-,,OA Paper,1 year,567_573 scanned with phantom ,6.953716,2.5

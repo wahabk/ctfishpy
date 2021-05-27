@@ -113,7 +113,7 @@ class Unet3D(Unet):
 			centres = json.load(fp)
 
 		roiZ=self.shape[0]
-		roiSize=self.shape[1]
+		roiSize=self.shape[1:]
 		seed = self.seed
 
 		ct_list, label_list = [], []
@@ -122,18 +122,21 @@ class Unet3D(Unet):
 			z_center = center[0] # Find center of cc result and only read roi from slices
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
 
+			auto = [41,43,44,45,46,56,57,69,70,72,74,77,78,79,80,90,92,200,201,203]
 			# train on manual and auto
-			if num in manuals:
+			if num in auto:
+				organ = 'Otoliths_unet2d'
+				align = False
+				is_amira = False
+				
+			elif num not in auto:
 				organ = 'Otoliths'
 				align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
 				is_amira = True
-			elif num not in manuals:
-				organ = 'Otoliths-unet'
-				align = False
-				is_amira = False
+				
 									
 			
-			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
+			label = ctreader.read_label(organ, n=num,  align=align, is_amira=is_amira)
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
