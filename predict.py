@@ -11,8 +11,8 @@ tracker = SummaryTracker()
 
 if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
-	unet = ctfishpy.Unet('Otoliths')
-	unet.weightsname = 'new_roi'
+	unet = ctfishpy.Unet3D('Otoliths')
+	unet.weightsname = '3d_test'
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
 
@@ -24,10 +24,10 @@ if __name__ == '__main__':
 	#reloc 439 and a few, increase pred height
 	#432 bad utricles
 
-	for n in weird:
+	for n in [40]:
 		if n in skip: continue
 		print(n)
-		# label, ct = unet.predict(n, thresh = 0.3)
+		label, ct = unet.predict(n, thresh = 0.3)
 		# print(label.shape, np.max(label))
 
 		# label = ctreader.read_label('Otoliths_unet2d', n, align=False, is_amira=False)
@@ -38,17 +38,17 @@ if __name__ == '__main__':
 		z_center = center[0]
 		roiZ = 150
 
-		label = ctreader.read_label('Otoliths_unet2d', n, align = False, is_amira=False)
+		# label = ctreader.read_label('Otoliths_unet2d', n, align = False, is_amira=False)
 		label = ctreader.crop_around_center3d(label, (256,256), center, roiZ=roiZ)
 
 		center[0] = 75
-		ct, stack_metadata = ctreader.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+		# ct, stack_metadata = ctreader.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
 		ct = ctreader.crop_around_center3d(ct, (256,256), center, roiZ=roiZ)
 		print(ct.shape)
 
 		# ctreader.write_label('Otoliths_unet2d', label, n)
 		# tracker.print_diff()
-		# ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=30, label = label[1200:1500])
-		ctreader.view(ct,label)
+		ctreader.make_gif(ct, 'output/test_labels.gif', fps=30, label = label)
+		# ctreader.view(ct,label)
 		gc.collect()
 

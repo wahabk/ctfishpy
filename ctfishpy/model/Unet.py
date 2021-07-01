@@ -193,8 +193,6 @@ class Unet():
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		
 		ctreader = CTreader()
-		template = ctreader.read_label(self.organ, 0)
-
 		centres = ctreader.manual_centers
 
 		roiZ=self.roiZ
