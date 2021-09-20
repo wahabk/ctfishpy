@@ -11,6 +11,8 @@ import cv2
 import os
 import gc
 import h5py
+import matplotlib.pyplot as plt
+from copy import deepcopy
 
 class Lumpfish():
 	
@@ -34,56 +36,15 @@ class Lumpfish():
 		return pd.read_csv('./uCT_mastersheet.csv')
 		#to count use master['age'].value_counts()
 
-	def read_tiff(self, file_number = None, r = None, scale = 40):
-		path = '../../Data/HDD/uCT/low_res/'
-		
-		# find all dirty scan folders and save as csv in directory
-		files      = os.listdir(path)
-		files      = natsorted(files, alg=ns.IGNORECASE) #sort according to names without leading zeroes
-		files_df   = pd.DataFrame(files) #change to df to save as csv
-		files_df.to_csv('../../Data/HDD/uCT/filenames_low_res.csv', index = False, header = False)
-		fish_nums = []
-		for f in files:
-			nums = [int(i) for i in f.split('_') if i.isdigit()]
-			if len(nums) == 2:
-				start = nums[0]
-				end = nums[1]+1
-				nums = list(range(start, end))
-			else:
-				nums = [i for i in nums]
-			fish_nums.append(nums)
-		self.fish_order_nums = fish_nums#[[files[i], fish_nums[i]] for i in range(0, len(files))]
-		self.files = files
+	def read_tiff(self, path, r = None, scale = 40, get_metadata=False):
 
-		# get rid of weird mac files
-		for file in files:
-			if file.endswith('DS_Store'): files.remove(file)
-
-		# if no file number was provided to read then print files list
-		if file_number == None: 
-			print(files)
-			return
-
-		#f ind all dirs in scan folder
-		file = files[file_number]
-		for path, dirs, files in os.walk('../../Data/HDD/uCT/low_res/'+file+''):
-			dirs = sorted(dirs)
-			break
-
-		# Find tif folder and if it doesnt exist read images in main folder
-		tif = []
-		for i in dirs: 
-			if i.startswith('EK'):
-				tif.append(i)
-		if tif: tifpath = path+'/'+tif[0]+'/'
-		else: tifpath = path+'/'
-
-		tifpath = Path(tifpath)
+		tifpath = Path(path)
 		files = sorted(tifpath.iterdir())
 		images = [str(f) for f in files if f.suffix == '.tif']
+		images.pop(891)
 
 		ct = []
-		print(f'[CTFishPy] Reading uCT scan: {file}')
+		print(f'[CTFishPy] Reading uCT scan: {path}')
 		if r:
 			for i in tqdm(range(*r)):
 				tiffslice = tiff.imread(images[i])
@@ -95,35 +56,48 @@ class Lumpfish():
 				tiffslice = tiff.imread(i)
 				ct.append(tiffslice)
 			ct = np.array(ct)
+		print(ct.shape)
 
 		# check if image is empty
-		if np.count_nonzero(ct) == 0:
-			raise ValueError('Image is empty.')
+		# if np.count_nonzero(ct) == 0:
+		# 	raise ValueError('Image is empty.')
 
-		# read xtekct
-		path = Path(path) # change str path to pathlib format
-		files = path.iterdir()
-		xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
+		if scale:
+			new_ct = []
+			for slice_ in ct:
+				height  = int(slice_.shape[0] * scale / 100)
+				width   = int(slice_.shape[1] * scale / 100)
+				slice_ = cv2.resize(slice_, (width, height), interpolation = cv2.INTER_AREA)     
+				new_ct.append(slice_)
+			ct = np.array(new_ct)
 
-		# check if xtekct exists
-		if not Path(xtekctpath).is_file():
-			raise Exception("[CTFishPy] XtekCT file not found. ")
-		
-		xtekct = QSettings(xtekctpath, QSettings.IniFormat)
-		x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
-		y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
-		z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
+		if get_metadata:
+			# read xtekct
+			path = Path(path) # change str path to pathlib format
+			files = path.iterdir()
+			xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
 
-		metadata = {'path': str(path), 
-					'scale' : scale,
-					'x_voxel_size' : x_voxelsize,
-					'y_voxel_size' : y_voxelsize,
-					'z_voxel_size' : z_voxelsize}
+			# check if xtekct exists
+			if not Path(xtekctpath).is_file():
+				raise Exception("[CTFishPy] XtekCT file not found. ")
+			
+			xtekct = QSettings(xtekctpath, QSettings.IniFormat)
+			x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
+			y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
+			z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
 
-		return ct, metadata # ct: (slice, x, y, 3)
+			metadata = {'path': str(path), 
+						'scale' : scale,
+						'x_voxel_size' : x_voxelsize,
+						'y_voxel_size' : y_voxelsize,
+						'z_voxel_size' : z_voxelsize}
 
-	def read_dirty(self, file_number = None, r = None, 
-		scale = 40):
+			return ct, metadata # ct: (slice, x, y, 3)
+
+		else:
+			return ct
+
+	def read_dirty_old(self, file_number = None, r = None, scale = 40):
 		path = '../../Data/HDD/uCT/low_res/'
 		
 		# find all dirty scan folders and save as csv in directory
@@ -219,22 +193,26 @@ class Lumpfish():
 
 		return ct #, metadata # ct: (slice, x, y, 3)
 
-	def find_tubes(self, ct, minDistance = 200, minRad = 0, maxRad = 150, 
-		thresh = [50, 100], slice_to_detect = 0, dp = 1.3, pad = 0):
+	def find_tubes(self, ct, minDistance = 180, minRad = 0, maxRad = 150, 
+		thresh = [20, 80], slice_to_detect = 0, dp = 1.3, pad = 0):
 		# Find fish tubes
 		# output = ct.copy() # copy stack to label later
-		output = ct.copy()
+		output = deepcopy(ct)
 
 		# Convert slice_to_detect to gray scale and threshold
 		# ct_slice_to_detect = cv2.cvtColor(ct[slice_to_detect], cv2.COLOR_BGR2GRAY)
 		ct_slice_to_detect = ct[slice_to_detect]
 		min_thresh, max_thresh = thresh
 		ret, ct_slice_to_detect = cv2.threshold(ct_slice_to_detect, min_thresh, max_thresh, 
-			cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+			cv2.THRESH_BINARY)
+
+		ct_slice_to_detect = cv2.cvtColor(ct_slice_to_detect, cv2.COLOR_BGR2GRAY)
+
+		if not ret: raise Exception('Threshold failed')
 
 		# detect circles in designated slice
 		circles = cv2.HoughCircles(ct_slice_to_detect, cv2.HOUGH_GRADIENT, dp=dp, 
-		minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
+					minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
 
 		if circles is None: return
 		else:
@@ -258,7 +236,7 @@ class Lumpfish():
 			return circle_dict
 			
 	def crop(self, ct, circles, scale = [40, 40]):
-		# this is so ugly :(             scale = [from,to]
+		# this is so ugly :( im sorry             scale = [from,to]
 		# crop ct stack to circles provided in order
 		
 		# find scale factor of scale at which cropped and scale of current image

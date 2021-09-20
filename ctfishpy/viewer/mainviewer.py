@@ -205,18 +205,3 @@ def mainViewer(stack, label, thresh):
 	win.show()
 	app.exec_()
 	return
-
-'''
-				listOfCoordinates = list(zip(indices[0], indices[1]))
-				if listOfCoordinates != []:
-					for (x, y) in listOfCoordinates:
-						print(x, y)
-									megastack = zip(self.ogstack, self.label)
-			labelled_stack = []
-			for (img, l) in megastack:
-				#indices = np.where(l == 1)
-				img[l == 1, 0] = 255
-
-				labelled_stack.append(img)
-			self.ogstack = np.array(labelled_stack)
-'''

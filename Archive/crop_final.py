@@ -1,9 +1,15 @@
-from ctfishpy.GUI.circle_order_labeller import circle_order_labeller
-from ctfishpy.GUI.tubeDetector import detectTubes
 import ctfishpy
+from ctfishpy.viewer.circle_order_labeller import circle_order_labeller
+from ctfishpy.viewer.tubeDetector import detectTubes
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import cv2
+import json
+from pathlib2 import Path
 
-CTreader = ctfishpy.CTreader()
-lump = ctfishpy.Lumpfish()
+CTreader = ctfishpy.controller.CTreader()
+lump = ctfishpy.controller.Lumpfish()
 
 
 for i in range(62,63):

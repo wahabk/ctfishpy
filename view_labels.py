@@ -20,7 +20,7 @@ check = mariele_samples+zac_samples+my_samples
 
 segs = 'Otoliths_unet2d'
 
-for n in ctreader.fish_nums[ctreader.fish_nums.index(87)+1:]:
+for n in [421,582, 461, 464, 583, 584, 585, 586, 587]:#ctreader.fish_nums[ctreader.fish_nums.index(87)+1:]:
 	
 	center = ctreader.manual_centers[str(n)]
 	roiSize = (192,288)

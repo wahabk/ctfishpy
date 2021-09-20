@@ -180,7 +180,6 @@ class CTreader:
 			# exit()
 			dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
 
-
 	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
 		'''
 		Write scan to hdf5
@@ -195,7 +194,6 @@ class CTreader:
 		with h5py.File(path, 'a') as f:
 			dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
 		
-
 	def read_max_projections(self, n):
 		"""
 		Return z,y,x which represent axial, saggital, and coronal max projections
@@ -335,7 +333,21 @@ class CTreader:
 		obj = json.loads(obj_text)
 		return np.array(obj)
 
-	def crop_around_center3d(self, array, roiSize, center=None, roiZ=None):
+	def crop3d(self, array, roiSize, center=None):
+		roiX, roiY, roiZ = roiSize
+		xl = int(roiX / 2)
+		yl = int(roiY / 2)
+		zl = int(roiZ / 2)
+
+		if center == None:
+			c = int(array.shape[0] / 2)
+			center = [c, c, c]
+
+		z, x, y = center
+		array = array[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl]
+		return array
+
+	def crop_around_center3d(self, array, roiSize, roiZ=None, center=None):
 		"""
 		Crop around the center of 3d array
 		You can specify the center of crop if you want
@@ -393,7 +405,6 @@ class CTreader:
 		
 		clip = ImageSequenceClip(list(new_stack), fps=fps)
 		clip.write_gif(file_name, fps=fps)
-
 
 	def getVol(self, label, metadata, nclasses):
 		counts = np.array([np.count_nonzero(label == i) for i in range(1, nclasses+1)])

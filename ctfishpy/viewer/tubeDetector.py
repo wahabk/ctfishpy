@@ -2,17 +2,32 @@ from qtpy.QtWidgets import QMainWindow, QApplication, QWidget, QPushButton, QToo
 from qtpy.QtGui import QFont, QPixmap, QImage, QCursor
 from qtpy.QtCore import Qt, QTimer
 import qtpy.QtCore as QtCore
-from .. Lumpfish import Lumpfish
+from ..controller import Lumpfish
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import sys
+
+def to8bit(img):
+	"""
+	Change img from 16bit to 8bit by mapping the data range to 0 - 255
+	"""
+	if img.dtype == "uint16":
+		new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8)
+		return new_img
+	else:
+		print("image already 8 bit!")
+		return img
+
+def to8bit_stack(stack):
+	return np.array([to8bit(i) for i in stack], dtype='uint8')
 
 class detectCircles(QMainWindow):
 
 	def __init__(self, stack):
 		super().__init__()
 		self.stack = stack
+		self.viewer = Viewer(self.stack, parent = self)
 		self.initUI()
 
 	def initUI(self):
@@ -20,7 +35,6 @@ class detectCircles(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.viewer = Viewer(self.stack, parent = self)
 		self.setCentralWidget(self.viewer)
 		#widget.findChildren(QWidget)[0]
 
@@ -30,7 +44,7 @@ class detectCircles(QMainWindow):
 		
 	def keyPressEvent(self, event):
 		#close window if esc or q is pressed
-		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q :
+		if event.key() == Qt.Key_Escape or event.key() == Qt.Key_Q:
 			self.close()
 
 
@@ -39,8 +53,8 @@ class Viewer(QWidget):
 	def __init__(self, stack, stride = 10, parent = None):
 		super().__init__()
 		#init cariables
-		self.npstack = stack
-		self.ogstack = stack
+		self.npstack = to8bit_stack(stack)
+		self.ogstack = to8bit_stack(stack)
 		self.stack_size = stack.shape[0]-1
 		self.stride = stride
 		self.slice = 0
@@ -69,7 +83,7 @@ class Viewer(QWidget):
 		self.detector.valueChanged.connect(self.updateDetector)
 		self.padder.valueChanged.connect(self.updatePadder)
 
-		self.b1 = QPushButton("Confirm slice", self)
+		self.b1 = QPushButton("Lock slice", self)
 		self.b1.setCheckable(True)
 		self.b1.toggle()
 		self.b1.clicked.connect(self.lockSlice)
@@ -82,8 +96,10 @@ class Viewer(QWidget):
 	def lockSlice(self):
 		if self.b1.isChecked():
 			self.locked = False
+			self.b1.setText('Slice Locked')
 		else:
 			self.locked = True
+			self.b1.setText('Lock slice')
 
 	def update(self):
 		# Update displayed image
