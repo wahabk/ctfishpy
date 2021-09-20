@@ -19,12 +19,16 @@ from .generator import customImageDataGenerator
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (128,320,160,1)
+		self.shape = (128,288,128,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = 'imagenet'
+		self.encoder_freeze = True
 		self.batch_size = 1
 		self.alpha = 0.7
+		self.BACKBONE = 'resnet18'
+		self.metrics = [sm3d.metrics.FScore(threshold=0.5), sm3d.metrics.IOUScore()]
+		self.loss = self.multiclass_tversky3d_loss
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -41,7 +45,6 @@ class Unet3D(Unet):
 
 		if self.rerun: model.load_weights(self.weightspath)
 		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
-		# self.loss = self.multi_class_tversky_loss.__name__
 		self.loss = self.loss.__name__
 		return model
 
@@ -76,7 +79,7 @@ class Unet3D(Unet):
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			TerminateOnBaseline('val_f1-score', baseline=0.80)
+			TerminateOnBaseline('val_f1-score', baseline=1)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -101,6 +104,37 @@ class Unet3D(Unet):
 		self.history = history.history
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
+
+	def predict(self, n, test_batch_size=1, thresh=0.5):
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
+		model = sm3d.Unet(self.BACKBONE, input_shape=(128,288,128,1), classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+
+		model.load_weights(self.weightspath)
+
+
+		test, og_center, og_shape, og_ct = self.testGenie(n)
+		results = model.predict(test, test_batch_size) # read about this one
+
+		label = np.zeros(results.shape[:-1], dtype = 'uint8')
+		for i in range(self.nclasses):
+			result = results[:, :, :, i]
+			label[result>thresh] = i
+		
+		# ct = np.squeeze((test).astype('float32'), axis = 3)
+		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
+
+		# create empty stack with the size of original scan and insert label into original position
+		new_stack = np.zeros(og_shape, dtype='uint8')
+		z, x, y = og_center
+		roiSize = label.shape
+		
+		xl = int(roiSize[1] / 2)
+		yl = int(roiSize[2] / 2)
+		zl = int(roiSize[0] / 2)
+		
+		new_stack[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl] = label
+		label = np.array(new_stack, dtype='uint8')
+		return label, og_ct
 
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		imagegen = customImageDataGenerator(**data_gen_args)
@@ -184,13 +218,12 @@ class Unet3D(Unet):
 			# print(y_batch[0].shape, y_batch[0].dtype, np.amax(y_batch[0]))
 			yield (x_batch, y_batch)
 
-
-	def multi_class_tversky(self, y_true, y_pred):
+	def multiclass_tversky3d(self, y_true, y_pred):
+		# https://github.com/nabsabraham/focal-tversky-unet/issues/3
 		smooth = 1
-		alpha=self.alpha
 
-		y_true = K.permute_dimensions(y_true, (4,3,2,1,0))
-		y_pred = K.permute_dimensions(y_pred, (4,3,2,1,0))
+		y_true = K.permute_dimensions(y_true, (4,1,2,3,0))
+		y_pred = K.permute_dimensions(y_pred, (4,1,2,3,0))
 
 		y_true_pos = K.batch_flatten(y_true)
 		y_pred_pos = K.batch_flatten(y_pred)
@@ -200,6 +233,7 @@ class Unet3D(Unet):
 		alpha = 0.7
 		return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
 
-	def multi_class_tversky_loss(self, y_true, y_pred):
-		return (1-self.multi_class_tversky(y_true, y_pred))
+	def multiclass_tversky3d_loss(self, y_true, y_pred):
+		return 1 - self.multiclass_tversky3d(y_true, y_pred)
+
 
