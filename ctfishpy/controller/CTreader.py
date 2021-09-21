@@ -222,7 +222,7 @@ class CTreader:
 		"""
 		mainviewer.mainViewer(ct, label, thresh)
 
-	def spin(self, img, center, label=None, thresh=False):
+	def spin(self, img, center=None, label=None, thresh=False):
 		"""
 		Manual spinner made to align fish
 		"""
@@ -264,6 +264,14 @@ class CTreader:
 		else:
 			print("image already 8 bit!")
 			return img
+
+	def rotate_array(self, array, angle, center=None):
+		new_array = []
+		print('Rotating...')
+		for a in array:
+			a_rotated = self.rotate_image(a, angle=angle, center=center)
+			new_array.append(a_rotated)
+		return np.array(new_array)
 
 	def rotate_image(self, image, angle, center=None):
 		"""

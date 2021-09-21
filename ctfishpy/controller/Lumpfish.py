@@ -41,12 +41,13 @@ class Lumpfish():
 		tifpath = Path(path)
 		files = sorted(tifpath.iterdir())
 		images = [str(f) for f in files if f.suffix == '.tif']
-		images.pop(891)
+		# images.pop(891)
 
 		ct = []
 		print(f'[CTFishPy] Reading uCT scan: {path}')
 		if r:
 			for i in tqdm(range(*r)):
+				# print(images[i])
 				tiffslice = tiff.imread(images[i])
 				ct.append(tiffslice)
 			ct = np.array(ct)
@@ -361,7 +362,23 @@ class Lumpfish():
 		with open(metadataPath, 'w') as f:
 			json.dump(data, f)
 
-	def write_clean(self, n, cropped_cts, metadata):
+	def write_tif(self, path, name, scan):
+		parent = Path(path)
+		folder = parent / f'{name}'
+		folder.mkdir(parents=True, exist_ok=True)
+
+		i = 0
+		for img in scan: # for each slice
+			filename = folder / f'{name}_{str(i).zfill(4)}.tiff'
+			if img.size == 0: raise Exception(f'cropped image is empty at fish: {name} slice: {i+1}')
+
+			tiff.imwrite(str(filename), img)
+			i += 1
+			print(f'[Fish {name}, slice:{i}/{len(scan)}]', end="\r")
+		scan = None
+		gc.collect()
+
+	def write_clean(self, n, cropped_cts, metadata=None):
 		order = self.fish_order_nums[n]
 		print(f'order {len(order)}, number of circles: {len(cropped_cts)}')
 		print(order)
@@ -382,23 +399,25 @@ class Lumpfish():
 			fish = mastersheet.loc[mastersheet['n'] == 100].to_dict()
 			weird_fix = list(fish['age'].keys())[0]
 			
-			input_metadata = {
-				'number'        : order[o],
-				'Skip'          : fish['skip'][weird_fix],
-				'Age'           : fish['age'][weird_fix],
-				'Genotype'      : fish['genotype'][weird_fix],
-				'Strain'        : fish['strain'][weird_fix],
-				'Name'          : fish['name'][weird_fix],
-				'VoxelSizeX'    : metadata['x_voxel_size'],
-				'VoxelSizeY'    : metadata['y_voxel_size'],
-				'VoxelSizeZ'    : metadata['z_voxel_size'],
-				'Comments'      : fish['name'][weird_fix],
-				'Phantom'       : fish['name'][weird_fix],
-				'Scaling Value' : fish['name'][weird_fix],
-				'Arb Value'     : fish['name'][weird_fix]
-			}
+			if metadata:
 
-			self.write_metadata(order[o], input_metadata)
+				input_metadata = {
+					'number'        : order[o],
+					'Skip'          : fish['skip'][weird_fix],
+					'Age'           : fish['age'][weird_fix],
+					'Genotype'      : fish['genotype'][weird_fix],
+					'Strain'        : fish['strain'][weird_fix],
+					'Name'          : fish['name'][weird_fix],
+					'VoxelSizeX'    : metadata['x_voxel_size'],
+					'VoxelSizeY'    : metadata['y_voxel_size'],
+					'VoxelSizeZ'    : metadata['z_voxel_size'],
+					'Comments'      : fish['name'][weird_fix],
+					'Phantom'       : fish['name'][weird_fix],
+					'Scaling Value' : fish['name'][weird_fix],
+					'Arb Value'     : fish['name'][weird_fix]
+				}
+
+				self.write_metadata(order[o], input_metadata)
 
 			i = 0
 			for img in ct: # for each slice

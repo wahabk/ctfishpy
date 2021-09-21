@@ -7,7 +7,8 @@ import cv2
 import sys
 
 def rotate_image(image, angle, center=None):
-	image_center = tuple(np.array(image.shape[1::-1]) / 2)
+	# image_center = tuple(np.array(image.shape[1::-1]) / 2)
+	image_center = (image.shape[0]/2, image.shape[0]/2)
 	if center: image_center = center
 	rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
 	result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
@@ -70,6 +71,7 @@ class Spinner(QWidget):
 		self.thresh = thresh
 		self.label = label
 		self.pad = 20
+		self.center = center
 
 		# label stack
 		if self.label is not None:
@@ -126,7 +128,7 @@ class Spinner(QWidget):
 		if self.angle > self.max_angle-1: 	self.angle = 0
 		if self.angle < 0: 					self.angle = self.max_angle-1
 		
-		self.image = rotate_image(self.og_image, self.angle)
+		self.image = rotate_image(self.og_image, self.angle, center=self.center)
 		if self.thresh == True: 
 			ret, self.image  = cv2.threshold(self.image, 
 			self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)

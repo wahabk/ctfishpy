@@ -71,6 +71,9 @@ class Viewer(QWidget):
 		#add to ordered_circles and deleted from original circles
 		for (a, b, r) in self.circles:
 			if self.inside_circle(x, y, a, b, r):
+				#check circle not already in order
+				if self.ordered_circles and True in [self.inside_circle(x,y,l,m,n) for (l,m,n) in self.ordered_circles]:
+					break
 				self.ordered_circles.append([a, b, r])
 
 				self.image = self.number_image(self.image, len(self.ordered_circles), (a,b))
@@ -79,7 +82,7 @@ class Viewer(QWidget):
 
 	def inside_circle(self, x, y, a, b, r):
 		#check if point x, y is in circle with centre and radius a, b ,r 
-		return (x - a)*(x - a) + (y - b)*(y - b) < r*r
+		return (x - a)**2 + (y - b)**2 < r**2
 
 	def number_image(self, img, num, loc):
 
