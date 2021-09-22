@@ -237,20 +237,21 @@ class Lumpfish():
 			return circle_dict
 			
 	def crop(self, ct, circles, scale = [40, 40]):
-		# this is so ugly :( im sorry             scale = [from,to]
-		# crop ct stack to circles provided in order
+		'''
+		this is so ugly :( im sorry             scale = [from,to]
+		crop ct stack to circles provided in order
 		
-		# find scale at which tubes detected and scale of current image
+		find scale at which tubes detected and scale of current image
+		'''
+		
 		scale_factor = scale[1]/scale[0]
 		circles = [[int(x*scale_factor), int(y*scale_factor), int(r*scale_factor)] for x, y, r in circles]
 		cropped_CTs = []
-
 		ctx = ct.shape[2]
 		cty = ct.shape[1]
 
 		for x, y, r in circles:
 			cropped_stack = []
-
 
 			crop_length = 2*r
 			rectx = [x - r, x - r + crop_length]
@@ -277,20 +278,10 @@ class Lumpfish():
 				shifty = recty[1] - cty
 				recty[1] = cty
 				recty[0] = recty[0] + shifty
-			
-			for np_slice in ct:
-				if len(np_slice.shape) == 2:
-					cropped_slice =  np_slice[
-						recty[0] : recty[1],
-						rectx[0] : rectx[1]]
-				cropped_stack.append(cropped_slice)
-			cropped_stack = np.array(cropped_stack)
-			cropped_CTs.append(cropped_stack)
+			cropped_CTs.append(ct[:, recty[0] : recty[1], rectx[0] : rectx[1]])
+			gc.collect()
 			del rectx
 			del recty
-			del cropped_stack
-			del cropped_slice
-			gc.collect()
 		return cropped_CTs
 
 	def saveCrop(self, n, ordered_circles, metadata):

@@ -9,15 +9,15 @@ import json
 from pathlib2 import Path
 import gc
 
-
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	lump = ctfishpy.Lumpfish()
 
-	path = Path('/home/ak18001/Data/HDD/uCT/qiao/QT_020-023_[tifs]')
+	# path = Path('/media/wahab/SeagateExp/Data/uCT/qiao/QT_020-023_[tifs]')
+	path = Path('/home/wahab/Data/HDD/uCT/qiao/QT_020-023_[tifs]')
 	name = path.stem
 
-	ct = lump.read_tiff(path, r=(1000,1100), scale = 40)
+	ct = lump.read_tiff(path, r=(000,100), scale = 40)
 	color =  np.array([np.stack((img,)*3, axis=-1) for img in ct.copy()]) # convert to color
 
 	circle_dict = detectTubes(color)
@@ -32,7 +32,6 @@ if __name__ == "__main__":
 	del ct
 	del color
 	gc.collect()
-
 
 	ct = lump.read_tiff(path, r=None, scale = 100)
 	croppedCTs = lump.crop(ct, ordered_circles, scale=[40,100])
@@ -58,3 +57,4 @@ if __name__ == "__main__":
 		cv2.imwrite(str(projections / f'z_{i+1}.png'), z)
 
 		lump.write_tif(path.parent, f'{name}_{i+1}', cropped)
+		
