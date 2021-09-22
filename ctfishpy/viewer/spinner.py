@@ -99,6 +99,9 @@ class Spinner(QWidget):
 	def initUI(self):
 		pad = self.pad
 		self.update()
+
+		self.qlabel.mousePressEvent = self.getPixel
+
 		if self.is_single_image == False:
 			self.initSlider()
 			self.slider.valueChanged.connect(self.updateSlider)
@@ -121,7 +124,11 @@ class Spinner(QWidget):
 			self.min_thresh_slider.valueChanged.connect(self.update_min_thresh)
 			self.max_thresh_slider.valueChanged.connect(self.update_max_thresh)
 
-		
+	def getPixel(self , event):
+		#get pixels of every click and assign center
+		x = event.pos().x()
+		y = event.pos().y()
+		self.center = (x,y)
 			
 	def update(self):
 
@@ -129,6 +136,7 @@ class Spinner(QWidget):
 		if self.angle < 0: 					self.angle = self.max_angle-1
 		
 		self.image = rotate_image(self.og_image, self.angle, center=self.center)
+
 		if self.thresh == True: 
 			ret, self.image  = cv2.threshold(self.image, 
 			self.min_thresh, self.max_thresh, cv2.THRESH_BINARY)
@@ -186,7 +194,7 @@ class Spinner(QWidget):
 		self.max_thresh_slider = QSlider(Qt.Horizontal, self)
 		self.max_thresh_slider.setMinimum(100)
 		self.max_thresh_slider.setMaximum(255)
-		self.max_thresh_slider.setSingleStep(1)
+		self.max_thresh_slider.setSinglcteStep(1)
 		self.max_thresh_slider.setGeometry(10, self.pixmap.height()+10+self.slider.height()+self.min_thresh_slider.height(), self.pixmap.width(), 20)
 
 	def update_min_thresh(self):
@@ -203,7 +211,7 @@ def spinner(stack, center, label, thresh):
 	win = mainViewer(stack, center, label, thresh)
 	win.show()
 	app.exec_()
-	return win.spinner.angle
+	return win.spinner.angle, win.spinner.center
 
 '''
 				listOfCoordinates = list(zip(indices[0], indices[1]))

@@ -240,7 +240,7 @@ class Lumpfish():
 		# this is so ugly :( im sorry             scale = [from,to]
 		# crop ct stack to circles provided in order
 		
-		# find scale factor of scale at which cropped and scale of current image
+		# find scale at which tubes detected and scale of current image
 		scale_factor = scale[1]/scale[0]
 		circles = [[int(x*scale_factor), int(y*scale_factor), int(r*scale_factor)] for x, y, r in circles]
 		cropped_CTs = []
@@ -251,12 +251,11 @@ class Lumpfish():
 		for x, y, r in circles:
 			cropped_stack = []
 
+
 			crop_length = 2*r
-			rectx, recty = [], []
-			rectx.append(x - r)
-			rectx.append(rectx[0] + crop_length)
-			recty.append(y - r)
-			recty.append(recty[0] + crop_length)
+			rectx = [x - r, x - r + crop_length]
+			recty = [y - r, y - r + crop_length]
+			print(rectx, recty)
 			
 			# if statements to shift crop inside ct window
 			if rectx[0] < 0:
@@ -278,22 +277,20 @@ class Lumpfish():
 				shifty = recty[1] - cty
 				recty[1] = cty
 				recty[0] = recty[0] + shifty
-
+			
 			for np_slice in ct:
 				if len(np_slice.shape) == 2:
 					cropped_slice =  np_slice[
 						recty[0] : recty[1],
 						rectx[0] : rectx[1]]
-				if len(np_slice.shape) == 3:
-					cropped_slice =  np_slice[
-						recty[0] : recty[1],
-						rectx[0] : rectx[1]
-								 :         ]
 				cropped_stack.append(cropped_slice)
 			cropped_stack = np.array(cropped_stack)
 			cropped_CTs.append(cropped_stack)
-			cropped_stack = None
-			cropped_slice = None
+			del rectx
+			del recty
+			del cropped_stack
+			del cropped_slice
+			gc.collect()
 		return cropped_CTs
 
 	def saveCrop(self, n, ordered_circles, metadata):
@@ -306,7 +303,6 @@ class Lumpfish():
 			'scale'             : metadata['scale'],
 			'path'              : metadata['path']
 		}
-
 		jsonpath = metadata['path']+'/crop_data.json'
 		with open(jsonpath, 'w') as o:
 			json.dump(crop_data, o)
