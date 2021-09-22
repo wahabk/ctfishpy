@@ -14,7 +14,9 @@ if __name__ == "__main__":
 	lump = ctfishpy.Lumpfish()
 
 	# path = Path('/media/wahab/SeagateExp/Data/uCT/qiao/QT_020-023_[tifs]')
-	path = Path('/home/wahab/Data/HDD/uCT/qiao/QT_020-023_[tifs]')
+	# path = Path('/home/wahab/Data/HDD/uCT/qiao/QT_020-023_[tifs]')
+	# path = Path('F:/Data/uCT/qiao/QT_020-023_[tifs]')
+	path = Path('D:\Data\qiao\QT_020-023_[tifs]')
 	name = path.stem
 
 	ct = lump.read_tiff(path, r=(000,100), scale = 40)

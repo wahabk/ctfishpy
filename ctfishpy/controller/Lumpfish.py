@@ -19,13 +19,13 @@ class Lumpfish():
 	def __init__(self):
 		# Use a local .env file to set where dataset is on current machine
 		# This .env file is not uploaded by git
-		load_dotenv()
-		self.dataset_path = Path(os.getenv("DATASET_PATH"))
-		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
-		low_res_clean_path = self.dataset_path / "low_res_clean/"
-		nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
-		nums.sort()
-		self.fish_nums = nums
+		# load_dotenv()
+		# self.dataset_path = Path(os.getenv("DATASET_PATH"))
+		# self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
+		# low_res_clean_path = self.dataset_path / "low_res_clean/"
+		# nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
+		# nums.sort()
+		# self.fish_nums = nums
 		self.anglePath = "ctfishpy/Metadata/angles.json"
 		self.centres_path = "ctfishpy/Metadata/cc_centres_Otoliths.json"
 		with open(self.centres_path, "r") as fp:

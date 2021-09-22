@@ -32,7 +32,6 @@ joblib==1.0.1
 Keras==2.4.3
 Keras-Applications==1.0.8
 keras-bert==0.86.0
-keras-contrib @ git+https://www.github.com/keras-team/keras-contrib.git@3fc5ef709e061416f4bc8a92ca3750c824b5d2b0
 keras-embed-sim==0.8.0
 keras-layer-normalization==0.14.0
 keras-multi-head==0.27.0
