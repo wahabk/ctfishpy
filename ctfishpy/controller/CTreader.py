@@ -18,7 +18,7 @@ import os
 class CTreader:
 	def __init__(self, path=None):
 		if path:
-			self.dataset_path = path
+			self.dataset_path = Path(path)
 			low_res_clean_path = self.dataset_path / "low_res_clean/"
 			nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 			nums.sort()
@@ -229,22 +229,19 @@ class CTreader:
 
 	def cc_fixer(self, fish):
 		"""
-		Positions that come from PyQt QPixmap are for some reason in y, x format
-		So this function seperates and averages the two values
+		my localiser aka cc_fixer
 
-		position_list = [
-				[y, x],
-				[x, z],
-				[y, z]
+		Positions that come from PyQt QPixmap are for some reason in y, x format
 		]
 		"""
 
 		projections = self.read_max_projections(fish)
+		[print(p.shape) for p in projections]
 		positions = [cc_fixer.mainFixer(p) for p in projections]
 
-		x = int((positions[0][1] + positions[1][0]) / 2)
-		y = int((positions[0][0] + positions[2][0]) / 2)
-		z = int((positions[1][1] + positions[2][1]) / 2)
+		x = int(positions[0][1])
+		y = int(positions[0][0])		
+		z = int(positions[1][1])
 		return [z, x, y]
 
 	def resize(self, img, percent=100):

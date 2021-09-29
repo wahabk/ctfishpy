@@ -7,7 +7,7 @@ import json
 
 
 if __name__ == "__main__":
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader('/home/wahab/Data/HDD/uCT/')
 	datapath = ctreader.centres_path
 	fishnums = ctreader.fish_nums
 
@@ -19,13 +19,27 @@ if __name__ == "__main__":
 		centers = json.load(fp)
 	done = list(centers.keys())
 
-	for fish in [464, 385]:
+	centers = {}
+
+	for fish in [40, 464, 385]:
 		# if str(fish) not in done:
-			print(fish)
-			center = ctreader.cc_fixer(fish)
-			centers[str(fish)] = center
+		ct, metadata = ctreader.read(fish, align=True)
+
+		print(fish)
+		center = ctreader.cc_fixer(fish)
+		print(center)
+		centers[str(fish)] = center
+
+		otoliths = ctreader.crop3d(ct, (200,200,200), center=center)
+
+		ctreader.view(otoliths)
+
+
+
+
+	
 	# with open(datapath, 'w') as f:
 	# 	json.dump(centers, f, sort_keys=True, indent=4)
 	# with open(datapath, 'r') as fp:
 	# 	centers = json.load(fp)
-	print(centers)
+	# print(centers)

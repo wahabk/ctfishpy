@@ -238,6 +238,8 @@ class Lumpfish():
 			
 	def crop(self, ct, circles, scale = [40, 40]):
 		'''
+		remember that pyqt qpixmap returns locations in y,x instead of x,y
+
 		this is so ugly :( im sorry             scale = [from,to]
 		crop ct stack to circles provided in order
 		
