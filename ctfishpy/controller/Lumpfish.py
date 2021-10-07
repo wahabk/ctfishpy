@@ -1,5 +1,4 @@
 from natsort import natsorted, ns
-from dotenv import load_dotenv
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
 from tqdm import tqdm
@@ -11,7 +10,6 @@ import cv2
 import os
 import gc
 import h5py
-import matplotlib.pyplot as plt
 from copy import deepcopy
 
 class Lumpfish():

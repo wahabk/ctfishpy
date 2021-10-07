@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from moviepy.editor import ImageSequenceClip
 from .read_amira import read_amira
 try: from ..viewer import * 
@@ -12,17 +11,40 @@ import json
 import cv2
 import h5py
 import codecs
+from dotenv import load_dotenv
 import os
 
 
 class CTreader:
 	def __init__(self, path=None):
-		if path:
-			self.dataset_path = Path(path)
+		load_dotenv()
+		data_path = os.environ.get('DATASET_PATH')
+
+		if data_path == None:
+			envpath = Path('.env')
+			envpath.touch()
+
+			print('[CTfishpy] .env file not found, please tell me the path to your dataset folder?')
+			new_path = input('Path:')
+
+			with open(".env", "w") as f:
+				f.write(f"DATASET_PATH={new_path}")
+
+		load_dotenv()
+		data_path = os.environ.get('DATASET_PATH')
+
+		if data_path:
+			self.dataset_path = Path(data_path)
 			low_res_clean_path = self.dataset_path / "low_res_clean/"
 			nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
 			nums.sort()
 			self.fish_nums = nums
+		else:
+			raise Exception('cant find data')
+
+
+
+
 		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
 		self.centres_path = Path("ctfishpy/Metadata/cc_centres_Otoliths.json")
