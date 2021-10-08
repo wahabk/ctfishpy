@@ -13,15 +13,15 @@ val_sample = [40,461]
 
 
 unet = ctfishpy.Unet('Otoliths')
-unet.weightsname = 'test'
-unet.comment = 'test'
+unet.weightsname = 'final2d'
+unet.comment = 'final2d'
 unet.rerun = False
 unet.encoder_freeze = True
-unet.batch_size = 32
+unet.batch_size = 16
 unet.lr = 1e-5
 unet.alpha = 0.5
 unet.epochs = 200
-unet.train(sample[:1], val_sample[:1])
+unet.train(sample, val_sample)
 unet.makeLossCurve()
 del unet
 

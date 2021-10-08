@@ -6,7 +6,6 @@ import time
 import json, codecs, pickle, csv
 import segmentation_models as sm
 import tensorflow as tf
-import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from tensorflow.keras.layers import Input, Conv2D
@@ -14,7 +13,6 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import Callback
-from sklearn.model_selection import KFold
 sm.set_framework('tf.keras')
 
 class Unet():

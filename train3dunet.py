@@ -1,5 +1,4 @@
 import ctfishpy
-import segmentation_models as sm
 import numpy as np
 import gc
 
@@ -14,13 +13,13 @@ val_sample = [40,461,218,462]
 
 
 unet = ctfishpy.Unet3D('Otoliths')
-unet.weightsname = 'test_tv'
-unet.comment = 'test_tv'
+unet.weightsname = 'test'
+unet.comment = 'test'
 # unet.rerun = True
 unet.lr = 1e-5
 unet.batch_size = 1
 unet.epochs = 200
-unet.alpha = 0.7
+unet.alpha = 0.6
 unet.train(sample, val_sample)
 unet.makeLossCurve()
 gc.collect()

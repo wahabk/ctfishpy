@@ -1,25 +1,18 @@
-from ..controller import CTreader, cc
-import matplotlib.pyplot as plt
+from ..controller import CTreader
 import numpy as np
 import time
-import json, codecs, pickle, csv
 import segmentation_models_3D as sm3d
-import tensorflow as tf
-import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from tensorflow.keras.layers import Input, Conv3D
-from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import Callback
-sm3d.set_framework('tf.keras')
 from .Unet import *
 from .generator import customImageDataGenerator
+sm3d.set_framework('tf.keras')
 
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (128,288,128,1)
+		self.shape = (128,288,128,3)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = 'imagenet'
@@ -40,9 +33,8 @@ class Unet3D(Unet):
 		
 		optimizer = Adam()
 		optimizer.learning_rate = self.lr
-		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, encoder_weights=self.weights, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 		
-
 		if self.rerun: model.load_weights(self.weightspath)
 		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
 		self.loss = self.loss.__name__
@@ -107,7 +99,8 @@ class Unet3D(Unet):
 
 	def predict(self, n, test_batch_size=1, thresh=0.5):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
-		model = sm3d.Unet(self.BACKBONE, input_shape=(128,288,128,1), classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+
+		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 
 		model.load_weights(self.weightspath)
 
@@ -165,6 +158,7 @@ class Unet3D(Unet):
 				
 			elif num not in auto:
 				organ = 'Otoliths'
+				#fix for undergrads
 				align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
 				is_amira = True
 				
@@ -230,7 +224,7 @@ class Unet3D(Unet):
 		true_pos = K.sum(y_true_pos * y_pred_pos, 1)
 		false_neg = K.sum(y_true_pos * (1-y_pred_pos), 1)
 		false_pos = K.sum((1-y_true_pos)*y_pred_pos, 1)
-		alpha = 0.7
+		alpha = self.alpha
 		return (true_pos + smooth)/(true_pos + alpha*false_neg + (1-alpha)*false_pos + smooth)
 
 	def multiclass_tversky3d_loss(self, y_true, y_pred):

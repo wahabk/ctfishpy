@@ -5,14 +5,14 @@ import random
 import gc
 
 # checking for memory leaks
-from pympler.tracker import SummaryTracker
-tracker = SummaryTracker()
+# from pympler.tracker import SummaryTracker
+# tracker = SummaryTracker()
 
 
 if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
-	unet = ctfishpy.Unet3D('Otoliths')
-	unet.weightsname = '3d_test'
+	unet = ctfishpy.Unet('Otoliths')
+	unet.weightsname = 'Final_Tversky'
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
 
@@ -33,17 +33,12 @@ if __name__ == '__main__':
 		# label = ctreader.read_label('Otoliths_unet2d', n, align=False, is_amira=False)
 		# ct, stack_metadata = ctreader.read(n, align=True)
 
-
 		center = centers[str(n)]
-		z_center = center[0]
-		roiZ = 150
 
 		# label = ctreader.read_label('Otoliths_unet2d', n, align = False, is_amira=False)
-		label = ctreader.crop_around_center3d(label, (256,256), center, roiZ=roiZ)
-
-		center[0] = 75
+		label = ctreader.crop3d(label, (128,128,128), center)
 		# ct, stack_metadata = ctreader.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-		ct = ctreader.crop_around_center3d(ct, (256,256), center, roiZ=roiZ)
+		ct = ctreader.crop3d(ct, (128,128,128), center)
 		print(ct.shape)
 
 		# ctreader.write_label('Otoliths_unet2d', label, n)
