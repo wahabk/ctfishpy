@@ -16,7 +16,7 @@ import os
 
 
 class CTreader:
-	def __init__(self, path=None):
+	def __init__(self, data_path=None):
 		load_dotenv()
 		data_path = os.environ.get('DATASET_PATH')
 
@@ -128,28 +128,24 @@ class CTreader:
 			stack_metadata = json.load(metadatafile)
 		return stack_metadata
 
-	def read_label(self, organ, n, align, is_amira=True):
+	def read_label(self, organ, n, is_amira=True):
 		"""
 		Read and return hdf5 label files
 
 		parameters
-		organ : give string of organ you want to read
+		organ : give string of organ you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
 		n : number of fish to get labels
-		align : spin label for dorsal fin to point upwards
+
+		NOTE: This always reads labels aligned that dorsal fin is pointing upwards 
+		so make you sure you align your scan when you read it
 
 		"""
 
 		# if organ not in ['Otoliths']:
 		# 	raise Exception('organ not found')
 
-		if n==0:
-			label_path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
-			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
-			with h5py.File(label_path, "r") as f:
-				label = np.array(f['0'])
-			
 
-		elif n!=0 and is_amira==False:
+		if n!=0 and is_amira==False:
 			label_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
 			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 
@@ -164,18 +160,20 @@ class CTreader:
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
-			mariel_samples	= [421,423,242,463,259,459,256,530,589] # fix for different ordering from mariel labels
+			# fix for different ordering from mariel labels
+			mariel_samples	= [421,423,242,463,259,459,256,530,589] 
 			if n in mariel_samples and organ == 'Otoliths':
 				label[label==2]=1
 				label[label==3]=2
 				label[label==4]=3
-
-		if align and n!=0:
+		
+		align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False # This is a fix for undergrad labelled data
+		if align:
 			# get manual alignment
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
 			angle = angles[str(n)]
-			stack_metadata = self.read_metadata(n)
+			# stack_metadata = self.read_metadata(n)
 			label = [self.rotate_image(i, angle) for i in label]
 			label = np.array(label)
 
@@ -438,7 +436,7 @@ class CTreader:
 
 		return volumes
 
-	def getDens(self, scan, label, metadata, nclasses):
+	def getDens(self, scan, label, nclasses):
 		dens_calib = 0.0000381475547417411
 		voxel_values = np.array([np.mean(scan[label == i]) for i in range(1, nclasses+1)])
 		densities = voxel_values * dens_calib

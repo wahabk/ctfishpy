@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# from https://github.com/strawlab/py_amira_file_reader
+# Thank you strawlab
 from __future__ import print_function
 import sys
 import os

@@ -16,6 +16,8 @@ if __name__ == "__main__":
 
 	master.to_csv('output/col11master.csv')
 
+	segs = 'Otoliths_unet2d'
+
 
 	col11s = [256, 257, 258, 259, 421, 423, 424, 425, 431, 432, 433, 434, 443, 456, 457, 458, 459, 460, 461, 462, 463, 464, 582, 583, 584, 585, 586, 587, 588, 589]
 
@@ -33,8 +35,10 @@ if __name__ == "__main__":
 		print(n)
 
 		ct, stack_metadata = ctreader.read(n, align=True)
-		label = ctreader.read_label(segs, n, align = False, is_amira=False)
+		label = ctreader.read_label(segs, n, is_amira=False)
 
+
+		nclasses = 4
 		densities = ctreader.getDens(ct, label, stack_metadata, nclasses)
 		volumes = ctreader.getVol(label, stack_metadata, nclasses)
 		print(densities, volumes)
