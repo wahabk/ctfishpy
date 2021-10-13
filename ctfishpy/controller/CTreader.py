@@ -224,7 +224,7 @@ class CTreader:
 		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
 		return np.array([z, y, x])
 
-	def make_max_projections(self, stack):
+	def make_max_projections(self, stack, label=None):
 		"""
 		Make z,y,x which represent axial, saggital, and coronal max projections
 		"""
@@ -232,7 +232,25 @@ class CTreader:
 		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
 		x = np.max(stack, axis=2)
-		return np.array([z, y, x])
+		projections = np.array([z, y, x])
+
+		if label:
+			projections = self.label_projections(projections, label)
+
+		return projections
+
+	def label_projections(self, projections, label):
+		label_projections_list = self.make_max_projections(label)
+
+		for i, p in enumerate(projections):
+			p[ label_projections_list[i] == 1 ]=[255,0,0]
+			p[ label_projections_list[i] == 2 ]=[255,255,0]
+			p[ label_projections_list[i] == 3 ]=[0,0,255]
+			p[ label_projections_list[i] == 4 ]=[0,255,255]
+
+		return projections
+
+		
 
 	def view(self, ct, label=None, thresh=False):
 		"""
