@@ -11,8 +11,8 @@ import gc
 
 if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
-	unet = ctfishpy.Unet('Otoliths')
-	unet.weightsname = 'Final_Tversky'
+	unet = ctfishpy.Unet3D('Otoliths')
+	unet.weightsname = 'test'
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
 

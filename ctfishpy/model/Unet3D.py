@@ -12,14 +12,14 @@ sm3d.set_framework('tf.keras')
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (128,288,128,3)
+		self.shape = (128,288,128,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = 'imagenet'
 		self.encoder_freeze = True
 		self.batch_size = 1
 		self.alpha = 0.7
-		self.BACKBONE = 'resnet18'
+		self.BACKBONE = 'vgg16'
 		self.metrics = [sm3d.metrics.FScore(threshold=0.5), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
 
@@ -164,7 +164,7 @@ class Unet3D(Unet):
 				
 									
 			
-			label = ctreader.read_label(organ, n=num,  align=align, is_amira=is_amira)
+			label = ctreader.read_label(organ, n=num, is_amira=is_amira)
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5
 			ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
