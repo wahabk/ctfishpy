@@ -205,7 +205,7 @@ class Unet():
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
 			
 			align = True if num in [78,200,218,240,277,330,337,341,462,464,364,385] else False
-			label = ctreader.read_label('Otoliths', n=num,  align=align, is_amira=True)
+			label = ctreader.read_label('Otoliths', n=num, is_amira=True)
 			
 			label = ctreader.crop_around_center3d(label, center = center, roiSize=roiSize, roiZ=roiZ)
 			center[0] = int(roiZ/2) # Change center to 0 because only read necessary slices but cant do that with labels since hdf5

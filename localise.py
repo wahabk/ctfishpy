@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
 	# centers = {}
 
-	for fish in done:
+	for fish in [464,385]:
 		# if str(fish) not in done:
 		print(fish)
 
