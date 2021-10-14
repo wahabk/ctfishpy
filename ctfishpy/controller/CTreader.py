@@ -47,7 +47,7 @@ class CTreader:
 
 		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
-		self.centres_path = Path("ctfishpy/Metadata/cc_centres_Otoliths.json")
+		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
 		with open(self.centres_path, "r") as fp:
 			self.manual_centers = json.load(fp)
 
@@ -274,8 +274,7 @@ class CTreader:
 		"""
 
 		projections = self.read_max_projections(fish)
-		[print(p.shape) for p in projections]
-		positions = [cc_fixer.mainFixer(p) for p in projections]
+		positions = [cc_fixer.mainFixer(p) for p in projections[:2]]
 
 		x = int(positions[0][1])
 		y = int(positions[0][0])		
