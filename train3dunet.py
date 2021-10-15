@@ -19,7 +19,7 @@ unet.comment = 'test'
 unet.lr = 1e-5
 unet.batch_size = 1
 unet.epochs = 200
-unet.alpha = 0.6
+unet.alpha = 0.3
 unet.train(sample[:1], val_sample[:1])
 unet.makeLossCurve()
 gc.collect()

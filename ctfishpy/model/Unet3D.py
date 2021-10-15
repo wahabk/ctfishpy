@@ -15,12 +15,12 @@ class Unet3D(Unet):
 		self.shape = (128,288,128,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
-		self.weights = 'imagenet'
-		self.encoder_freeze = True
+		self.weights = None
+		self.encoder_freeze = False
 		self.batch_size = 1
-		self.alpha = 0.7
-		self.BACKBONE = 'vgg16'
-		self.metrics = [sm3d.metrics.FScore(threshold=0.5), sm3d.metrics.IOUScore()]
+		self.alpha = 0.3
+		self.BACKBONE = 'resnet18'
+		self.metrics = [sm3d.metrics.FScore(threshold=0.3), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
 
 	def getModel(self):
@@ -100,18 +100,20 @@ class Unet3D(Unet):
 	def predict(self, n, test_batch_size=1, thresh=0.5):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
 
-		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
 
 		model.load_weights(self.weightspath)
 
 
 		test, og_center, og_shape, og_ct = self.testGenie(n)
+		print(np.shape(test))
 		results = model.predict(test, test_batch_size) # read about this one
 
 		label = np.zeros(results.shape[:-1], dtype = 'uint8')
 		for i in range(self.nclasses):
-			result = results[:, :, :, i]
+			result = results[:, :, :, :, i]
 			label[result>thresh] = i
+		label = label[0]
 		
 		# ct = np.squeeze((test).astype('float32'), axis = 3)
 		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
@@ -120,10 +122,11 @@ class Unet3D(Unet):
 		new_stack = np.zeros(og_shape, dtype='uint8')
 		z, x, y = og_center
 		roiSize = label.shape
+		print(label.shape, roiSize, og_center)
 		
+		zl = int(roiSize[0] / 2)
 		xl = int(roiSize[1] / 2)
 		yl = int(roiSize[2] / 2)
-		zl = int(roiSize[0] / 2)
 		
 		new_stack[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl] = label
 		label = np.array(new_stack, dtype='uint8')
@@ -211,6 +214,30 @@ class Unet3D(Unet):
 			# print(x_batch[0].shape, x_batch[0].dtype, np.amax(x_batch[0]))
 			# print(y_batch[0].shape, y_batch[0].dtype, np.amax(y_batch[0]))
 			yield (x_batch, y_batch)
+
+	def testGenie(self, n):
+		ctreader = CTreader()
+
+		centres_path = ctreader.centres_path
+		with open(centres_path, 'r') as fp:
+			centres = json.load(fp)	
+		center = centres[str(n)]
+
+		ct, stack_metadata = ctreader.read(n, align=True)#(1400,1600))
+		og_ct = ct.copy()
+		og_shape = ct.shape
+		og_center = center.copy()
+
+		roiSize=self.shape[:-1]
+
+		ct = ctreader.crop3d(ct, roiSize, center = center)
+		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
+		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+		ct_list = np.array([ct])
+		ct_list= ct_list.reshape((-1,)+self.shape)
+		print(ct_list.shape)
+		
+		return ct_list, og_center, og_shape, og_ct
 
 	def multiclass_tversky3d(self, y_true, y_pred):
 		# https://github.com/nabsabraham/focal-tversky-unet/issues/3
