@@ -174,6 +174,7 @@ class Unet3D(Unet):
 
 			if label.shape != ct.shape:
 				raise Exception('X and Y shapes are different')
+			ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 
 			new_mask = np.zeros(label.shape + (self.nclasses,))
 			for i in range(self.nclasses):
@@ -182,14 +183,17 @@ class Unet3D(Unet):
 			mask = np.reshape(new_mask,(new_mask.shape[0],new_mask.shape[1],new_mask.shape[2],new_mask.shape[3]))
 			label = mask
 
+			if ct.shape[1] == 0: continue
+
 			ct_list.append(ct)
 			label_list.append(label)
 			ct, label = None, None
 			
-		
+		[print(c.shape) for c in ct_list]
 		ct_list = np.array(ct_list, dtype='float32')
+		print(ct_list.shape)
 		label_list = np.array(label_list, dtype='float32')
-		ct_list      = ct_list[:,:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+		
 
 		print('[dataGenie] Initialising image and mask generators')
 
