@@ -22,7 +22,7 @@ good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d u
 
 segs = 'Otoliths'
 #341,40
-for n in [40,461,341,462]:
+for n in [330,337]:
 	
 	center = ctreader.manual_centers[str(n)]
 	roiSize = (160,128,288)
@@ -32,6 +32,6 @@ for n in [40,461,341,462]:
 	label = ctreader.read_label(segs, n, is_amira=True)
 	label = ctreader.crop3d(label, roiSize, center=center)
 
-	ctreader.view(ct, label=label)
+	# ctreader.view(ct, label=label)
 	
-	# # ctreader.make_gif(ct[1200:1500], 'output/test_labels.gif', fps=20, label = label[1200:1500])
+	ctreader.make_gif(ct, f'output/test_labels{n}.gif', fps=20, label = label)

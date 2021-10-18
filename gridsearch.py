@@ -21,13 +21,14 @@ def genGridSearchParams(params):
 	return grid
 
 #256 mariel needs to be redone, 421 is barx1 464 385 bad loc
-wahab_samples 	= [78,200,240,330,337]
+wahab_samples 	= [78,200,240]
 mariel_samples	= [423,242,463,259,459]
 zac_samples		= [257,443,218,364,385,464]
-auto = [41,43,44,45,46,56, 57,69,70,72,74,77,78,79,80,90,92,200,201,203] # these are good segs from 2d unet
+good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d unet
+
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589], 277
-sample = wahab_samples+mariel_samples+zac_samples+auto
-val_sample = [40,461,341,462]
+sample = wahab_samples+mariel_samples+zac_samples+good_auto
+val_sample = [40,461,330,337]
 
 params = {
 	'epochs' : [400],
