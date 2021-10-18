@@ -14,8 +14,8 @@ val_sample = [40,461,218,462]
 
 
 unet = ctfishpy.Unet3D('Otoliths')
-unet.weightsname = '3d-0.7-alpha-w/thresh-noauto'
-unet.comment = '3d-0.7-alpha-w/thresh-noauto'
+unet.weightsname = 'test'
+unet.comment = 'test'
 # unet.rerun = True
 unet.lr = 1e-5
 unet.batch_size = 1
