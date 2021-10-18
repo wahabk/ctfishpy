@@ -27,7 +27,7 @@ if __name__ == '__main__':
 	for n in [40,464,582]:
 		if n in skip: continue
 		print(n)
-		label, ct = unet.predict(n, thresh = 0.3)
+		label, ct = unet.predict(n, thresh = 0.5)
 		# print(label.shape, np.max(label))
 
 		# label = ctreader.read_label('Otoliths_unet2d', n, align=False, is_amira=False)
