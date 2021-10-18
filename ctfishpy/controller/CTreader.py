@@ -166,8 +166,15 @@ class CTreader:
 				label[label==2]=1
 				label[label==3]=2
 				label[label==4]=3
+
+		if organ == 'Otoliths':
+			if is_amira:
+				align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False # This is a fix for undergrad labelled data
+			else:
+				align = True
+		elif organ == 'Otoliths_unet2d':
+			align = False
 		
-		align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False # This is a fix for undergrad labelled data
 		if align:
 			# get manual alignment
 			with open(self.anglePath, "r") as fp:
