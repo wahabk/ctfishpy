@@ -21,24 +21,24 @@ if __name__ == "__main__":
 
 	# centers = {}
 
-	for fish in [464,385]:
+	for fish in [421]:
 		# if str(fish) not in done:
 		print(fish)
 
-		# center = ctreader.cc_fixer(fish)
-		# print(center)
-		# centers[str(fish)] = center
+		center = ctreader.cc_fixer(fish)
+		print(center)
+		centers[str(fish)] = center
 
 
-		center = centers[str(fish)]
-		ct, metadata = ctreader.read(fish, align=True)
-		otoliths = ctreader.crop3d(ct, (200,200,200), center=center)
-		ctreader.view(otoliths)
+		# center = centers[str(fish)]
+		# ct, metadata = ctreader.read(fish, align=True)
+		# otoliths = ctreader.crop3d(ct, (200,200,200), center=center)
+		# ctreader.view(otoliths)
 
 
 
-	# with open(datapath, 'w') as f:
-	# 	json.dump(centers, f, sort_keys=True, indent=4)
-	# with open(datapath, 'r') as fp:
-	# 	centers = json.load(fp)
-	# print(centers)
+	with open(datapath, 'w') as f:
+		json.dump(centers, f, sort_keys=True, indent=4)
+	with open(datapath, 'r') as fp:
+		centers = json.load(fp)
+	print(centers)

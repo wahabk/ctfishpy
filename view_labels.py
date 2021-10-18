@@ -17,14 +17,14 @@ my_samples 	= [78,200,240,330,337,341,462]
 mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218,464,364,385]
 check = mariele_samples+zac_samples+my_samples
-auto = [41,43,44,45,46,56,57,70,78,79,80,90,92,200,201,203] # these are good segs from 2d unet
-
+good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d unet
+#78, 200 has weird rotation?
 segs = 'Otoliths_unet2d'
 
 for n in auto:
 	
 	center = ctreader.manual_centers[str(n)]
-	roiSize = (160,128,288,)
+	roiSize = (160,128,288)
 
 	ct, stack_metadata = ctreader.read(n, align=True)
 	ct = ctreader.crop3d(ct, roiSize, center=center)
