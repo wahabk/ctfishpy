@@ -24,7 +24,7 @@ if __name__ == '__main__':
 	#reloc 439 and a few, increase pred height
 	#432 bad utricles
 
-	for n in [40]:
+	for n in [40,464,582]:
 		if n in skip: continue
 		print(n)
 		label, ct = unet.predict(n, thresh = 0.3)
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
 		# ctreader.write_label('Otoliths_unet2d', label, n)
 		# tracker.print_diff()
-		ctreader.make_gif(ct, 'output/test_labels.gif', fps=30, label = label)
+		ctreader.make_gif(ct, f'output/test_labels{n}.gif', fps=30, label = label)
 		# ctreader.view(ct,label)
 		gc.collect()
 

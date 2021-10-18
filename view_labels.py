@@ -18,7 +18,7 @@ mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218,464,364,385]
 check = mariele_samples+zac_samples+my_samples
 
-segs = 'Otoliths'
+segs = 'Otoliths_unet2d'
 
 for n in [464, 40, 582]: #[40, 421,582, 461, 464, 583, 584, 585, 586, 587]:#ctreader.fish_nums[ctreader.fish_nums.index(87)+1:]:
 	
@@ -26,9 +26,9 @@ for n in [464, 40, 582]: #[40, 421,582, 461, 464, 583, 584, 585, 586, 587]:#ctre
 	roiSize = (192,288,128)
 
 	ct, stack_metadata = ctreader.read(n, align=True)
-	label = ctreader.read_label(segs, n, align = True, is_amira=False)
-	label = ctreader.crop3d(label, (192,288,128), center=center)
 	ct = ctreader.crop3d(ct, (192,288,128), center=center)
+	label = ctreader.read_label(segs, n, is_amira=False)
+	label = ctreader.crop3d(label, (192,288,128), center=center)
 
 	ctreader.view(ct, label=label)
 	
