@@ -20,7 +20,7 @@ class Unet3D(Unet):
 		self.batch_size = 1
 		self.alpha = 0.3
 		self.BACKBONE = 'resnet18'
-		self.metrics = [sm3d.metrics.FScore(threshold=0.3), sm3d.metrics.IOUScore()]
+		self.metrics = [sm3d.metrics.FScore(), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
 
 	def getModel(self):

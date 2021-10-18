@@ -8,18 +8,18 @@ mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,464,364,385]
 auto = [41,43,44,45,46,56,57,69,70,72,74,77,78,79,80,90,92,200,201,203] # these are good segs from 2d unet
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589], 277
-sample = wahab_samples+mariel_samples+zac_samples+auto
+sample = wahab_samples+mariel_samples+zac_samples
 val_sample = [40,461,218,462]
 
 
 unet = ctfishpy.Unet3D('Otoliths')
-unet.weightsname = '3d-0.5-alpha'
-unet.comment = '3d-0.5-alpha'
+unet.weightsname = '3d-0.7-alpha'
+unet.comment = '3d-0.7-alpha'
 # unet.rerun = True
 unet.lr = 1e-5
 unet.batch_size = 1
-unet.epochs = 150
-unet.alpha = 0.5
+unet.epochs = 100
+unet.alpha = 0.7
 unet.train(sample, val_sample)
 unet.makeLossCurve()
 gc.collect()

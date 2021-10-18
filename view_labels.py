@@ -17,18 +17,19 @@ my_samples 	= [78,200,240,330,337,341,462]
 mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,218,464,364,385]
 check = mariele_samples+zac_samples+my_samples
+auto = [41,43,44,45,46,56,57,70,78,79,80,90,92,200,201,203] # these are good segs from 2d unet
 
 segs = 'Otoliths_unet2d'
 
-for n in [464, 40, 582]: #[40, 421,582, 461, 464, 583, 584, 585, 586, 587]:#ctreader.fish_nums[ctreader.fish_nums.index(87)+1:]:
+for n in auto:
 	
 	center = ctreader.manual_centers[str(n)]
-	roiSize = (192,288,128)
+	roiSize = (160,128,288,)
 
 	ct, stack_metadata = ctreader.read(n, align=True)
-	ct = ctreader.crop3d(ct, (192,288,128), center=center)
+	ct = ctreader.crop3d(ct, roiSize, center=center)
 	label = ctreader.read_label(segs, n, is_amira=False)
-	label = ctreader.crop3d(label, (192,288,128), center=center)
+	label = ctreader.crop3d(label, roiSize, center=center)
 
 	ctreader.view(ct, label=label)
 	

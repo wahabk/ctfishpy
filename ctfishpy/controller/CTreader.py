@@ -374,17 +374,17 @@ class CTreader:
 		return np.array(obj)
 
 	def crop3d(self, array, roiSize, center=None):
-		roiZ, roiX, roiY = roiSize
+		roiZ, roiY, roiX = roiSize
 		zl = int(roiZ / 2)
-		xl = int(roiX / 2)
 		yl = int(roiY / 2)
+		xl = int(roiX / 2)
 
 		if center == None:
 			c = int(array.shape[0] / 2)
 			center = [c, c, c]
 
-		z, x, y = center
-		array = array[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl]
+		z, y, x = center
+		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
 		return array
 
 	def crop_around_center3d(self, array, roiSize, roiZ=None, center=None):

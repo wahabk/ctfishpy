@@ -12,7 +12,7 @@ import gc
 if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
 	unet = ctfishpy.Unet3D('Otoliths')
-	unet.weightsname = 'test'
+	unet.weightsname = '3d-0.5-alpha'
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
 
