@@ -54,15 +54,14 @@ class CTreader:
 	def mastersheet(self):
 		return self.master
 
-	def trim(self, m, col, value):
+	def trim(self, m, col, values):
 		"""
 		Trim df to e.g. fish that are 12 years old
 		Find all rows that have specified value in specified column
 		e.g. find all rows that have 12 in column 'age'
 		"""
-		# delete ones not in index
-		index = list(m.loc[m[col]==value].index.values)
-		trimmed = m.drop(set(m.index) - set(index))
+		trimmed = m[m[col].isin(values)]
+
 		return trimmed
 
 	def list_numbers(self, m):
