@@ -31,10 +31,10 @@ sample = wahab_samples+mariel_samples+zac_samples+good_auto
 val_sample = [40,461,330,337]
 
 params = {
-	'epochs' : [400],
-	'alpha' : [0.3,0.5,0.7],
+	'epochs' : [200],
+	'alpha' : [0.6,0.7,0.8,0.9],
 	'batch_size' : [1],
-	'lr'		: [1e-5,1e-4,1e-6],
+	'lr'		: [1e-5],
 	'encoder_freeze': [False]
 }
 
