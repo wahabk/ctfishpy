@@ -6,11 +6,10 @@ import gc
 wahab_samples 	= [78,200,240,330,337,341]
 mariel_samples	= [421,423,242,463,259,459]
 zac_samples		= [257,443,464,364,385]
-auto = [41,43,44,45,46,56,57,69,70,72,74,77,78,79,80,90,92,200,201,203] # these are good segs from 2d unet
 good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d unet
 
 # removing 527, 530, 582, 589 mutants = [527, 530, 582, 589], 277
-sample = wahab_samples+mariel_samples+zac_samples
+sample = wahab_samples+mariel_samples+zac_samples+good_auto
 val_sample = [40,461,218,462]
 
 
@@ -20,7 +19,7 @@ unet.comment = 'final3d'
 # unet.rerun = True
 unet.lr = 1e-5
 unet.batch_size = 1
-unet.epochs = 200
+unet.epochs = 180
 unet.alpha = 0.6
 unet.train(sample, val_sample)
 unet.makeLossCurve()
