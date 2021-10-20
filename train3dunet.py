@@ -21,7 +21,7 @@ unet.comment = 'final3d'
 unet.lr = 1e-5
 unet.batch_size = 1
 unet.epochs = 200
-unet.alpha = 0.8
+unet.alpha = 0.6
 unet.train(sample, val_sample)
 unet.makeLossCurve()
 gc.collect()
