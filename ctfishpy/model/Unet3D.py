@@ -12,7 +12,7 @@ sm3d.set_framework('tf.keras')
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
-		self.shape = (128,128,288,1)
+		self.shape = (128,128,256,1)
 		self.pretrain = False
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = None
