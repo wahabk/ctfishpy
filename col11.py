@@ -11,6 +11,8 @@ if __name__ == "__main__":
 	master = ctreader.mastersheet()
 	datapath = 'output/otolith_data.csv'
 
+	import pdb; pdb.set_trace()
+
 	# strains = ['col11a2']
 	# master = master[master['strain'].isin(strains)]
 	# genotypes = ['wt']
@@ -43,37 +45,35 @@ if __name__ == "__main__":
 	with open(datapath, 'r') as fr:
 		data = json.load(fr)
 
-	# volumes = {key:data[key]['vols'] for key in data}
-	# volumes = np.array([value for key,value in volumes.items()])
-	# volumes[np.isnan(volumes)] = 0
-	# volumes = volumes[~np.any(volumes == 0, axis=1)]
-	# volumes = volumes[~np.any(volumes > 0.3, axis=1)]
-	# print(volumes)
-	# fopr volumes https://stackoverflow.com/questions/29794959/pandas-add-new-column-to-dataframe-from-dictionary
-	
-	# import pdb; pdb.set_trace()
-	densities = {key:data[key]['densities'] for key in data}
 
+	densities = {key:data[key]['densities'] for key in data}
 	densities = pd.DataFrame.from_dict(densities, orient='index').reset_index() # reset index as n's as new column
 	densities = densities.dropna(axis=0)
 	densities.columns=['n', 'Lagenal', 'Utricular', 'Saccular']
 	nums = densities['n']
-	genotype = ['col11' if n in col11homs else 'wt' for n in nums]
-	print(col11homs, nums)
-	densities['genotype'] = genotype
-	densities = densities.melt(['n', 'genotype'])
-	print(densities)
-	# densities = ctreader.trim(densities, 'n', col11hom)
+	densities['genotype'] = ['col11' if n in col11homs else 'wt' for n in nums]
+	densities = densities.melt(['n', 'genotype'], var_name='Otoliths', value_name='Density [units]')
+
+
+
+	volumes = {key:data[key]['vols'] for key in data}
+	volumes = pd.DataFrame.from_dict(volumes, orient='index').reset_index() # reset index as n's as new column
+	volumes = volumes.dropna(axis=0)
+	volumes.columns=['n', 'Lagenal', 'Utricular', 'Saccular']
+	nums = volumes['n']
+	volumes['genotype'] = ['col11' if n in col11homs else 'wt' for n in nums]
+	master.set_index('n')
+	volumes['age'] = [master.loc[n]['age'] for n in nums]
+	volumes = volumes.melt(['n', 'genotype'], var_name='Otoliths', value_name='Volume [units]')
+	print(volumes)
+	# fopr volumes https://stackoverflow.com/questions/29794959/pandas-add-new-column-to-dataframe-from-dictionary
+	
 
 	
-	# fig, [ax1, ax2] = plt.subplots(1,2)
-	# ax1.set_title('vol')
-	# ax2.set_title('dens')
-	fig = sns.violinplot(x='variable', y='value', hue='genotype', data=densities)
-	# ax1.boxplot((volumes[:,0], volumes[:,1],volumes[:,2]))
+	fig = sns.boxplot(x='Otoliths', y='Density [units]', hue='genotype', data=densities)
+	plt.show()
 
-	# ax2.boxplot((densities[:,0], densities[:,1],densities[:,2]))
-
+	fig = sns.boxplot(x='Otoliths', y='Volume [units]', hue='genotype', data=volumes)
 	plt.show()
 		
 
