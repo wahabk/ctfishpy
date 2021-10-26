@@ -17,9 +17,9 @@ class Unet3D(Unet):
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = None
 		self.encoder_freeze = False
-		self.batch_size = 1
+		self.batch_size = 4
 		self.alpha = 0.3
-		self.BACKBONE = 'resnet18'
+		self.BACKBONE = 'resnet50'
 		self.metrics = [sm3d.metrics.FScore(), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
 

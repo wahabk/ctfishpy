@@ -1,12 +1,13 @@
-h5py==2.10.0
+h5py==3.1.0
 matplotlib==3.3.2
 moviepy==1.0.3
 natsort==6.0.0
 numpy==1.19.5
-opencv-python-headless==4.2.0.32
+opencv-python-headless==4.5.3.56
 pandas==0.23.0
 pathlib2==2.3.5
-PyQt5
+python-dotenv==0.14.0
+PyQt5>=5.15.2
 QtPy==1.9.0
 scikit-image==0.17.2
 scikit-learn==0.23.2

@@ -21,7 +21,7 @@ unet.lr = 1e-5
 unet.batch_size = 1
 unet.epochs = 180
 unet.alpha = 0.6
-unet.train(sample, val_sample)
+unet.train(sample[:4], val_sample[:4])
 unet.makeLossCurve()
 gc.collect()
 

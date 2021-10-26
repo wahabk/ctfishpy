@@ -1,6 +1,13 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM tensorflow/tensorflow:2.6.0-gpu
 
+RUN apt-get update -y
+RUN apt-get install libgl1-mesa-glx -y
+RUN apt-get install 'ffmpeg'\
+    'libsm6'\
+    'libxext6'  -y
+RUN pip3 install --upgrade pip
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -8,13 +15,14 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Install pip requirements
-COPY requirements.txt .
-RUN python -m pip install -r requirements.txt
+COPY requirements-dev.txt .
+RUN python -m pip install -r requirements-dev.txt
 
-COPY . /src
-WORKDIR /src
-# docker run --rm -it --gpus all tensorflow/tensorflow:2.6.0-gpu
-# source /home/ak18001/.virtualenvs/fish/bin/activate
+COPY . /ctfishpy
+COPY .env /ctfishpy/.env
 
-# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["python", "train3dunet.py"]
+WORKDIR /ctfishpy
+
+# CMD ["python3", "train3dunet.py"]
+
+#docker run -it -v /data/:/data/ --gpus all test 
