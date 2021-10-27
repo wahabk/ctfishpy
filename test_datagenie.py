@@ -19,12 +19,14 @@ if __name__ == "__main__":
 				# brightness_range = [0.01,0.05],
 				fill_mode='constant',
 				cval = 0) 
-	wahab_samples 	= [78,200,218,240,330,337,341,462]#277
-	mariel_samples	= [421,423,242,463,259,459]
-	zac_samples		= [257,443,461]
+	wahab_samples 	= [78,200,218,240,277,330,337,341,462,464,364,385]
+	mariel_samples	= [423,242,463,259,459,461]
+	zac_samples		= [257,443,218,364,464]
+	# 256 mariel needs to be redone, 
 	# removing 527, 530, 582, 589
-	val_samples = [364,40]
-	sample = val_samples
+	# 421 is barx1
+	sample = wahab_samples+mariel_samples+zac_samples
+	val_sample = [40]
 	
 	batch_size = 32
 	# change label path to read labels directly

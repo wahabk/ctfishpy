@@ -42,10 +42,10 @@ def transferFunction(x):
 
 
 if __name__=='__main__':
-	n=582
+	n=40
 	organ = 'Otoliths'
 	segs = 'Otoliths_unet2d'
-	roiSize = (100,100,100)
+	roiSize = (128,128,128)
 	is_amira = False
 
 	ctreader = ctfishpy.CTreader()
@@ -60,7 +60,7 @@ if __name__=='__main__':
 	""" Volume Rendering """
 	a, b, c = ct.shape
 
-	X, Y, Z = np.mgrid[-8:8:100j, -8:8:100j, -8:8:100j]
+	X, Y, Z = np.mgrid[-8:8:128j, -8:8:128j, -8:8:128j]
 	values = np.sin(X*Y*Z) / (X*Y*Z)
 	# values = ((ct - ct.mean()) / ct.max())*20
 	values=ct
@@ -72,7 +72,7 @@ if __name__=='__main__':
 		y=Y.flatten(),
 		z=Z.flatten(),
 		value=values.flatten(),
-		isomin=20000,
+		isomin=15000,
 		# isomax=50000,
 		opacity=0.8, # needs to be small to see through all surfaces
 		surface_count=5, # needs to be a large number for good volume rendering
