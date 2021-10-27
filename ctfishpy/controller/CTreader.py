@@ -30,8 +30,8 @@ class CTreader:
 			with open(".env", "w") as f:
 				f.write(f"DATASET_PATH={new_path}")
 
-		load_dotenv()
-		data_path = os.environ.get('DATASET_PATH')
+			load_dotenv()
+			data_path = os.environ.get('DATASET_PATH')
 
 		if data_path:
 			self.dataset_path = Path(data_path)

@@ -22,7 +22,7 @@ good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d u
 
 segs = 'Otoliths'
 #341,40
-for n in [40]:
+for n in [41]:
 	
 	center = ctreader.manual_centers[str(n)]
 	roiSize = (160,128,288)
