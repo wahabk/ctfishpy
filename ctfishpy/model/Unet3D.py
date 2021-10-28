@@ -34,7 +34,7 @@ class Unet3D(Unet):
 		self.BACKBONE = 'resnet18'
 		self.metrics = [sm3d.metrics.FScore(), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
-		self.early_stop = 0.83
+		self.early_stop = 0.85
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'

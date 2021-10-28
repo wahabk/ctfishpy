@@ -13,29 +13,25 @@ def genGridSearchParams(params):
 	#cartesian product for grid search
 	grid = [dict(zip(keys, v)) for v in itertools.product(*values)]
 
-
-	# TODO use code here to train model inside this function
-	# from https://codereview.stackexchange.com/questions/171173/list-all-possible-permutations-from-a-python-dictionary-of-lists
-	# for v in itertools.product(*values):
 	# experiment = dict(zip(keys, v))
 	return grid
 
 good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d unet
-wahab_samples 	= [78,200,218,240,277,330,337,341,462,464,364,385]
-mariel_samples	= [421, 423,242,463,259,459,461]
+wahab_samples 	= [464,364,385, 337,462]
+mariel_samples	= [421,423,242,463,259,459,461,530,589]
 zac_samples		= [257,443,218,364,464]
 # 256 mariel needs to be redone, 
-# removing 527, 530, 582, 589
-# 421 is barx1
-sample = wahab_samples+mariel_samples+zac_samples
-val_sample = [40]
+sample = wahab_samples+mariel_samples+zac_samples+good_auto
+val_sample = [40,527,582,78,240,277,330,341] #40 527 582 from zack rest from me
+test_sample = [527,582]
 
 params = {
 	'epochs' : [200],
-	'alpha' : [0.6,0.7,0.8,0.9],
-	'batch_size' : [1],
-	'lr'		: [1e-5],
-	'encoder_freeze': [False]
+	'alpha' : [0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9],
+	'batch_size' : [1,2],
+	'lr'		: [3e-5, 3e-4, 3e-6],
+	'BACKBONE' : ['vgg16', 'resnet18'],
+	'encoder_freeze': [False],
 }
 
 grid = genGridSearchParams(params)
@@ -49,7 +45,7 @@ for g in grid:
 	unet.comment = 'grdsrch_3d'
 	for key in g:
 		setattr(unet, key, g[key])
-	unet.train(sample, val_sample)
+	unet.train(sample, val_sample, test_sample=test_sample)
 	unet.makeLossCurve()
 	del unet
 	gc.collect()

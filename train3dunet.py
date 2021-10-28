@@ -17,6 +17,7 @@ unet = ctfishpy.Unet3D('Otoliths')
 unet.weightsname = 'final3d'
 unet.comment = 'final3d'
 # unet.rerun = True
+unet.BACKBONE = 'vgg16'
 unet.lr = 3e-5
 unet.batch_size = 2
 unet.epochs = 80
