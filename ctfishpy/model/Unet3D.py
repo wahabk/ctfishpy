@@ -9,6 +9,18 @@ from .Unet import *
 from .generator import customImageDataGenerator
 sm3d.set_framework('tf.keras')
 
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+  try:
+    # Currently, memory growth needs to be the same across GPUs
+    for gpu in gpus:
+      tf.config.experimental.set_memory_growth(gpu, True)
+    logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+    print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+  except RuntimeError as e:
+    # Memory growth must be set before GPUs have been initialized
+    print(e)
+
 class Unet3D(Unet):
 	def __init__(self, organ):
 		super().__init__(organ)
@@ -17,11 +29,12 @@ class Unet3D(Unet):
 		self.weightsname = 'unet3d_checkpoints'
 		self.weights = None
 		self.encoder_freeze = False
-		self.batch_size = 4
-		self.alpha = 0.3
-		self.BACKBONE = 'resnet50'
+		self.batch_size = 2
+		self.alpha = 0.5
+		self.BACKBONE = 'resnet18'
 		self.metrics = [sm3d.metrics.FScore(), sm3d.metrics.IOUScore()]
 		self.loss = self.multiclass_tversky3d_loss
+		self.early_stop = 0.83
 
 	def getModel(self):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -37,7 +50,7 @@ class Unet3D(Unet):
 		
 		if self.rerun: model.load_weights(self.weightspath)
 		model.compile(optimizer=optimizer, loss=self.loss, metrics=self.metrics)
-		self.loss = self.loss.__name__
+		
 		return model
 
 	def train(self, sample, val_sample, test_sample=None):
@@ -51,12 +64,10 @@ class Unet3D(Unet):
 		print(members)
 		
 		self.trainStartTime = time.strftime("%Y-%m-%d-%H-%M") #save time that you started training
-		data_gen_args = dict(zoom_range=0.1,
-				horizontal_flip=True,
+		data_gen_args = dict(horizontal_flip=True,
 				vertical_flip = True,
 				fill_mode='constant',
 				cval = 0)
-
 		
 		datagenie = 	self.dataGenie(batch_size=self.batch_size,
 						data_gen_args = data_gen_args,
@@ -71,7 +82,7 @@ class Unet3D(Unet):
 		callbacks = [
 			ModelCheckpoint(self.weightspath, monitor = 'loss', verbose = 1, save_best_only = True),
 			#keras.callbacks.LearningRateScheduler(lr_scheduler, verbose=1),
-			TerminateOnBaseline('val_f1-score', baseline=1)
+			TerminateOnBaseline('val_f1-score', baseline=self.early_stop)
 		]
 		
 		history = model.fit(datagenie, validation_data=valdatagenie, steps_per_epoch = self.steps_per_epoch, 
@@ -82,7 +93,7 @@ class Unet3D(Unet):
 			testgenie = self.dataGenie(batch_size = self.batch_size,
 						data_gen_args = dict(),
 						fish_nums = self.test_sample)
-			self.score = model.evaluate(testgenie, batch_size=self.batch_size, steps=int(len(self.test_sample)*self.roiZ / self.batch_size))
+			self.score = model.evaluate(testgenie, batch_size=1, steps=int(len(self.test_sample)))
 			print(self.score)
 		else:
 			h = history.history
@@ -92,10 +103,27 @@ class Unet3D(Unet):
 			self.score=[min(loss), best_val]
 			print(f'\n\n Score best loss, val-f1 :{self.score}')
 
+		loss_name = self.loss.__name__
 		self.saveParams()
 		self.history = history.history
 		self.history['time'] = self.trainStartTime
 		self.saveHistory(f'output/Model/History/{self.trainStartTime}_history.json', self.history)
+
+	def eval_weights(self, weight_path, test_sample):
+		
+		model = self.getModel()
+
+		model.load_weights(weight_path)
+
+		testgenie = self.dataGenie(batch_size = self.batch_size,
+			data_gen_args = dict(),
+			fish_nums = test_sample)
+
+		
+		score = model.evaluate(testgenie, batch_size=1, steps=int(len(test_sample)))
+		return(score)
+
+
 
 	def predict(self, n, test_batch_size=1, thresh=0.5):
 		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
@@ -152,7 +180,7 @@ class Unet3D(Unet):
 			z_center = center[0] # Find center of cc result and only read roi from slices
 			ct, stack_metadata = ctreader.read(num, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
 
-			auto = [41,43,44,45,46,56,57,69,70,72,74,77,78,79,80,90,92,200,201,203]
+			auto = [41,43,44,45,46,56,57,69,70,72,74,77,79,80,90,92,201,203]
 			# train on manual and auto
 			if num in auto:
 				organ = 'Otoliths_unet2d'
