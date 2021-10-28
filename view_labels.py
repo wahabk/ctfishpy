@@ -18,16 +18,16 @@ val_sample = [40]
 
 organ = 'Otoliths'
 ctreader = ctfishpy.CTreader()
-segs = 'Otoliths'
+segs = 'Otoliths_unet2d'
 #341,40
-for n in [341,464,78,200]:
+for n in [527,530,582,589]:
 	
 	center = ctreader.manual_centers[str(n)]
 	roiSize = (160,128,288)
 
 	ct, stack_metadata = ctreader.read(n, align=True)
 	ct = ctreader.crop3d(ct, roiSize, center=center)
-	label = ctreader.read_label(segs, n, is_amira=True)
+	label = ctreader.read_label(segs, n, is_amira=False)
 	label = ctreader.crop3d(label, roiSize, center=center)
 
 	# plt.imshow(label[109])

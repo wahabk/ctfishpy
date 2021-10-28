@@ -331,7 +331,7 @@ class CTreader:
 		else:
 			interpolation_flag = cv2.INTER_LINEAR
 		result = cv2.warpAffine(
-			image, rot_mat, image.shape[1::-1], flags=cv2.INTER_NEAREST
+			image, rot_mat, image.shape[1::-1], flags=interpolation_flag
 		)
 		return result
 
