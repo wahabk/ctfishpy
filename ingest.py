@@ -47,7 +47,7 @@ if __name__ == "__main__":
 		angle, center = ctreader.spin(projections[0])
 		print(angle)
 		print(cropped.shape)
-		cropped = ctreader.rotate_array(cropped, angle, center)
+		cropped = ctreader.rotate_array(cropped, angle, is_label=False, center=center)
 		print(cropped.shape)
 
 		# save projections

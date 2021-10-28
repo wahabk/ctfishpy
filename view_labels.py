@@ -6,7 +6,6 @@ import cv2
 from pathlib2 import Path
 
 
-
 good_auto = [41,43,44,45,46,56,57,79,80,201,203] # these are good segs from 2d unet
 wahab_samples 	= [78,200,218,240,277,330,337,341,462,464,364,385]
 mariel_samples	= [421,423,242,463,259,459,461]
@@ -21,7 +20,7 @@ organ = 'Otoliths'
 ctreader = ctfishpy.CTreader()
 segs = 'Otoliths'
 #341,40
-for n in [421, 277]:
+for n in [341,464,78,200]:
 	
 	center = ctreader.manual_centers[str(n)]
 	roiSize = (160,128,288)
@@ -31,6 +30,8 @@ for n in [421, 277]:
 	label = ctreader.read_label(segs, n, is_amira=True)
 	label = ctreader.crop3d(label, roiSize, center=center)
 
+	# plt.imshow(label[109])
+	# plt.show()
 	ctreader.view(ct, label=label)
 	
 	# ctreader.make_gif(ct, f'output/test_labels{n}.gif', fps=20, label = label)
