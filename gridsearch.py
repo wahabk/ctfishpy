@@ -29,7 +29,7 @@ params = {
 	'epochs' : [200],
 	'alpha' : [0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9],
 	'batch_size' : [1,2],
-	'lr'		: [3e-5, 3e-4, 3e-6],
+	'lr'		: [3e-5, 3e-6],
 	'BACKBONE' : ['vgg16', 'resnet18'],
 	'encoder_freeze': [False],
 }
