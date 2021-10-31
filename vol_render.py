@@ -42,7 +42,7 @@ def transferFunction(x):
 
 
 if __name__=='__main__':
-	n=582
+	n=40
 	organ = 'Otoliths'
 	segs = 'Otoliths_unet2d'
 	roiSize = (128,128,128)

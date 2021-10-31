@@ -6,6 +6,7 @@ import json
 from pathlib2 import Path
 import seaborn as sns
 import scipy
+from sklearn import preprocessing
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
@@ -65,7 +66,7 @@ if __name__ == "__main__":
 	densities['genotype'] = genotype
 
 	densities = densities.dropna(axis=0)
-	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density [units]')
+	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density [$g.cm^{3}HA$]')
 
 
 	# volumes = {key:data[key]['vols'] for key in data}
@@ -76,8 +77,8 @@ if __name__ == "__main__":
 	# volumes['genotype'] = ['col11' if int(n) in col11homs else 'wt' for n in nums]
 	# master = master.set_index('n')
 	# volumes['age'] = [master.loc[int(n)]['age'] for n in nums]
-	# volumes = volumes.melt(['n', 'genotype', 'age'], var_name='Otoliths', value_name='Volume [units]')
-	# volumes = volumes[volumes['Volume [units]'] < 0.3]
+	# volumes = volumes.melt(['n', 'genotype', 'age'], var_name='Otoliths', value_name='Volume [$g.cm^{3}HA$]')
+	# volumes = volumes[volumes['Volume [$g.cm^{3}HA$]'] < 0.3]
 	# # volumes = volumes.drop()
 	# print(volumes)
 	# # fopr volumes https://stackoverflow.com/questions/29794959/pandas-add-new-column-to-dataframe-from-dictionary
@@ -85,20 +86,47 @@ if __name__ == "__main__":
 	print(len(oneyrold_wildtypes), len(col11homs))
 	#40 and 10
 
-	fig = sns.violinplot(x='Otoliths', y='Density [units]', hue='genotype', data=densities)
+	fig = sns.violinplot(x='Otoliths', y='Density [$g.cm^{3}HA$]', hue='genotype', data=densities, inner='stick')
 	plt.show()
 
 
-	import pdb; pdb.set_trace()
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
 	std = grouped.std()
-	stats = [scipy.stats.ttest_ind(means.loc[means.index[i]], means.loc[means.index[i]], equal_var=False) for i in range(3)]
-	print(stats, means, std)
+
+	# import pdb; pdb.set_trace()
+
+	# shapiro wilks for normality
+	print(std)
+	normality = {}
+	significance = {}
+	for oto in ['Lagenal', 'Utricular', 'Saccular']:
+		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
+		mut = densities.loc[(densities['genotype'] == 'col11') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
+		print(oto)
+		wt = np.array(wt)
+		mut = np.array(mut)
+		
+		if oto is not 'Utricular':
+			# print(wt)
+			# wt = preprocessing.normalize([wt])[0]
+			# print(wt)
+			# mut = preprocessing.normalize([mut])[0]
+			# plt.boxplot([wt, mut]); plt.show()
+			normality[oto] = [scipy.stats.shapiro(wt[:10]), scipy.stats.shapiro(mut[:10])]
+			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
+		else:
+			normality[oto] = [scipy.stats.shapiro(wt[:10]), scipy.stats.shapiro(mut[:10])]
+			plt.boxplot([wt, mut]); plt.show()
+			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
+	print(normality)
+	print(significance)
+
+
 	# https://stackoverflow.com/questions/48434391/calculate-t-test-statistic-for-each-group-in-pandas-dataframe
 
 	
-	# fig = sns.scatterplot(x='age', y='Volume [units]', hue='genotype', data=volumes)
+	# fig = sns.scatterplot(x='age', y='Volume [$g.cm^{3}HA$]', hue='genotype', data=volumes)
 	# plt.show()
 	
 
