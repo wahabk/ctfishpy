@@ -28,11 +28,11 @@ test_sample = [527,582]
 
 params = {
 	'epochs' : [200],
-	'alpha' : [0.4,0.5,0.6,0.7,0.8,0.9],
-	'batch_size' : [1,2],
+	'alpha' : [0.1,0.2,0.9],
+	'batch_size' : [1],
 	'lr'		: [3e-5],
-	'BACKBONE' : ['vgg16'],
-	'encoder_freeze': [False],
+	'BACKBONE' : ['vgg16', 'resnet18'],
+	'encoder_freeze': [False, True],
 }
 
 grid = genGridSearchParams(params)
