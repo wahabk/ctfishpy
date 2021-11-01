@@ -72,13 +72,31 @@ if __name__=='__main__':
 		y=Y.flatten(),
 		z=Z.flatten(),
 		value=values.flatten(),
-		isomin=15000,
+		isomin=12000,
 		# isomax=50000,
 		opacity=0.8, # needs to be small to see through all surfaces
 		surface_count=5, # needs to be a large number for good volume rendering
 		# opacityscale=[[500, 1], [2000, 0], [3000, 0.25], [12000, 1]],
 		opacityscale='max',
 		))
+
+	fig.update_layout(scene = dict(
+                    xaxis = dict(
+                         backgroundcolor="rgb(0,0,0)",
+                         gridcolor="white",
+                         showbackground=False,
+                         zerolinecolor="white",),
+                    yaxis = dict(
+                        backgroundcolor="rgb(0,0,0)",
+                        gridcolor="white",
+                        showbackground=False,
+                        zerolinecolor="white"),
+                    zaxis = dict(
+                        backgroundcolor="rgb(0,0,0)",
+                        gridcolor="white",
+                        showbackground=False,
+                        zerolinecolor="white",),))
+
 	fig.show()
 
 	# # Load Datacube
