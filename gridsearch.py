@@ -3,6 +3,7 @@ import segmentation_models as sm
 import numpy as np
 import itertools
 import gc
+from tensorflow.keras import backend as K
 
 def genGridSearchParams(params):
 	'''
@@ -27,10 +28,10 @@ test_sample = [527,582]
 
 params = {
 	'epochs' : [200],
-	'alpha' : [0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9],
+	'alpha' : [0.4,0.5,0.6,0.7,0.8,0.9],
 	'batch_size' : [1,2],
-	'lr'		: [3e-5, 3e-6],
-	'BACKBONE' : ['vgg16', 'resnet18'],
+	'lr'		: [3e-5],
+	'BACKBONE' : ['vgg16'],
 	'encoder_freeze': [False],
 }
 
@@ -45,7 +46,8 @@ for g in grid:
 	unet.comment = 'grdsrch_3d'
 	for key in g:
 		setattr(unet, key, g[key])
-	unet.train(sample, val_sample, test_sample=test_sample)
+	unet.train(sample[:], val_sample[:], test_sample=test_sample[:])
 	unet.makeLossCurve()
 	del unet
+	K.clear_session()
 	gc.collect()
