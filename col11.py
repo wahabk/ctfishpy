@@ -7,6 +7,7 @@ from pathlib2 import Path
 import seaborn as sns
 import scipy
 from sklearn import preprocessing
+import random
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
@@ -60,7 +61,7 @@ if __name__ == "__main__":
 		if n in oneyrold_wildtypes:
 			genotype.append('wt')
 		elif n in col11homs:
-			genotype.append('col11')
+			genotype.append('$col11a2$ -/-')
 		else:
 			genotype.append(None)
 	densities['genotype'] = genotype
@@ -74,7 +75,7 @@ if __name__ == "__main__":
 	# volumes = volumes.dropna(axis=0)
 	# volumes.columns=['n', 'Lagenal', 'Utricular', 'Saccular']
 	# nums = volumes.n.to_list()
-	# volumes['genotype'] = ['col11' if int(n) in col11homs else 'wt' for n in nums]
+	# volumes['genotype'] = ['$col11a2$ -/-' if int(n) in col11homs else 'wt' for n in nums]
 	# master = master.set_index('n')
 	# volumes['age'] = [master.loc[int(n)]['age'] for n in nums]
 	# volumes = volumes.melt(['n', 'genotype', 'age'], var_name='Otoliths', value_name='Volume [$g.cm^{3}HA$]')
@@ -86,9 +87,10 @@ if __name__ == "__main__":
 	print(len(oneyrold_wildtypes), len(col11homs))
 	#40 and 10
 
-	fig = sns.violinplot(x='Otoliths', y='Density [$g.cm^{3}HA$]', hue='genotype', data=densities, inner='stick')
+	fig = sns.violinplot(x='Otoliths', y='Density [$g.cm^{3}HA$]', hue='genotype', data=densities, inner='stick', legend=False)
+	plt.ylim((0.6,3.0))
+	plt.legend(loc='lower right')
 	plt.show()
-
 
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
@@ -102,21 +104,22 @@ if __name__ == "__main__":
 	significance = {}
 	for oto in ['Lagenal', 'Utricular', 'Saccular']:
 		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
-		mut = densities.loc[(densities['genotype'] == 'col11') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
-		print(oto)
+		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
 		
-		if oto is not 'Utricular':
+		if oto == 'Utricular':
 			# print(wt)
 			# wt = preprocessing.normalize([wt])[0]
 			# print(wt)
 			# mut = preprocessing.normalize([mut])[0]
-			# plt.boxplot([wt, mut]); plt.show()
-			normality[oto] = [scipy.stats.shapiro(wt[:10]), scipy.stats.shapiro(mut[:10])]
-			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
+			plt.boxplot([wt, mut]); plt.show()
+			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
+			# wt = random.sample(list(wt), 10)
+			# mut = random.sample(list(mut), 10)
+			significance[oto] = scipy.stats.ttest_ind(wt, mut, equal_var=True)
 		else:
-			normality[oto] = [scipy.stats.shapiro(wt[:10]), scipy.stats.shapiro(mut[:10])]
+			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
 			plt.boxplot([wt, mut]); plt.show()
 			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
 	print(normality)
