@@ -1,3 +1,4 @@
+from copy import deepcopy
 from moviepy.editor import ImageSequenceClip
 from .read_amira import read_amira
 try: from ..viewer import * 
@@ -115,6 +116,17 @@ class CTreader:
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
+		return ct, stack_metadata
+
+	def read_range(self, n: int, center: list, roiSize: list):
+		#only read range
+		new_center = deepcopy(center)
+
+		roiZ = roiSize[0]
+		z_center = new_center[0]
+		new_center[0] = int(roiSize[0]/2)
+		ct, stack_metadata = self.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+		ct = self.crop3d(ct, roiSize, center=new_center)
 		return ct, stack_metadata
 
 	def read_metadata(self, fish):
@@ -395,6 +407,7 @@ class CTreader:
 			center = [c, c, c]
 
 		z, y, x = center
+		z, y, x = int(z), int(y), int(x)
 		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
 		return array
 

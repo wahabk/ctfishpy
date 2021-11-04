@@ -48,8 +48,6 @@ if __name__ == "__main__":
 
 	with open(datapath, 'r') as fr:
 		data = json.load(fr)
-	
-	
 
 	densities = {key:data[key]['densities'] for key in data}
 	densities = pd.DataFrame.from_dict(densities, orient='index') #.reset_index() # reset index as n's as new column

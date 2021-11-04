@@ -5,6 +5,7 @@ import qtpy.QtCore as QtCore
 import numpy as np
 import cv2
 import sys
+from copy import deepcopy
 
 class mainView(QMainWindow):
 
@@ -48,8 +49,8 @@ class Viewer(QWidget):
 		super().__init__()
 
 		# init variables
-		if np.max(stack) < 10: stack = stack*255 #fix labels so you can view them if are main stack
-		self.ogstack = stack
+		
+		self.ogstack = deepcopy(stack)
 		self.stack_size = stack.shape[0]
 		self.stride = stride
 		self.slice = 0
@@ -57,22 +58,35 @@ class Viewer(QWidget):
 		self.min_thresh = 0
 		self.max_thresh = 250
 		self.thresh = thresh
-		self.label = label
+		self.label = deepcopy(label)
 		self.pad = 20
+		self.is_colored = False
 
 		# label stack
 		if self.label is not None:
 			self.thresh == False
 			# unpack images to convert each one to grayscale
 			self.ogstack = np.array([np.stack((img,)*3, axis=-1) for img in self.ogstack])
+			self.is_colored = True
 			# change pixels to red if in label
-
-			
 			self.ogstack[label == 1, :] = [255, 0, 0]
 			self.ogstack[label == 2, :] = [255, 255, 0]
 			self.ogstack[label == 3, :] = [0, 0, 255]
 			self.ogstack[label == 4, :] = [0, 255, 0]
-			# self.ogstack[label == 5, :] = [255, 0, 255]
+			self.ogstack[label == 5, :] = [255, 0, 255]
+		
+		if np.max(stack) < 10: #fix labels so you can view them if are main stack
+			print('LABELLING')
+			label = deepcopy(stack)
+			temp = np.zeros(stack.shape)
+			temp = np.array([np.stack((img,)*3, axis=-1) for img in temp])
+			self.is_colored = True
+			temp[label == 1, :] = [255, 0, 0]
+			temp[label == 2, :] = [255, 255, 0]
+			temp[label == 3, :] = [0, 0, 255]
+			temp[label == 4, :] = [0, 255, 0]
+			self.ogstack = temp
+			print(f'SHAPE{self.ogstack.shape}, {self.ogstack.max()}')
 
 		#if self.ogstack.shape[0] == self.ogstack.shape[1]: self.is_single_image = True
 		if len(self.ogstack.shape) == 2: self.is_single_image = True
@@ -80,13 +94,15 @@ class Viewer(QWidget):
 
 		scale = 200
 		im = self.ogstack[0]
-		width = int(im.shape[1] * scale / 100)
 		height = int(im.shape[0] * scale / 100)
+		width = int(im.shape[1] * scale / 100)
 		dim = (width, height)
 
+		self.ogstack = np.array(self.ogstack)
 		# resize image
 		resized = [cv2.resize(img, dim, interpolation = cv2.INTER_AREA) for img in self.ogstack]
 		self.ogstack = np.array(resized)
+		print(f'SHAPE{self.ogstack.shape}, {self.ogstack.max()}')
 
 		# set background colour to cyan
 		p = self.palette()
