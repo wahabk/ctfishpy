@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
 	densities = {key:data[key]['densities'] for key in data}
 	densities = pd.DataFrame.from_dict(densities, orient='index') #.reset_index() # reset index as n's as new column
-	densities.columns=['Lagenal', 'Utricular', 'Saccular']
+	densities.columns=['Lagenal', 'Saccular', 'Utricular']
 
 	genotype = []
 	for n in densities.index.tolist():
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 	# volumes = {key:data[key]['vols'] for key in data}
 	# volumes = pd.DataFrame.from_dict(volumes, orient='index').reset_index() # reset index as n's as new column
 	# volumes = volumes.dropna(axis=0)
-	# volumes.columns=['n', 'Lagenal', 'Utricular', 'Saccular']
+	# volumes.columns=['n', 'Lagenal', 'Saccular', 'Utricular']
 	# nums = volumes.n.to_list()
 	# volumes['genotype'] = ['$col11a2$ -/-' if int(n) in col11homs else 'wt' for n in nums]
 	# master = master.set_index('n')
@@ -100,7 +100,7 @@ if __name__ == "__main__":
 	print(std)
 	normality = {}
 	significance = {}
-	for oto in ['Lagenal', 'Utricular', 'Saccular']:
+	for oto in ['Lagenal', 'Saccular', 'Utricular']:
 		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
 		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
 		wt = np.array(wt)

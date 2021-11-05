@@ -70,7 +70,7 @@ if __name__ == '__main__':
 	print(grouped.mean())
 
 
-	fig, axes = plt.subplots(1,3, figsize=(15,5))
+	fig, axes = plt.subplots(1,3, figsize=(15,4))
 	for ax, oto_name in zip(axes, otolith_names[1:]):
 		this_df = df.where(df.Otolith == oto_name).dropna()
 		sns.histplot(this_df, x='Distance [$\mu$m]', y='Density [$g.cm^{3}HA$]', hue='Genotype', bins=30, ax=ax)
