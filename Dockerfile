@@ -30,4 +30,4 @@ WORKDIR /ctfishpy
 # 	--gpus all \
 # 	test \
 
-# use buildkit https://stackoverflow.com/questions/58018300/using-a-pip-cache-directory-in-docker-builds
+# TODO use buildkit https://stackoverflow.com/questions/58018300/using-a-pip-cache-directory-in-docker-builds
