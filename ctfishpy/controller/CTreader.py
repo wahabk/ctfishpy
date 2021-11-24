@@ -1,3 +1,4 @@
+from copy import deepcopy
 from moviepy.editor import ImageSequenceClip
 from .read_amira import read_amira
 try: from ..viewer import * 
@@ -103,7 +104,7 @@ class CTreader:
 			for i in tqdm(range(*r)):
 				tiffslice = tiff.imread(images[i])
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
@@ -111,10 +112,21 @@ class CTreader:
 			for i in tqdm(images):
 				tiffslice = tiff.imread(i)
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
+		return ct, stack_metadata
+
+	def read_range(self, n: int, center: list, roiSize: list):
+		#only read range
+		new_center = deepcopy(center)
+
+		roiZ = roiSize[0]
+		z_center = new_center[0]
+		new_center[0] = int(roiSize[0]/2)
+		ct, stack_metadata = self.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+		ct = self.crop3d(ct, roiSize, center=new_center)
 		return ct, stack_metadata
 
 	def read_metadata(self, fish):
@@ -180,7 +192,7 @@ class CTreader:
 				angles = json.load(fp)
 			angle = angles[str(n)]
 			# stack_metadata = self.read_metadata(n)
-			label = [self.rotate_image(i, angle) for i in label]
+			label = [self.rotate_image(i, angle, is_label=True) for i in label]
 			label = np.array(label)
 
 		print("Labels ready.")
@@ -303,15 +315,15 @@ class CTreader:
 			print("image already 8 bit!")
 			return img
 
-	def rotate_array(self, array, angle, center=None):
+	def rotate_array(self, array, angle, is_label, center=None):
 		new_array = []
 		print('Rotating...')
 		for a in array:
-			a_rotated = self.rotate_image(a, angle=angle, center=center)
+			a_rotated = self.rotate_image(a, angle=angle, is_label=is_label, center=center)
 			new_array.append(a_rotated)
 		return np.array(new_array)
 
-	def rotate_image(self, image, angle, center=None):
+	def rotate_image(self, image, angle, is_label, center=None):
 		"""
 		Rotate images properly using cv2.warpAffine
 		since it provides more control eg over center
@@ -325,8 +337,13 @@ class CTreader:
 		if center:
 			image_center = center
 		rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
+		# THIS HAS TO BE NEAREST NEIGHBOUR BECAUSE LABELS ARE CATEGORICAL
+		if is_label:
+			interpolation_flag = cv2.INTER_NEAREST
+		else:
+			interpolation_flag = cv2.INTER_LINEAR
 		result = cv2.warpAffine(
-			image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR
+			image, rot_mat, image.shape[1::-1], flags=interpolation_flag
 		)
 		return result
 
@@ -390,6 +407,7 @@ class CTreader:
 			center = [c, c, c]
 
 		z, y, x = center
+		z, y, x = int(z), int(y), int(x)
 		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
 		return array
 

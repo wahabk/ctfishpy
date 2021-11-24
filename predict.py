@@ -24,10 +24,10 @@ if __name__ == '__main__':
 	col11s = [256, 257, 258, 259, 421, 423, 424, 425, 431, 432, 433, 434, 443, 456, 457, 458, 459, 460, 461, 462, 463, 464, 582, 583, 584, 585, 586, 587, 588, 589]
 	weird = [256, 421, 589, 582, 461, 464, 583, 584, 585, 586, 587]
 
-	for n in [40,464,582]:
+	for n in [527,582,78,530,421,527]:
 		if n in skip: continue
 		print(n)
-		label, ct = unet.predict(n, thresh = 0.3)
+		label, ct = unet.predict(n, thresh = 0.5)
 		roiSize = (128,128,288)
 		center = centers[str(n)]
 		# label = ctreader.read_label('Otoliths_unet2d', n, align=False, is_amira=False)
