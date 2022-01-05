@@ -25,7 +25,7 @@ class Lumpfish():
 		# nums.sort()
 		# self.fish_nums = nums
 		self.anglePath = "ctfishpy/Metadata/angles.json"
-		self.centres_path = "ctfishpy/Metadata/cc_centres_Otoliths.json"
+		self.centres_path = "ctfishpy/Metadata/centres_Otoliths.json"
 		with open(self.centres_path, "r") as fp:
 			self.manual_centers = json.load(fp)
 		self.fishnums = np.arange(40,639)
@@ -236,12 +236,16 @@ class Lumpfish():
 			
 	def crop(self, ct, circles, scale = [40, 40]):
 		'''
-		remember that pyqt qpixmap returns locations in y,x instead of x,y
-
-		this is so ugly :( im sorry             scale = [from,to]
+		this is so ugly :( im sorry             
+		
 		crop ct stack to circles provided in order
 		
 		find scale at which tubes detected and scale of current image
+		
+		remember that pyqt qpixmap returns locations in y,x instead of x,y
+		scale = [from,to]
+
+		
 		'''
 		
 		scale_factor = scale[1]/scale[0]
@@ -253,31 +257,30 @@ class Lumpfish():
 		for x, y, r in circles:
 			cropped_stack = []
 
-			crop_length = 2*r
-			rectx = [x - r, x - r + crop_length]
-			recty = [y - r, y - r + crop_length]
+			rectx = [x - r, x + r]
+			recty = [y - r, y + r]
 			print(rectx, recty)
 			
 			# if statements to shift crop inside ct window
 			if rectx[0] < 0:
 				shiftx = rectx[0]
 				rectx[0] = 0
-				rectx[1] = rectx[1] - shiftx
+				rectx[1] = rectx[1] + shiftx
 
 			if rectx[1] > ctx:
 				shiftx = rectx[1] - ctx
 				rectx[1] = ctx
-				rectx[0] = rectx[0] + shiftx
+				rectx[0] = rectx[0] - shiftx
 
 			if recty[0] < 0:
 				shifty = recty[0]
 				recty[0] = 0
-				recty[1] = recty[1] - shifty
+				recty[1] = recty[1] + shifty
 
 			if recty[1] > cty:
 				shifty = recty[1] - cty
 				recty[1] = cty
-				recty[0] = recty[0] + shifty
+				recty[0] = recty[0] - shifty
 			cropped_CTs.append(ct[:, recty[0] : recty[1], rectx[0] : rectx[1]])
 			gc.collect()
 			del rectx
