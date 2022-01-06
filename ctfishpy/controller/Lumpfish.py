@@ -256,36 +256,36 @@ class Lumpfish():
 
 		for x, y, r in circles:
 			cropped_stack = []
-			print('findind crops')
 
 			rectx = [x - r, x + r]
 			recty = [y - r, y + r]
-			print(rectx, recty)
+			# print('finding crops')
+			# print(rectx, recty)
 			
 			# if statements to shift crop inside ct window
 			if rectx[0] < 0:
 				shiftx = -rectx[0]
 				rectx[0] = 0
 				rectx[1] = rectx[1] + shiftx
-				print(shiftx, rectx)
+				# print(shiftx, rectx)
 
 			if rectx[1] > ctx:
 				shiftx = rectx[1] - ctx
 				rectx[1] = ctx
 				rectx[0] = rectx[0] - shiftx
-				print(shiftx, rectx)
+				# print(shiftx, rectx)
 
 			if recty[0] < 0:
 				shifty = -recty[0]
 				recty[0] = 0
 				recty[1] = recty[1] + shifty
-				print(shifty, recty)
+				# print(shifty, recty)
 
 			if recty[1] > cty:
 				shifty = recty[1] - cty
 				recty[1] = cty
 				recty[0] = recty[0] - shifty
-				print(shifty, recty)
+				# print(shifty, recty)
 			
 			cropped_CTs.append(ct[:, recty[0] : recty[1], rectx[0] : rectx[1]])
 			gc.collect()

@@ -17,7 +17,8 @@ if __name__ == "__main__":
 	# path = Path('/home/wahab/Data/HDD/uCT/qiao/QT_020-023_[tifs]')
 	# path = Path('F:/Data/uCT/qiao/QT_020-023_[tifs]')
 	# path = Path('D:\Data\qiao\QT_020-023_[tifs]')
-	path = Path('/home/wahab/Data/HDD/uCT/qiao/yushi_data/QT_051_055/QT_051_055_[tifs]')
+	# path = Path('/home/wahab/Data/HDD/uCT/qiao/yushi_data/QT_051_055/QT_051_055_[tifs]')
+	path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/56_60/tifs/')
 	name = path.stem
 
 	ct = lump.read_tiff(path, r=(0,200), scale = 40)
