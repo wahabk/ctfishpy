@@ -1,4 +1,4 @@
 from .controller import *
 from .viewer import *
-# from .model import *
+from .model import *
 

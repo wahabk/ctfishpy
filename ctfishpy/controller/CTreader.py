@@ -69,6 +69,29 @@ class CTreader:
 		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]["n"])
 
+	def read_path(self, path, r=None):
+
+		images = [str(i) for i in path.iterdir() if i.suffix == '.tiff']
+		images.sort()
+
+		
+
+		ct = []
+		print(f"[CTFishPy] Reading uCT scan. Fish: {path}")
+		if r:
+			for i in tqdm(range(*r)):
+				tiffslice = tiff.imread(images[i])
+				ct.append(tiffslice)
+			ct = np.array(ct, dtype='uint16')
+
+		else:
+			for i in tqdm(images):
+				tiffslice = tiff.imread(i)
+				ct.append(tiffslice)
+			ct = np.array(ct, dtype='uint16')
+
+		return ct
+
 	def read(self, fish, r=None, align=False):
 		"""
 		Main function to read zebrafish from local dataset path specified in .env
@@ -147,7 +170,7 @@ class CTreader:
 		organ : give string of organ you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
 		n : number of fish to get labels
 
-		NOTE: This always reads labels aligned that dorsal fin is pointing upwards 
+		NOTE: This always reads labels aligned where dorsal fin is pointing upwards 
 		so make you sure you align your scan when you read it
 
 		"""
@@ -283,15 +306,14 @@ class CTreader:
 		angle = spinner(img, center, label, thresh)
 		return angle
 
-	def cc_fixer(self, fish):
+	def cc_fixer(self, projections):
 		"""
 		my localiser aka cc_fixer
 
 		Positions that come from PyQt QPixmap are for some reason in y, x format
-		]
+		
 		"""
 
-		projections = self.read_max_projections(fish)
 		positions = [cc_fixer.mainFixer(p) for p in projections[:2]]
 
 		x = int(positions[0][1])

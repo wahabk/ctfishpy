@@ -21,7 +21,7 @@ if __name__ == "__main__":
 	path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/56_60/tifs/')
 	name = path.stem
 
-	ct = lump.read_tiff(path, r=(0,200), scale = 40)
+	ct = lump.read_tiff(path, r=(0,500), scale = 40)
 	color =  np.array([np.stack((img,)*3, axis=-1) for img in ct.copy()]) # convert to color
 
 	circle_dict = detectTubes(color)
