@@ -16,7 +16,6 @@ if __name__ == '__main__':
 	nums = ctreader.fish_nums
 	# random.shuffle(nums)
 
-	#reloc 439 and a few, increase pred height
 	#432 bad utricles
 	skip = [424,434,405,465,467]
 	centers = ctreader.manual_centers

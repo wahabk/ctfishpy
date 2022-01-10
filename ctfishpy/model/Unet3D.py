@@ -148,6 +148,61 @@ class Unet3D(Unet):
 		label = np.array(new_stack, dtype='uint8')
 		return label, og_ct
 
+
+	def predict_custom(self, path, center, test_batch_size=1, thresh=0.5):
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
+
+		model = sm3d.Unet(self.BACKBONE, input_shape=self.shape, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+
+		model.load_weights(self.weightspath)
+
+
+		test, og_center, og_shape, og_ct = self.testGenie_custom(path, center)
+		print(np.shape(test))
+		results = model.predict(test, test_batch_size) # read about this one
+
+		label = np.zeros(results.shape[:-1], dtype = 'uint8')
+		for i in range(self.nclasses):
+			result = results[:, :, :, :, i]
+			label[result>thresh] = i
+		label = label[0]
+		
+		# ct = np.squeeze((test).astype('float32'), axis = 3)
+		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
+
+		# create empty stack with the size of original scan and insert label into original position
+		new_stack = np.zeros(og_shape, dtype='uint8')
+		z, x, y = og_center
+		roiSize = label.shape
+		print(label.shape, roiSize, og_center)
+		
+		zl = int(roiSize[0] / 2)
+		xl = int(roiSize[1] / 2)
+		yl = int(roiSize[2] / 2)
+		
+		new_stack[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl] = label
+		label = np.array(new_stack, dtype='uint8')
+		return label, og_ct
+
+	def testGenie_custom(self, path, center):
+		ctreader = CTreader()
+
+		ct = ctreader.read_path(path)#(1400,1600))
+		og_ct = ct.copy()
+		og_shape = ct.shape
+		og_center = center.copy()
+
+		roiSize=self.shape[:-1]
+
+		ct = ctreader.crop3d(ct, roiSize, center = center)
+		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
+		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+		ct = np.array([ct])
+		ct= ct.reshape((-1,)+self.shape)
+		print(ct.shape)
+		
+		return ct, og_center, og_shape, og_ct
+
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		imagegen = customImageDataGenerator(**data_gen_args)
 		maskgen = customImageDataGenerator(**data_gen_args)
@@ -253,11 +308,11 @@ class Unet3D(Unet):
 		ct = ctreader.crop3d(ct, roiSize, center = center)
 		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
 		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
-		ct_list = np.array([ct])
-		ct_list= ct_list.reshape((-1,)+self.shape)
-		print(ct_list.shape)
+		ct = np.array([ct])
+		ct= ct.reshape((-1,)+self.shape)
+		print(ct.shape)
 		
-		return ct_list, og_center, og_shape, og_ct
+		return ct, og_center, og_shape, og_ct
 
 	def multiclass_tversky3d(self, y_true, y_pred):
 		# https://github.com/nabsabraham/focal-tversky-unet/issues/3

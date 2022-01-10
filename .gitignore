@@ -131,7 +131,7 @@ dmypy.json
 # Weird mac files
 .DS_Store
 
-
+*.gif
 *.h5
 *.hdf5
 Data

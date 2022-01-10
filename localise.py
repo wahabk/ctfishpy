@@ -16,11 +16,12 @@ if __name__ == "__main__":
 	# mariel_samples	= [242,256,259,459,463,530,589,421,423] # 421 423 removed
 	# zac_samples		= [257,443,461,527,582]
 
+
+	dataset_path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/n')
+
 	with open(datapath, 'r') as fp:
 		centers = json.load(fp)
 	done = list(centers.keys())
-
-	dataset_path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/n')
 
 	centers = {}
 	for fish in dataset_path.iterdir():

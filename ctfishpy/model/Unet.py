@@ -188,6 +188,45 @@ class Unet():
 		label = np.array(new_stack, dtype='uint8')
 		return label, og_ct
 	
+	def predict_custom(self, path, center, test_batch_size=8, thresh=0.5):
+		self.weightspath = 'output/Model/'+self.weightsname+'.hdf5'
+		base_model = sm.Unet(self.BACKBONE, classes=self.nclasses, activation=self.activation, encoder_freeze=self.encoder_freeze)
+		inp = Input(shape=(self.shape[0], self.shape[1], 1))
+		l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
+		out = base_model(l1)
+		model = Model(inp, out, name=base_model.name)
+		model.load_weights(self.weightspath)
+		
+		# base_model = sm.Unet(self.BACKBONE, encoder_weights=None, classes=self.nclasses, activation=self.activation, encoder_freeze=True)
+		# inp = Input(shape=(self.shape[0], self.shape[1], 1))
+		# l1 = Conv2D(3, (1, 1))(inp) # map N channels data to 3 channels
+		# out = base_model(l1)
+
+
+		test, og_center, og_shape, og_ct = self.testGenie_custom(path, center)
+		results = model.predict(test, test_batch_size) # read about this one
+
+		label = np.zeros(results.shape[:-1], dtype = 'uint8')
+		for i in range(self.nclasses):
+			result = results[:, :, :, i]
+			label[result>thresh] = i
+		
+		# ct = np.squeeze((test).astype('float32'), axis = 3)
+		# ct = np.array([_slice * 255 for _slice in ct], dtype='uint8') # Normalise 16 bit slices
+
+		# create empty stack with the size of original scan and insert label into original position
+		new_stack = np.zeros(og_shape, dtype='uint8')
+		z, x, y = og_center
+		roiSize = label.shape
+		
+		xl = int(roiSize[1] / 2)
+		yl = int(roiSize[2] / 2)
+		zl = int(roiSize[0] / 2)
+		
+		new_stack[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl] = label
+		label = np.array(new_stack, dtype='uint8')
+		return label, og_ct
+
 	def dataGenie(self, batch_size, data_gen_args, fish_nums, shuffle=True):
 		
 		ctreader = CTreader()
@@ -293,6 +332,27 @@ class Unet():
 		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
 		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
 		print(ct.shape)
+		return ct, og_center, og_shape, og_ct
+
+	def testGenie_custom(self, path, center):
+		ctreader = CTreader()
+
+		og_center = center[:]
+		z_center = center[0] # Find center of cc result and only read roi from slices
+
+		roiZ=self.roiZ
+		roiSize=self.shape
+		ct = ctreader.read_path(path)
+		og_ct = ct.copy()
+		og_shape = ct.shape
+		# ct = ct[z_center - int(roiZ/2): z_center + int(roiZ/2)]
+		# center[0] = int(roiZ/2)
+		roiSize=[128,192,288]
+		# ct = ctreader.crop_around_center3d(ct, center = center, roiSize=roiSize, roiZ=roiZ)
+		ct = ctreader.crop3d(ct, roiSize, center = center)
+		ct = np.array([_slice / 65535 for _slice in ct], dtype='float32') # Normalise 16 bit slices
+		ct = ct[:,:,:,np.newaxis] # add final axis to show datagens its grayscale
+		print(ct.shape, og_ct.shape)
 		return ct, og_center, og_shape, og_ct
 
 	def saveHistory(self, path, history):
