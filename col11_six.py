@@ -2,7 +2,7 @@ import ctfishpy
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import json
+import json, csv
 from pathlib2 import Path
 import seaborn as sns
 import scipy
@@ -39,10 +39,11 @@ if __name__ == "__main__":
 	with open(datapath_col11, 'r') as fr:
 		data_col11 = json.load(fr)
 
-	densities = {key:data[key]['densities'] for key in data}
+	dens_wt = {key:data[key]['densities'] for key in data}
 	dens_col11 = {key:data_col11[key]['densities'] for key in data_col11}
 
-	densities = {**dens_col11, **densities}
+
+	densities = {**dens_col11, **dens_wt}
 
 	densities = pd.DataFrame.from_dict(densities, orient='index') #.reset_index() # reset index as n's as new column
 	densities.columns=['Lagenal', 'Saccular', 'Utricular']
@@ -61,20 +62,6 @@ if __name__ == "__main__":
 	densities = densities.dropna(axis=0)
 	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density [$g.cm^{3}HA$]')
 
-
-	# volumes = {key:data[key]['vols'] for key in data}
-	# volumes = pd.DataFrame.from_dict(volumes, orient='index').reset_index() # reset index as n's as new column
-	# volumes = volumes.dropna(axis=0)
-	# volumes.columns=['n', 'Lagenal', 'Saccular', 'Utricular']
-	# nums = volumes.n.to_list()
-	# volumes['genotype'] = ['$col11a2$ -/-' if int(n) in col11homs else 'wt' for n in nums]
-	# master = master.set_index('n')
-	# volumes['age'] = [master.loc[int(n)]['age'] for n in nums]
-	# volumes = volumes.melt(['n', 'genotype', 'age'], var_name='Otoliths', value_name='Volume [$g.cm^{3}HA$]')
-	# volumes = volumes[volumes['Volume [$g.cm^{3}HA$]'] < 0.3]
-	# # volumes = volumes.drop()
-	# print(volumes)
-	# # fopr volumes https://stackoverflow.com/questions/29794959/pandas-add-new-column-to-dataframe-from-dictionary
 	
 	print(len(sixmonth_wildtypes), len(data_col11))
 	#40 and 10
@@ -83,11 +70,11 @@ if __name__ == "__main__":
 	plt.ylim((0.6,3.0))
 	plt.legend(loc='lower right')
 	plt.savefig('output/yushipaper/sixMonthDens.png')
+	
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
 	std = grouped.std()
 
-	# import pdb; pdb.set_trace()
 
 	# shapiro wilks for normality
 	print(std)
@@ -104,23 +91,49 @@ if __name__ == "__main__":
 			# wt = preprocessing.normalize([wt])[0]
 			# print(wt)
 			# mut = preprocessing.normalize([mut])[0]
-			plt.boxplot([wt, mut]); plt.show()
+			# plt.boxplot([wt, mut]); plt.show()
 			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
 			# wt = random.sample(list(wt), 10)
 			# mut = random.sample(list(mut), 10)
 			significance[oto] = scipy.stats.ttest_ind(wt, mut, equal_var=True)
 		else:
 			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
-			plt.boxplot([wt, mut]); plt.show()
+			# plt.boxplot([wt, mut]); plt.show()
 			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
 	print(normality)
 	print(significance)
 
+	rt_path = 'output/yushipaper/col11a2-relax-time.csv'
+	rt = pd.read_csv(rt_path).to_dict()
 
-	# https://stackoverflow.com/questions/48434391/calculate-t-test-statistic-for-each-group-in-pandas-dataframe
+	densities = pd.DataFrame.from_dict(dens_col11, orient='index').to_dict()
 
+	# import pdb; pdb.set_trace()
+
+	data = [{'rt': rt['relax_time(s)'][int(k)-1], 
+			'Lagenal': densities[0][k], 
+			'Saccular': densities[1][k], 
+			'Utricular': densities[2][k]}  
+			for k in densities[0].keys()]
+	df = pd.DataFrame.from_dict(data)
+
+	print(df)
+	plt.clf()
+	plt.cla()
+
+	df = df.melt(['rt'], var_name='Otoliths', value_name='Density')
 	
+	print(df)
+
+	sns.lineplot(x='rt', y='Density', hue='Otoliths' , data=df)
+	plt.savefig('output/yushipaper/rt_v_dens.png')
+
+
+	# https://stackoverflow.com/questions/48434391/calculate-t-test-statistic-for-each-group-in-pandas-dataframe	
 	# fig = sns.scatterplot(x='age', y='Volume [$g.cm^{3}HA$]', hue='genotype', data=volumes)
 	# plt.show()
+
+
+
 	
 
