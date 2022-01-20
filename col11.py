@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
 	sixmonthold_wildtypes = ctreader.trim(wildtypes, 'age', [6,7,])
 	print(len(sixmonthold_wildtypes))
-	exit()
+	# exit()
 
 	col11s = ctreader.trim(master, 'strain', ['col11a2'])
 	col11homs = ctreader.trim(col11s, 'genotype', ['hom'])
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 	densities['genotype'] = genotype
 
 	densities = densities.dropna(axis=0)
-	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density [$g.cm^{3}HA$]')
+	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
 
 
 	# volumes = {key:data[key]['vols'] for key in data}
@@ -89,10 +89,10 @@ if __name__ == "__main__":
 	print(len(oneyrold_wildtypes), len(col11homs))
 	#40 and 10
 
-	fig = sns.violinplot(x='Otoliths', y='Density [$g.cm^{3}HA$]', hue='genotype', data=densities, inner='stick', legend=False)
+	fig = sns.violinplot(x='Otoliths', y='Density ($g.cm^{3}HA$)', hue='genotype', data=densities, inner='stick', legend=False)
 	plt.ylim((0.6,3.0))
 	plt.legend(loc='lower right')
-	plt.show()
+	plt.savefig('output/yushipaper/densities3.png')
 
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
@@ -105,8 +105,8 @@ if __name__ == "__main__":
 	normality = {}
 	significance = {}
 	for oto in ['Lagenal', 'Saccular', 'Utricular']:
-		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
-		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
+		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
 		
@@ -115,14 +115,14 @@ if __name__ == "__main__":
 			# wt = preprocessing.normalize([wt])[0]
 			# print(wt)
 			# mut = preprocessing.normalize([mut])[0]
-			plt.boxplot([wt, mut]); plt.show()
+			# plt.boxplot([wt, mut]); plt.show()
 			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
 			# wt = random.sample(list(wt), 10)
 			# mut = random.sample(list(mut), 10)
 			significance[oto] = scipy.stats.ttest_ind(wt, mut, equal_var=True)
 		else:
 			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
-			plt.boxplot([wt, mut]); plt.show()
+			# plt.boxplot([wt, mut]); plt.show()
 			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
 	print(normality)
 	print(significance)

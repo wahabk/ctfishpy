@@ -3,9 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 
-
-	
-
 if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader()
 	centers = ctreader.manual_centers

@@ -60,14 +60,14 @@ if __name__ == "__main__":
 	densities['genotype'] = genotype
 
 	densities = densities.dropna(axis=0)
-	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density [$g.cm^{3}HA$]')
+	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
 
 	
 	print(len(sixmonth_wildtypes), len(data_col11))
 	#40 and 10
 
-	fig = sns.violinplot(x='Otoliths', y='Density [$g.cm^{3}HA$]', hue='genotype', data=densities, inner='stick', legend=False)
-	plt.ylim((0.6,3.0))
+	fig = sns.violinplot(x='Otoliths', y='Density ($g.cm^{3}HA$)', hue='genotype', data=densities, inner='stick', legend=False)
+	plt.ylim((0.5,3.0))
 	plt.legend(loc='lower right')
 	plt.savefig('output/yushipaper/sixMonthDens.png')
 	
@@ -81,8 +81,8 @@ if __name__ == "__main__":
 	normality = {}
 	significance = {}
 	for oto in ['Lagenal', 'Saccular', 'Utricular']:
-		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
-		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density [$g.cm^{3}HA$]'].tolist()
+		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
 		
@@ -110,7 +110,7 @@ if __name__ == "__main__":
 
 	# import pdb; pdb.set_trace()
 
-	data = [{'rt': rt['relax_time(s)'][int(k)-1], 
+	data = [{'Relaxation time (s)': rt['relax_time(s)'][int(k)-1], 
 			'Lagenal': densities[0][k], 
 			'Saccular': densities[1][k], 
 			'Utricular': densities[2][k]}  
@@ -121,11 +121,11 @@ if __name__ == "__main__":
 	plt.clf()
 	plt.cla()
 
-	df = df.melt(['rt'], var_name='Otoliths', value_name='Density')
+	df = df.melt(['Relaxation time (s)'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
 	
 	print(df)
 
-	sns.lineplot(x='rt', y='Density', hue='Otoliths' , data=df)
+	sns.lineplot(x='Relaxation time (s)', y='Density ($g.cm^{3}HA$)', hue='Otoliths' , data=df)
 	plt.savefig('output/yushipaper/rt_v_dens.png')
 
 
