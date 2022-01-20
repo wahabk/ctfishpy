@@ -499,8 +499,7 @@ class CTreader:
 
 		return volumes
 
-	def getDens(self, scan, label, nclasses):
-		dens_calib = 0.0000381475547417411
+	def getDens(self, scan, label, nclasses, dens_calib = 0.0000381475547417411):
 		voxel_values = np.array([np.mean(scan[label == i]) for i in range(1, nclasses+1)])
 		densities = voxel_values * dens_calib
 
