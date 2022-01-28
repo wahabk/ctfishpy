@@ -46,7 +46,7 @@ if __name__ == '__main__':
 			print(label.shape, ct.shape)
 			ctreader.make_gif(ct, f'output/test_pred{fish.stem}.gif', fps=30, label = label)
 
-			densities = ctreader.getDens(ct, label, nclasses)
+			densities = ctreader.getDens(ct, label, nclasses, dens_calib=0.000037312)
 			volumes = ctreader.getVol(label, stack_metadata, nclasses)
 
 			data[fish.stem] = {'densities': list(densities), 'vols': list(volumes)}

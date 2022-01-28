@@ -291,8 +291,6 @@ class CTreader:
 
 		return projections
 
-		
-
 	def view(self, ct, label=None, thresh=False):
 		"""
 		Main viewer using PyQt5
