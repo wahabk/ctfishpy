@@ -61,9 +61,9 @@ if __name__ == "__main__":
 	for n in densities.index.tolist():
 		n = int(n)
 		if n in oneyrold_wildtypes:
-			genotype.append('wt')
+			genotype.append('wt 12(m)')
 		elif n in col11homs:
-			genotype.append('$col11a2$ -/-')
+			genotype.append('$col11a2$ -/- 12(m)')
 		else:
 			genotype.append(None)
 	densities['genotype'] = genotype
@@ -94,6 +94,33 @@ if __name__ == "__main__":
 	plt.legend(loc='lower right')
 	plt.savefig('output/yushipaper/densities3.png')
 
+	oneyear = densities
+	sixmonth = pd.read_csv('output/yushipaper/six_month.csv', index_col=0)
+
+
+	oneyear['age (months)'] = 12
+	sixmonth['age (months)'] = 6
+
+	print(oneyear)
+	print(sixmonth)
+
+	oneyear.index = list(range(len(sixmonth), len(sixmonth)+len(oneyear)))
+
+	# import pdb; pdb.set_trace()
+
+	merged = pd.concat([sixmonth, oneyear])
+
+	print(merged)
+
+	plt.clf()
+	fig = sns.violinplot(x='Otoliths', y='Density ($g.cm^{3}HA$)', hue='genotype', data=merged, inner='stick', legend=False, hue_order=['wt 6(m)', '$col11a2$ -/- 6(m)', 'wt 12(m)', '$col11a2$ -/- 12(m)'])
+	plt.ylim((0.4,3.0))
+	plt.legend(loc='lower left')
+	plt.savefig('output/yushipaper/all_densities.png')
+
+	exit()
+
+
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
 	std = grouped.std()
@@ -105,8 +132,8 @@ if __name__ == "__main__":
 	normality = {}
 	significance = {}
 	for oto in ['Lagenal', 'Saccular', 'Utricular']:
-		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
-		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		wt = densities.loc[(densities['genotype'] == 'wt 12(m)') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/- 12(m)') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
 		

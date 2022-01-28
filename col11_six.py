@@ -52,15 +52,17 @@ if __name__ == "__main__":
 	for n in densities.index.tolist():
 		n = int(n)
 		if n in sixmonth_wildtypes:
-			genotype.append('wt')
+			genotype.append('wt 6(m)')
 		elif str(n) in dens_col11.keys():
-			genotype.append('$col11a2$ -/-')
+			genotype.append('$col11a2$ -/- 6(m)')
 		else:
 			genotype.append(None)
 	densities['genotype'] = genotype
 
 	densities = densities.dropna(axis=0)
 	densities = densities.melt(['genotype'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
+
+	densities.to_csv('output/yushipaper/six_month.csv')
 
 	
 	print(len(sixmonth_wildtypes), len(data_col11))
@@ -81,8 +83,8 @@ if __name__ == "__main__":
 	normality = {}
 	significance = {}
 	for oto in ['Lagenal', 'Saccular', 'Utricular']:
-		wt = densities.loc[(densities['genotype'] == 'wt') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
-		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/-') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		wt = densities.loc[(densities['genotype'] == 'wt 6(m)') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
+		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/- 6(m)') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
 		
