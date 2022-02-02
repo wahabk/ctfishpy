@@ -87,6 +87,7 @@ if __name__ == "__main__":
 		mut = densities.loc[(densities['genotype'] == '$col11a2$ -/- 6(m)') & (densities['Otoliths'] == oto), 'Density ($g.cm^{3}HA$)'].tolist()
 		wt = np.array(wt)
 		mut = np.array(mut)
+		normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
 		
 		if oto == 'Utricular':
 			# print(wt)
@@ -94,14 +95,13 @@ if __name__ == "__main__":
 			# print(wt)
 			# mut = preprocessing.normalize([mut])[0]
 			# plt.boxplot([wt, mut]); plt.show()
-			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
+			
 			# wt = random.sample(list(wt), 10)
 			# mut = random.sample(list(mut), 10)
-			significance[oto] = scipy.stats.ttest_ind(wt, mut, equal_var=True)
-		else:
-			normality[oto] = [scipy.stats.shapiro(wt), scipy.stats.shapiro(mut)]
-			# plt.boxplot([wt, mut]); plt.show()
 			significance[oto] = scipy.stats.mannwhitneyu(wt, mut)
+		else:
+			significance[oto] = scipy.stats.ttest_ind(wt, mut, equal_var=False)
+			# plt.boxplot([wt, mut]); plt.show()
 	print(normality)
 	print(significance)
 
@@ -137,5 +137,5 @@ if __name__ == "__main__":
 
 
 
-	
 
+	

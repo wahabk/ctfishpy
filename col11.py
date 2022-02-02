@@ -118,7 +118,6 @@ if __name__ == "__main__":
 	plt.legend(loc='lower left')
 	plt.savefig('output/yushipaper/all_densities.png')
 
-	exit()
 
 
 	grouped = densities.groupby(['genotype', 'Otoliths'])
@@ -137,7 +136,7 @@ if __name__ == "__main__":
 		wt = np.array(wt)
 		mut = np.array(mut)
 		
-		if oto == 'Utricular':
+		if oto not in ['Utricular', 'Lagenal']:
 			# print(wt)
 			# wt = preprocessing.normalize([wt])[0]
 			# print(wt)
