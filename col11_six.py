@@ -115,7 +115,9 @@ if __name__ == "__main__":
 	data = [{'Relaxation time (s)': rt['relax_time(s)'][int(k)-1], 
 			'Lagenal': densities[0][k], 
 			'Saccular': densities[1][k], 
-			'Utricular': densities[2][k]}  
+			'Utricular': densities[2][k],
+			'Fusion': rt['Fusion'][int(k)-1],
+			'Fragmentation': rt['Fragmentation'][int(k)-1],}  
 			for k in densities[0].keys()]
 	df = pd.DataFrame.from_dict(data)
 
@@ -123,11 +125,11 @@ if __name__ == "__main__":
 	plt.clf()
 	plt.cla()
 
-	df = df.melt(['Relaxation time (s)'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
+	df = df.melt(['Relaxation time (s)','Fusion','Fragmentation'], var_name='Otoliths', value_name='Density ($g.cm^{3}HA$)')
 	
 	print(df)
 
-	sns.lineplot(x='Relaxation time (s)', y='Density ($g.cm^{3}HA$)', hue='Otoliths' , data=df)
+	sns.scatterplot(x='Relaxation time (s)', y='Density ($g.cm^{3}HA$)', hue='Otoliths', style='Fusion', data=df)
 	plt.savefig('output/yushipaper/rt_v_dens.png')
 
 

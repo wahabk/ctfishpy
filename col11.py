@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
 	sixmonthold_wildtypes = ctreader.trim(wildtypes, 'age', [6,7,])
 	print(len(sixmonthold_wildtypes))
-	# exit()
+	exit()
 
 	col11s = ctreader.trim(master, 'strain', ['col11a2'])
 	col11homs = ctreader.trim(col11s, 'genotype', ['hom'])
