@@ -30,7 +30,7 @@ if __name__ == "__main__":
 	
 	batch_size = 32
 	# change label path to read labels directly
-	unet = ctfishpy.model.Unet('Otoliths')
+	unet = ctfishpy.tf_model.Unet('Otoliths')
 	unet.steps_per_epoch = 2
 	ctreader = ctfishpy.CTreader()
 
