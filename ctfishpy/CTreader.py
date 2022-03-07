@@ -1,7 +1,8 @@
-try: from .viewer import * 
-except: from .viewer import cc_fixer, mainViewer, spinner
-from moviepy.editor import ImageSequenceClip
-from read_amira import read_amira
+"""
+CTreader is the main class you use to interact with ctfishpy
+"""
+
+from .read_amira import read_amira
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
@@ -14,12 +15,15 @@ from dotenv import load_dotenv
 from copy import deepcopy
 import json
 import os
+import napari
 
 
 class CTreader:
 	def __init__(self, data_path=None):
-		load_dotenv()
-		data_path = os.environ.get('DATASET_PATH')
+		# print(Path().resolve())
+		with open('ctfishpy/Metadata/local_dataset_path.txt') as f:
+			data_path = f.readlines()[0]
+		print(data_path)
 
 		if data_path == None:
 			envpath = Path('.env')
@@ -42,9 +46,6 @@ class CTreader:
 			self.fish_nums = nums
 		else:
 			raise Exception('cant find data')
-
-
-
 
 		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
@@ -253,6 +254,16 @@ class CTreader:
 		with h5py.File(path, 'a') as f:
 			dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
 		
+	def view(self, array: np.ndarray, label: np.ndarray=None):
+
+		viewer = napari.view_image(array, name='Scan')
+
+		if label is not None:
+			viewer.add_image(label, opacity=0.5, name='label')
+
+		napari.run()
+
+
 	def read_max_projections(self, n):
 		"""
 		Return z,y,x which represent axial, saggital, and coronal max projections
@@ -291,35 +302,8 @@ class CTreader:
 
 		return projections
 
-	def view(self, ct, label=None, thresh=False):
-		"""
-		Main viewer using PyQt5
-		"""
-		mainviewer.mainViewer(ct, label, thresh)
-
-	def spin(self, img, center=None, label=None, thresh=False):
-		"""
-		Manual spinner made to align fish
-		"""
-		angle = spinner(img, center, label, thresh)
-		return angle
-
-	def cc_fixer(self, projections):
-		"""
-		my localiser aka cc_fixer
-
-		Positions that come from PyQt QPixmap are for some reason in y, x format
-		
-		"""
-
-		positions = [cc_fixer.mainFixer(p) for p in projections[:2]]
-
-		x = int(positions[0][1])
-		y = int(positions[0][0])		
-		z = int(positions[1][1])
-		return [z, x, y]
-
 	def resize(self, img, percent=100):
+		# use scipy zoom for this
 		width = int(img.shape[1] * percent / 100)
 		height = int(img.shape[0] * percent / 100)
 		return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
@@ -461,34 +445,6 @@ class CTreader:
 		x, y = center
 		array = array[x - l : x + l, y - l : y + l]
 		return array
-
-	def make_gif(self, stack, file_name, fps = 10, label=None, scale=None):
-		#decompose grayscale numpy array into RGB
-		if stack.dtype == 'uint16': stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
-		new_stack = np.array([np.stack((img,)*3, axis=-1) for img in stack], dtype='uint8')
-
-		colors = [(0,0,0), (255,0,0), (255,255,0), (0,0,255)]
-
-		if label is not None:
-			for i in np.unique(label):
-				if i != 0:
-					new_stack[label==i] = colors[i]
-		
-		if scale is not None:
-			im = new_stack[0]
-			width = int(im.shape[1] * scale / 100)
-			height = int(im.shape[0] * scale / 100)
-			dim = (width, height)
-
-			# resize image
-			resized = [cv2.resize(img, dim, interpolation = cv2.INTER_AREA) for img in new_stack]
-			new_stack = resized
-	
-
-		# write_gif(new_stack, file_name, fps = fps)
-		
-		clip = ImageSequenceClip(list(new_stack), fps=fps)
-		clip.write_gif(file_name, fps=fps)
 
 	def getVol(self, label, metadata, nclasses):
 		counts = np.array([np.count_nonzero(label == i) for i in range(1, nclasses+1)])

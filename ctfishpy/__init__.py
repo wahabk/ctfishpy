@@ -1,4 +1,4 @@
 from .CTreader import CTreader
-from .viewer import *
-from .model import *
+from .Lumpfish import Lumpfish
+from .read_amira import read_amira
 

@@ -7,9 +7,9 @@ import pandas as pd
 import numpy as np 
 import json
 import cv2
+import h5py
 import os
 import gc
-import h5py
 from copy import deepcopy
 
 class Lumpfish():
