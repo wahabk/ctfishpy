@@ -33,7 +33,7 @@ if __name__ == "__main__":
 	
 	batch_size = 1
 	# change label path to read labels directly
-	unet = ctfishpy.model.Unet3D('Otoliths')
+	unet = ctfishpy.tf_model.Unet3D('Otoliths')
 	unet.steps_per_epoch = 2
 	unet.shape = [128,128,128]
 	ctreader = ctfishpy.CTreader()

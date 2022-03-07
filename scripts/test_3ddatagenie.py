@@ -31,7 +31,7 @@ if __name__ == "__main__":
 	batch_size = len(sample)
 	n_classes = 4
 	# unet.steps_per_epoch = 2
-	unet = ctfishpy.model.Unet3D('Otoliths')
+	unet = ctfishpy.tf_model.Unet3D('Otoliths')
 	ctreader = ctfishpy.CTreader()
 	datagenie = unet.dataGenie(batch_size = batch_size,
 							data_gen_args = data_gen_args,

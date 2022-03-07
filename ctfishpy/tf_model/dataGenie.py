@@ -1,9 +1,6 @@
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 import numpy as np
-from ..controller import CTreader
-#from ..controller import cc
-import gc
-import cv2
+from ..CTreader import CTreader
 import json
 import matplotlib.pyplot as plt
 

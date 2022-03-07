@@ -1,18 +1,18 @@
-from copy import deepcopy
+try: from .viewer import * 
+except: from .viewer import cc_fixer, mainViewer, spinner
 from moviepy.editor import ImageSequenceClip
-from .read_amira import read_amira
-try: from ..viewer import * 
-except: from ..viewer import cc_fixer, mainViewer, spinner
+from read_amira import read_amira
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-import json
 import cv2
 import h5py
 import codecs
 from dotenv import load_dotenv
+from copy import deepcopy
+import json
 import os
 
 
