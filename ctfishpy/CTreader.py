@@ -26,14 +26,14 @@ class CTreader:
 		print(data_path)
 
 		if data_path == None:
-			envpath = Path('.env')
+			envpath = Path('ctfishpy/Metadata/local_dataset_path.txt')
 			envpath.touch()
 
-			print('[CTfishpy] .env file not found, please tell me the path to your dataset folder?')
+			print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
 			new_path = input('Path:')
 
-			with open(".env", "w") as f:
-				f.write(f"DATASET_PATH={new_path}")
+			with open('ctfishpy/Metadata/local_dataset_path.txt', "w") as f:
+				f.write(f"{new_path}")
 
 			load_dotenv()
 			data_path = os.environ.get('DATASET_PATH')
@@ -321,7 +321,6 @@ class CTreader:
 
 	def rotate_array(self, array, angle, is_label, center=None):
 		new_array = []
-		print('Rotating...')
 		for a in array:
 			a_rotated = self.rotate_image(a, angle=angle, is_label=is_label, center=center)
 			new_array.append(a_rotated)

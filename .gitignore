@@ -138,3 +138,4 @@ Data
 output/Model/weights/*
 output/Model/datagenie_Test/*
 
+ctfishpy/Metadata/local_dataset_path.txt

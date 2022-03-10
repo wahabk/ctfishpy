@@ -12,4 +12,4 @@ def test_viewer():
     viewer.add_image(scan)
     napari.run()
 
-    assert scan.shape is not None
+    assert isinstance(scan, np.ndarray)
