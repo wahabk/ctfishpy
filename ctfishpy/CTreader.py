@@ -279,12 +279,14 @@ class CTreader:
 	def make_max_projections(self, stack, label=None):
 		"""
 		Make z,y,x which represent axial, saggital, and coronal max projections
+
+		if label provided it will color the scan for figures
 		"""
 		# import pdb; pdb.set_trace()
 		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
 		x = np.max(stack, axis=2)
-		projections = np.array([z, y, x])
+		projections = [z,y,x] #np.array([z, y, x])
 
 		if label:
 			projections = self.label_projections(projections, label)

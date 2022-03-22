@@ -32,6 +32,7 @@ setup(
                 'python-dotenv',
                 'natsort',
                 'pytest',
+                'pydicom',
                 ],
         keywords=['python', 'ctfishpy'],
 )

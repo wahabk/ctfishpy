@@ -39,18 +39,13 @@ def rotate_image(image, angle, is_label, center=None):
 	return result
 
 @magicgui(
+	auto_call=True,
 	angle={"widget_type": "Slider", 'max': 360, 'min':0},
 	layout='vertical',)
-def spin_scan(layer:Image, angle:int=0):
+def spin_scan(layer:ImageData, angle:int=0) -> ImageData:
 	if layer is not None:
-		assert isinstance(layer.data, np.ndarray)  # it will be!
-
-		array = layer.data
-
-		new_array = rotate_array(array, angle, is_label=False, center=None)
-		layer.data = new_array
-
-		return
+		# assert isinstance(layer, np.ndarray)  # it will be!
+		return rotate_image(layer, angle, is_label=False, center=None)
 
 # @spin_scan.called.connect
 # def print_mean(value):
@@ -63,10 +58,14 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 
 	fish , metadata = ctreader.read(40)
+	print(metadata)
+	z,y,x = ctreader.make_max_projections(fish)
 
 	viewer = napari.Viewer()
-	viewer.add_image(fish)
+	viewer.add_image(z, name=metadata['number'])
 	viewer.window.add_dock_widget(spin_scan)
+	viewer.layers.events.changed.connect(spin_scan.reset_choices)
+
 
 	napari.run()
 	

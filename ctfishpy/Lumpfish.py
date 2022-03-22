@@ -194,6 +194,11 @@ class Lumpfish():
 
 	def find_tubes(self, ct, minDistance = 180, minRad = 0, maxRad = 150, 
 		thresh = [20, 80], slice_to_detect = 0, dp = 1.3, pad = 0):
+
+		"""
+		This wont work on 16 bit
+		"""
+
 		# Find fish tubes
 		# output = ct.copy() # copy stack to label later
 		output = deepcopy(ct)
@@ -205,14 +210,14 @@ class Lumpfish():
 		ret, ct_slice_to_detect = cv2.threshold(ct_slice_to_detect, min_thresh, max_thresh, 
 			cv2.THRESH_BINARY)
 
-		ct_slice_to_detect = cv2.cvtColor(ct_slice_to_detect, cv2.COLOR_BGR2GRAY)
+		ct_slice_to_detect = cv2.cvtColor(ct_slice_to_detect, cv2.COLOR_RGB2GRAY)
 
 		if not ret: raise Exception('Threshold failed')
 
 		# detect circles in designated slice
 		circles = cv2.HoughCircles(ct_slice_to_detect, cv2.HOUGH_GRADIENT, dp=dp, 
 					minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
-
+					
 		if circles is None: return
 		else:
 			# add pad value to radii
