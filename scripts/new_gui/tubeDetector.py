@@ -7,6 +7,7 @@ import numpy as np
 from magicgui import magicgui
 from napari.layers import Image, Layer
 from napari.types import ImageData
+from napari import Viewer
 import cv2
 
 @magicgui(
@@ -14,12 +15,12 @@ import cv2
 	auto_call=True,
 	dp={"widget_type": "FloatSlider", 'min' : 100, 'max' : 200},
 	pad={"widget_type": "Slider", 'min' : 0, 'max' : 20},
-	finished={"widget_type": "CheckBox"},
+	finished={"widget_type": "PushButton"},
 	layout='vertical',)
-def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool,) -> Layer:
-	if layer is not None:
+def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool=False) -> Layer:
+	if layer is not None and finished==False:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
-
+		
 		lump = ctfishpy.Lumpfish()
 
 		array = layer.metadata['og'] # get original scan
@@ -35,6 +36,13 @@ def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool,) -> Layer:
 def notify():
 	print('DETECTING!!!')
 
+def tubeLabeller(layer:Layer, ):
+	if layer is not None:
+		assert isinstance(layer.data, np.ndarray)  # it will be!
+
+
+
+
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	lump = ctfishpy.Lumpfish()
@@ -47,7 +55,14 @@ if __name__ == "__main__":
 	m = {'og': scan}
 
 	viewer = napari.Viewer()
-	viewer.add_image(scan, metadata=m)
+	layer = viewer.add_image(scan, metadata=m)
+
+	@layer.mouse_drag_callbacks.append
+	def get_event(viewer, event):
+		print(event.__dict__)
+		if event.button == 1: # if left click
+			print('CLICK')
+
 	viewer.window.add_dock_widget(tubeDetector)
 	viewer.layers.events.changed.connect(tubeDetector.reset_choices)
 
