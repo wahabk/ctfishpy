@@ -40,7 +40,19 @@ def tubeLabeller(layer:Layer, ):
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 
+def assign_circle_order(self, x, y):
+	#check if the click is in a circle 
+	#add to ordered_circles and deleted from original circles
+	for (a, b, r) in self.circles:
+		if self.inside_circle(x, y, a, b, r):
+			#check circle not already in order
+			if self.ordered_circles and True in [self.inside_circle(x,y,l,m,n) for (l,m,n) in self.ordered_circles]:
+				break
+			self.ordered_circles.append([a, b, r])
 
+			self.image = self.number_image(self.image, len(self.ordered_circles), (a,b))
+			break
+	self.update()
 
 
 if __name__ == "__main__":
