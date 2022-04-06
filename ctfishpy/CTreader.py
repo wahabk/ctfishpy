@@ -2,6 +2,7 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
+from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
 import tifffile as tiff
@@ -11,16 +12,15 @@ import numpy as np
 import cv2
 import h5py
 import codecs
-from dotenv import load_dotenv
 from copy import deepcopy
 import json
-import os
 import napari
 
 
 class CTreader:
 	def __init__(self, data_path=None):
 		# print(Path().resolve())
+		# TODO resolve this issue with local dataset path instead of dotenv
 		with open('ctfishpy/Metadata/local_dataset_path.txt') as f:
 			data_path = f.readlines()[0]
 		print(data_path)
@@ -35,8 +35,8 @@ class CTreader:
 			with open('ctfishpy/Metadata/local_dataset_path.txt', "w") as f:
 				f.write(f"{new_path}")
 
-			load_dotenv()
-			data_path = os.environ.get('DATASET_PATH')
+			# load_dotenv()
+			# data_path = os.environ.get('DATASET_PATH')
 
 		if data_path:
 			self.dataset_path = Path(data_path)
@@ -416,6 +416,7 @@ class CTreader:
 		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
 		return array
 
+	@deprecated()
 	def crop_around_center3d(self, array, roiSize, roiZ=None, center=None):
 		"""
 		Crop around the center of 3d array

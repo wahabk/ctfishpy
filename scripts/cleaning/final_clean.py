@@ -10,6 +10,7 @@ if __name__ == "__main__":
 	lump = ctfishpy.Lumpfish()
 	master = ctreader.mastersheet()
 
+	dirty_path = '/home/ak18001/Data/HDD/low_res/'
 
 	fine = [401, 402, 403, 410, 423, 522, 542]
 	bad_bois = [424, 429, 433, 434, 435, 465, 467, 468, 534, 543, 559]
@@ -23,6 +24,27 @@ if __name__ == "__main__":
 	# 	ctreader.view(scan) 
 
 	for n in dirty:
+		path = dirty_path+n
+		scan, group_metadata = lump.read_dirty(path, r=None, scale=100)
+		print(group_metadata)
+
+		scale_40 = lump.rescale(scan, 40)
+
+		ctreader.view(scale_40)
+
+		# detect tubes
+
+
+		#label order
+
+
+		#crop
+
+
+		#spin
+
+	# save temp metadata with shape as practice
+
 		
 
 
