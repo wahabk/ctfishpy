@@ -1,4 +1,3 @@
-from natsort import natsorted, ns
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
 from tqdm import tqdm
@@ -11,6 +10,7 @@ import h5py
 import os
 import gc
 from copy import deepcopy
+import napari
 
 class Lumpfish():
 	
@@ -25,14 +25,11 @@ class Lumpfish():
 		# nums.sort()
 		# self.fish_nums = nums
 		self.anglePath = "ctfishpy/Metadata/angles.json"
-		self.centres_path = "ctfishpy/Metadata/centres_Otoliths.json"
-		with open(self.centres_path, "r") as fp:
-			self.manual_centers = json.load(fp)
 		self.fishnums = np.arange(40,639)
 
 	def mastersheet(self):
-		return pd.read_csv('./uCT_mastersheet.csv')
 		#to count use master['age'].value_counts()
+		return pd.read_csv('./uCT_mastersheet.csv')
 
 	def read_tiff(self, path, r = None, scale = 40, get_metadata=False):
 		#TODO merge with read dirty
@@ -231,8 +228,6 @@ class Lumpfish():
 
 			rectx = [x - r, x + r]
 			recty = [y - r, y + r]
-			# print('finding crops')
-			# print(rectx, recty)
 			
 			# if statements to shift crop inside ct window
 			if rectx[0] < 0:
@@ -406,4 +401,23 @@ class Lumpfish():
 		print('Labels ready.')
 		return label
 
+	def tubeDetector(self, scan):
+
+		scan = self.to8bit(scan)
+		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
+		m = {'og': scan}
+
+		viewer = napari.Viewer()
+		layer = viewer.add_image(scan, metadata=m)
+
+		return
+
+	def orderLabeller(self, scan):
+		return
+
+	def spinner(self, scan):
+		return
+
+	def lengthMeasure(self, projection):
+		return
 

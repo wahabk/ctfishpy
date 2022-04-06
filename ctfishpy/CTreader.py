@@ -310,13 +310,15 @@ class CTreader:
 		height = int(img.shape[0] * percent / 100)
 		return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
-	def to8bit(self, img):
+	def to8bit(self, array):
 		"""
-		Change img from 16bit to 8bit by mapping the data range to 0 - 255
+		Change array from 16bit to 8bit by mapping the data range to 0 - 255
+
+		*NOTE* This does not convert to 8bit normally and is for GUI functions
 		"""
-		if img.dtype == "uint16":
-			new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8)
-			return new_img
+		if array.dtype == "uint16":
+			new_array = ((array - array.min()) / (array.ptp() / 255.0)).astype(np.uint8)
+			return new_array
 		else:
 			print("image already 8 bit!")
 			return img
