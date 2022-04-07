@@ -15,28 +15,26 @@ import codecs
 from copy import deepcopy
 import json
 import napari
+import warnings
 
 
 class CTreader:
 	def __init__(self, data_path=None):
 		# print(Path().resolve())
 		# TODO resolve this issue with local dataset path instead of dotenv
-		with open('ctfishpy/Metadata/local_dataset_path.txt') as f:
-			data_path = f.readlines()[0]
-		print(data_path)
-
-		if data_path == None:
-			envpath = Path('ctfishpy/Metadata/local_dataset_path.txt')
-			envpath.touch()
-
+		local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
+		if local_dataset_path.exists():
+			with open(local_dataset_path) as f:
+				data_path = f.readlines()[0]
+			print(data_path)
+		else:
+			local_dataset_path.touch()
 			print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
 			new_path = input('Path:')
 
-			with open('ctfishpy/Metadata/local_dataset_path.txt', "w") as f:
+			with open(local_dataset_path, "w") as f:
 				f.write(f"{new_path}")
-
-			# load_dotenv()
-			# data_path = os.environ.get('DATASET_PATH')
+			data_path = new_path
 
 		if data_path:
 			self.dataset_path = Path(data_path)
@@ -45,7 +43,7 @@ class CTreader:
 			nums.sort()
 			self.fish_nums = nums
 		else:
-			raise Exception('cant find data')
+			warnings.warn("Can't find local dataset path")
 
 		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
@@ -75,8 +73,6 @@ class CTreader:
 		images = [str(i) for i in path.iterdir() if i.suffix == '.tiff']
 		images.sort()
 
-		
-
 		ct = []
 		print(f"[CTFishPy] Reading uCT scan. Fish: {path}")
 		if r:
@@ -95,10 +91,10 @@ class CTreader:
 
 	def read(self, fish, r=None, align=False):
 		"""
-		Main function to read zebrafish from local dataset path specified in .env
+		Main function to read zebrafish from local dataset path specified during initialisation
 
 		parameters
-		fish : number of sample you want to read
+		fish : index of sample you want to read
 		r : range of slices you want to read to save RAM
 		align : manually aligns fish for dorsal fin to point upwards
 		"""
@@ -321,7 +317,7 @@ class CTreader:
 			return new_array
 		else:
 			print("image already 8 bit!")
-			return img
+			return new_array
 
 	def rotate_array(self, array, angle, is_label, center=None):
 		new_array = []

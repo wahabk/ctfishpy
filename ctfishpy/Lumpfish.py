@@ -1,3 +1,4 @@
+from cv2 import circle
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
 from tqdm import tqdm
@@ -7,10 +8,9 @@ import numpy as np
 import json
 import cv2
 import h5py
-import os
 import gc
-from copy import deepcopy
 import napari
+from .GUI import tubeDetector, create_orderLabeller
 
 class Lumpfish():
 	
@@ -103,11 +103,12 @@ class Lumpfish():
 		path = Path(path)
 		dirs = [x for x in path.iterdir() if x.is_dir()]
 		dirs = sorted(dirs)
+		# print(dirs)
 		
 		# Find tif folder and if it doesnt exist read images in main folder
 		tif = []
 		for i in dirs: 
-			if 'tifs' in i:
+			if 'tifs' in str(i):
 				tif.append(i)
 		if tif: tifpath = path / tif[0]
 		else: tifpath = path
@@ -155,53 +156,6 @@ class Lumpfish():
 					'z_voxel_size' : z_voxelsize}
 
 		return ct , metadata # ct: (slice, x, y, 3)
-
-	def find_tubes(self, ct, minDistance = 180, minRad = 0, maxRad = 150, 
-		thresh = [20, 80], slice_to_detect = 0, dp = 1.3, pad = 0):
-
-		"""
-		This wont work on 16 bit
-		"""
-
-		# Find fish tubes
-		# output = ct.copy() # copy stack to label later
-		output = deepcopy(ct)
-
-		# Convert slice_to_detect to gray scale and threshold
-		# ct_slice_to_detect = cv2.cvtColor(ct[slice_to_detect], cv2.COLOR_BGR2GRAY)
-		ct_slice_to_detect = ct[slice_to_detect]
-		min_thresh, max_thresh = thresh
-		ret, ct_slice_to_detect = cv2.threshold(ct_slice_to_detect, min_thresh, max_thresh, 
-			cv2.THRESH_BINARY)
-
-		ct_slice_to_detect = cv2.cvtColor(ct_slice_to_detect, cv2.COLOR_RGB2GRAY)
-
-		if not ret: raise Exception('Threshold failed')
-
-		# detect circles in designated slice
-		circles = cv2.HoughCircles(ct_slice_to_detect, cv2.HOUGH_GRADIENT, dp=dp, 
-					minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
-					
-		if circles is None: return
-		else:
-			# add pad value to radii
-
-			# convert the (x, y) coordinates and radius of the circles to integers
-			circles = np.round(circles[0, :]).astype("int") # round up
-			circles[:,2] = circles[:,2] + pad
-
-			# loop over the (x, y) coordinates and radius of the circles
-			for i in output:
-				for (x, y, r) in circles:
-					# draw the circle in the output image, then draw a rectangle
-					# corresponding to the center of the circle
-					cv2.circle(i, (x, y), r, (0, 0, 255), 2)
-					cv2.rectangle(i, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-
-			circle_dict  =  {'labelled_img'  : output[slice_to_detect],
-							 'labelled_stack': output, 
-							 'circles'     : circles}
-			return circle_dict
 			
 	def crop(self, ct, circles, scale = [40, 40]):
 		'''
@@ -401,21 +355,56 @@ class Lumpfish():
 		print('Labels ready.')
 		return label
 
-	def tubeDetector(self, scan):
+	def to8bit(self, array):
+		"""
+		Change array from 16bit to 8bit by mapping the data range to 0 - 255
+
+		*NOTE* This does not convert to 8bit normally and is for GUI functions
+		"""
+		if array.dtype == "uint16":
+			new_array = ((array - array.min()) / (array.ptp() / 255.0)).astype(np.uint8)
+			return new_array
+		else:
+			print("image already 8 bit!")
+			return new_array
+
+	def detectTubes(self, scan):
 
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		m = {'og': scan}
 
-		viewer = napari.Viewer()
+		viewer = napari.Viewer(title='tubeDetector')
 		layer = viewer.add_image(scan, metadata=m)
 
-		return
+		viewer.window.add_dock_widget(tubeDetector, name="tubeDetector")
+		viewer.layers.events.changed.connect(tubeDetector.reset_choices)
 
-	def orderLabeller(self, scan):
-		return
+		napari.run()
+		metadata = viewer.layers['scan'].metadata
+		# QTimer().singleShot(500, app.quit)
 
-	def spinner(self, scan):
+		return metadata['circle_dict']
+
+	def labelOrder(self, circle_dict):
+		projection = circle_dict['labelled_stack']
+		ordered_circles = []
+		m = {'og': projection, 'circles': circle_dict['circles'], 'ordered_circles' : ordered_circles}
+
+		viewer = napari.Viewer()
+		layer = viewer.add_image(projection, metadata=m, name='labelled_projection')
+
+		create_orderLabeller(viewer, layer)
+
+		# widgets are stored in napari._qt.widgets.qt_viewer_dock_widget
+
+		napari.run()
+
+		metadata = viewer.layers['labelled_projection'].metadata
+		print(metadata)
+		return ordered_circles
+
+	def spin(self, scan):
 		return
 
 	def lengthMeasure(self, projection):
