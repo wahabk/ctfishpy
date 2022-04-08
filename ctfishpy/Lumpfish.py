@@ -10,7 +10,7 @@ import cv2
 import h5py
 import gc
 import napari
-from .GUI import tubeDetector, create_orderLabeller
+from .GUI import tubeDetector, create_orderLabeller, create_spinner
 
 class Lumpfish():
 	
@@ -381,31 +381,44 @@ class Lumpfish():
 		viewer.layers.events.changed.connect(tubeDetector.reset_choices)
 
 		napari.run()
-		metadata = viewer.layers['scan'].metadata
+		metadata = layer.metadata
+		
 		# QTimer().singleShot(500, app.quit)
 
 		return metadata['circle_dict']
 
 	def labelOrder(self, circle_dict):
-		projection = circle_dict['labelled_stack']
+		scan = circle_dict['labelled_stack']
 		ordered_circles = []
-		m = {'og': projection, 'circles': circle_dict['circles'], 'ordered_circles' : ordered_circles}
+		m = {'og': scan, 'circles': circle_dict['circles'], 'ordered_circles' : ordered_circles}
 
 		viewer = napari.Viewer()
-		layer = viewer.add_image(projection, metadata=m, name='labelled_projection')
+		layer = viewer.add_image(scan, metadata=m, name='scan')
 
 		create_orderLabeller(viewer, layer)
 
 		# widgets are stored in napari._qt.widgets.qt_viewer_dock_widget
-
 		napari.run()
 
-		metadata = viewer.layers['labelled_projection'].metadata
-		print(metadata)
+		metadata = layer.metadata
+		ordered_circles = metadata['ordered_circles']
 		return ordered_circles
 
 	def spin(self, scan):
-		return
+		# create max projection
+		projection = np.max(scan, axis=0)
+		m = {'og': projection, 'center_rotation' : None, 'angle' : 0}
+		viewer = napari.Viewer()
+		layer = viewer.add_image(projection, metadata=m, name='projection')
+
+		create_spinner(viewer, layer)
+		napari.run()
+		metadata = layer.metadata
+
+		angle = metadata['angle']
+		center = metadata['center_rotation']
+		
+		return angle, center
 
 	def lengthMeasure(self, projection):
 		return

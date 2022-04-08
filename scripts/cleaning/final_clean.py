@@ -21,33 +21,38 @@ if __name__ == "__main__":
 	# 	scan, metadata = ctreader.read(n, align=True)
 	# 	ctreader.view(scan) 
 
+	original_scale = 100
+	detection_scale = 40
 	for n in dirty:
 		path = dirty_path / n
-		scan, group_metadata = lump.read_dirty(path, r=(1000,1010), scale=100)
+		ct, group_metadata = lump.read_dirty(path, r=(1000,1010), scale=original_scale)
 		print(group_metadata)
 
-		scale_40 = lump.rescale(scan, 40)
+		scale_40 = lump.rescale(ct, detection_scale)
 
 		# ctreader.view(scale_40)
 
 		# detect tubes
 		circle_dict = lump.detectTubes(scale_40)
 
-		print(circle_dict['circles'])
+		print(circle_dict.keys())
 
 		ordered = lump.labelOrder(circle_dict)
 
-		exit()
-
-
-
-		#label order
-
 
 		#crop
+		cropped_cts = lump.crop(ct, ordered, scale=[detection_scale,original_scale])
+
+		[print(cropped.shape) for cropped in cropped_cts]
+
+		for i,cropped in enumerate(cropped_cts):
+			print(cropped.shape)
+
+			angle, center = lump.spin(cropped)
 
 
 		#spin
+		exit()
 
 	# save temp metadata with shape as practice
 
