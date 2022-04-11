@@ -80,7 +80,7 @@ def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool=False) -> Layer:
 			viewer = napari.current_viewer()
 			viewer.close()
 		
-		return
+	return
 
 # @tubeDetector.finished.connect
 # def notify():
@@ -137,7 +137,7 @@ def orderLabeller(layer:Layer, undo:bool, finished:bool):
 		new_order = m['ordered_circles'] # if undoing read metadata
 		scan = number_scan(m['og'], new_order)
 		layer.data = scan
-		return
+	return
 
 def create_orderLabeller(viewer, layer) -> None:
 	widget = orderLabeller
@@ -156,6 +156,8 @@ def create_orderLabeller(viewer, layer) -> None:
 	def undo():
 		layer.metadata["ordered_circles"].pop() # remove last ordered circle
 		orderLabeller.update()
+
+	return widget
 
 	# @orderLabeller.finished.clicked.connect
 	# def finished():
@@ -247,6 +249,8 @@ def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> None:
 			layer.data = new_image
 		else:
 			layer.data = rotate_image(original, angle, is_label=False, center=None)
+	
+	return
 
 
 
@@ -267,6 +271,7 @@ def create_spinner(viewer, layer) -> None:
 	def reset_spinner():
 		layer.metadata['center_rotation'] = None
 		widget.update()
+		return
 
 # TODO find length
 # TODO paint center of rotation in spinner

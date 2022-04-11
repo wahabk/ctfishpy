@@ -37,22 +37,24 @@ if __name__ == "__main__":
 
 		print(circle_dict.keys())
 
-		ordered = lump.labelOrder(circle_dict)
+		# ordered = lump.labelOrder(circle_dict)
 
 
 		#crop
-		cropped_cts = lump.crop(ct, ordered, scale=[detection_scale,original_scale])
+		# cropped_cts = lump.crop(ct, ordered, scale=[detection_scale,original_scale])
 
-		[print(cropped.shape) for cropped in cropped_cts]
+		# [print(cropped.shape) for cropped in cropped_cts]
 
-		for i,cropped in enumerate(cropped_cts):
-			print(cropped.shape)
+		# for i,cropped in enumerate(cropped_cts):
+		# 	print(cropped.shape)
 
-			angle, center = lump.spin(cropped)
+		# 	angle, center = lump.spin(cropped)
+
+		# 	print(angle, center)
 
 
-		#spin
-		exit()
+		# #spin
+		# exit()
 
 	# save temp metadata with shape as practice
 

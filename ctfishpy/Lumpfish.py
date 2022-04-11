@@ -382,6 +382,8 @@ class Lumpfish():
 
 		napari.run()
 		metadata = layer.metadata
+		viewer, layer, tubeDetector = None, None, None
+		gc.collect()
 		
 		# QTimer().singleShot(500, app.quit)
 
@@ -395,10 +397,11 @@ class Lumpfish():
 		viewer = napari.Viewer()
 		layer = viewer.add_image(scan, metadata=m, name='scan')
 
-		create_orderLabeller(viewer, layer)
+		widget = create_orderLabeller(viewer, layer)
 
 		# widgets are stored in napari._qt.widgets.qt_viewer_dock_widget
 		napari.run()
+
 
 		metadata = layer.metadata
 		ordered_circles = metadata['ordered_circles']
@@ -413,12 +416,12 @@ class Lumpfish():
 
 		create_spinner(viewer, layer)
 		napari.run()
-		metadata = layer.metadata
 
+		metadata = layer.metadata
 		angle = metadata['angle']
 		center = metadata['center_rotation']
-		
 		return angle, center
+		
 
 	def lengthMeasure(self, projection):
 		return

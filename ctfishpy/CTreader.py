@@ -16,7 +16,12 @@ from copy import deepcopy
 import json
 import napari
 import warnings
-
+import pydicom
+from pydicom.dataset import FileDataset, FileMetaDataset
+from pydicom.uid import UID
+import tempfile
+import datetime
+import os
 
 class CTreader:
 	def __init__(self, data_path=None):
@@ -51,6 +56,13 @@ class CTreader:
 		with open(self.centres_path, "r") as fp:
 			self.manual_centers = json.load(fp)
 
+	def metadata_tester():
+		"""
+		Test fish_nums in local dataset vs mastersheet
+		test mastersheet NANs
+		"""
+		pass
+
 	def mastersheet(self):
 		return self.master
 
@@ -67,6 +79,13 @@ class CTreader:
 	def list_numbers(self, m):
 		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]["n"])
+
+	def read_dicom(self, path):
+
+		with pydicom.dcmread(path) as ds:
+			data = ds.pixel_array
+		
+		return data
 
 	def read_path(self, path, r=None):
 

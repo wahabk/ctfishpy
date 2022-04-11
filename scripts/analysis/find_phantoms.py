@@ -25,7 +25,7 @@ if __name__ == '__main__':
 	# napari.run()
 	# label = viewer.layers['label'].data
 
-	label = io.imread('label.tif')
+	label = io.imread('output/label.tif')
 
 	print(label.shape, label.max(), label.min())
 
