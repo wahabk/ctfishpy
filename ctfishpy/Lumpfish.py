@@ -1,4 +1,4 @@
-from cv2 import circle
+from deprecated import deprecated
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
 from tqdm import tqdm
@@ -11,6 +11,7 @@ import h5py
 import gc
 import napari
 from .GUI import tubeDetector, create_orderLabeller, create_spinner
+from .viewer import spinner
 
 class Lumpfish():
 	
@@ -98,12 +99,13 @@ class Lumpfish():
 
 		return ct
 
+	@deprecated(reason="this will soon be merged with read_tiff")
 	def read_dirty(self, path, r = None, scale = 100):
 
 		path = Path(path)
 		dirs = [x for x in path.iterdir() if x.is_dir()]
 		dirs = sorted(dirs)
-		# print(dirs)
+		print(dirs)
 		
 		# Find tif folder and if it doesnt exist read images in main folder
 		tif = []
@@ -214,6 +216,7 @@ class Lumpfish():
 			del recty
 		return cropped_CTs
 
+	@deprecated
 	def saveCrop(self, n, ordered_circles, metadata):
 		fishnums = np.arange(40,639)
 		number = fishnums[n]
@@ -231,6 +234,7 @@ class Lumpfish():
 		with open(backuppath, 'w') as o:
 			json.dump(crop_data, o)
 
+	@deprecated
 	def readCrop(self, number):
 		files = pd.read_csv('../../Data/HDD/uCT/filenames_low_res.csv', header = None)
 		files = files.values.tolist()
@@ -271,6 +275,7 @@ class Lumpfish():
 		with open(jsonpath, 'w') as o:
 			json.dump(input, o)
 
+	@deprecated
 	def append_metadata(self, n, inputDict):
 		metadataPath = f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/metadata.json'
 		with open(metadataPath) as f:
@@ -295,6 +300,7 @@ class Lumpfish():
 		scan = None
 		gc.collect()
 
+	@deprecated
 	def write_clean(self, n, cropped_cts, metadata=None):
 		order = self.fish_order_nums[n]
 		print(f'order {len(order)}, number of circles: {len(cropped_cts)}')
@@ -350,7 +356,7 @@ class Lumpfish():
 
 	def write_label(self, labelPath, label):
 		hf = h5py.File(labelPath, 'w')
-		hf.create_dataset('t0', data=label)
+		hf.create_dataset('0', data=label)
 		hf.close()
 		print('Labels ready.')
 		return label
@@ -382,8 +388,6 @@ class Lumpfish():
 
 		napari.run()
 		metadata = layer.metadata
-		viewer, layer, tubeDetector = None, None, None
-		gc.collect()
 		
 		# QTimer().singleShot(500, app.quit)
 
@@ -407,8 +411,10 @@ class Lumpfish():
 		ordered_circles = metadata['ordered_circles']
 		return ordered_circles
 
-	def spin(self, scan):
+	def napari_spin(self, scan):
 		# create max projection
+		scan = self.to8bit(scan)
+		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		projection = np.max(scan, axis=0)
 		m = {'og': projection, 'center_rotation' : None, 'angle' : 0}
 		viewer = napari.Viewer()
@@ -422,6 +428,16 @@ class Lumpfish():
 		center = metadata['center_rotation']
 		return angle, center
 		
+	def spin(self, scan, center=None, label=None, thresh=False):
+		"""
+		Manual spinner made to align fish
+		"""
+		scan = self.to8bit(scan)
+		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
+		projection = np.max(scan, axis=0)
+		angle, center = spinner(projection, center, label, thresh)
+		return angle, center
+
 
 	def lengthMeasure(self, projection):
 		return

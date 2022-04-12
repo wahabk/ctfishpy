@@ -37,7 +37,7 @@ class mainViewer(QMainWindow):
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.spinner = Spinner(self.stack, center=self.center, label = self.label, parent = self, thresh = self.thresh)
+		self.spinner = Spinner_class(self.stack, center=self.center, label = self.label, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.spinner)
 		#widget.findChildren(QWidget)[0]
 
@@ -54,7 +54,7 @@ class mainViewer(QMainWindow):
 		self.statusBar().showMessage(f'{slice_}/{self.stack_length}')
 
 
-class Spinner(QWidget):
+class Spinner_class(QWidget):
 
 	def __init__(self, stack, center, label = None, thresh = False, stride = 1, parent = None):
 		super().__init__()

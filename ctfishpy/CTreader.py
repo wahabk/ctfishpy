@@ -278,7 +278,6 @@ class CTreader:
 
 		napari.run()
 
-
 	def read_max_projections(self, n):
 		"""
 		Return z,y,x which represent axial, saggital, and coronal max projections

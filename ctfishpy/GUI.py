@@ -60,10 +60,9 @@ def find_tubes(ct, minDistance = 180, minRad = 0, maxRad = 150,
 	auto_call=True,
 	dp={"widget_type": "FloatSlider", 'min' : 100, 'max' : 200},
 	pad={"widget_type": "Slider", 'min' : 0, 'max' : 20},
-	finished={"widget_type": "PushButton"},
 	layout='vertical',)
-def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool=False) -> Layer:
-	if layer is not None and finished==False:
+def tubeDetector(layer:Layer, dp:float, pad:int) -> Layer:
+	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 
 		array = layer.metadata['og'] # get original scan
@@ -74,11 +73,6 @@ def tubeDetector(layer:Layer, dp:float, pad:int, finished:bool=False) -> Layer:
 			labelled = circle_dict['labelled_stack']
 			layer.metadata['circle_dict'] = circle_dict
 			layer.data = labelled
-
-		# TODO fix finished button by connecting in caller?
-		if finished:
-			viewer = napari.current_viewer()
-			viewer.close()
 		
 	return
 
@@ -118,9 +112,8 @@ def number_scan(scan, order):
 	# call_button='Detect',
 	auto_call=True,
 	undo={"widget_type": "PushButton"},
-	finished={"widget_type": "PushButton"},
 	layout='vertical',)
-def orderLabeller(layer:Layer, undo:bool, finished:bool):
+def orderLabeller(layer:Layer, undo:bool):
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 		m = layer.metadata
@@ -244,8 +237,10 @@ def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> None:
 		layer.metadata['angle'] = angle
 
 		if center_rotation:
-			position = center_rotation[::-1]
-			new_image = rotate_image(original, angle, is_label=False, center=position)
+			position = center_rotation[::-1] # flip because qt :(
+			new_image = deepcopy(original)
+			cv2.circle(new_image, np.array(center_rotation, dtype='uint16')[::-1], 5, color=(0,0,255), thickness=2)
+			new_image = rotate_image(new_image, angle, is_label=False, center=position)
 			layer.data = new_image
 		else:
 			layer.data = rotate_image(original, angle, is_label=False, center=None)
@@ -275,4 +270,4 @@ def create_spinner(viewer, layer) -> None:
 
 # TODO find length
 # TODO paint center of rotation in spinner
-# TODO remove finished button and add q shortcut
+# TODO add q shortcut
