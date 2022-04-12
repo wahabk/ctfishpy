@@ -1,5 +1,6 @@
 from deprecated import deprecated
 from qtpy.QtCore import QSettings
+from qtpy.QtCore import QCoreApplication
 from pathlib2 import Path
 from tqdm import tqdm
 import tifffile as tiff
@@ -290,13 +291,12 @@ class Lumpfish():
 		folder.mkdir(parents=True, exist_ok=True)
 
 		i = 0
-		for img in scan: # for each slice
+		for img in tqdm(scan): # for each slice
 			filename = folder / f'{name}_{str(i).zfill(4)}.tiff'
 			if img.size == 0: raise Exception(f'cropped image is empty at fish: {name} slice: {i+1}')
 
 			tiff.imwrite(str(filename), img)
 			i += 1
-			print(f'[Fish {name}, slice:{i}/{len(scan)}]', end="\r")
 		scan = None
 		gc.collect()
 
@@ -411,7 +411,7 @@ class Lumpfish():
 		ordered_circles = metadata['ordered_circles']
 		return ordered_circles
 
-	def napari_spin(self, scan):
+	def napari_spin(self, viewer, scan):
 		# create max projection
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
@@ -421,7 +421,8 @@ class Lumpfish():
 		layer = viewer.add_image(projection, metadata=m, name='projection')
 
 		create_spinner(viewer, layer)
-		napari.run()
+		viewer.show(block=True)
+		# napari.run()
 
 		metadata = layer.metadata
 		angle = metadata['angle']

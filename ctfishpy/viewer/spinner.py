@@ -31,7 +31,6 @@ class mainViewer(QMainWindow):
 
 		self.initUI()
 
-
 	def initUI(self):
 		#initialise UI
 		self.setWindowTitle('CTFishPy')
@@ -62,7 +61,7 @@ class Spinner_class(QWidget):
 		# init variables
 		if np.max(stack) == 1: stack = stack*255 #fix labels
 		self.og_image = stack
-		self.max_angle = 365
+		self.max_angle = 360
 		self.stride = stride
 		self.angle = 0
 		self.parent = parent
@@ -129,7 +128,8 @@ class Spinner_class(QWidget):
 		x = event.pos().x()
 		y = event.pos().y()
 		self.center = (x,y)
-			
+		self.update()
+	
 	def update(self):
 
 		if self.angle > self.max_angle-1: 	self.angle = 0

@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import json
 from pathlib2 import Path
+import napari
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
@@ -50,7 +51,9 @@ if __name__ == "__main__":
 			num = fish_nums[i]
 			print(num, cropped.shape)
 
-			angle, center = lump.spin(cropped)
+			viewer = napari.Viewer(show=False)
+
+			angle, center = lump.napari_spin(viewer, cropped)
 			print(angle, center)
 
 			# scan = ctreader.rotate_array(cropped, angle, False, )
