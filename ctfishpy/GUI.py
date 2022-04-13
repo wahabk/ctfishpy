@@ -8,21 +8,25 @@ import cv2
 from qtpy.QtWidgets import QVBoxLayout, QPushButton, QWidget
 
 
-def find_tubes(ct, minDistance = 180, minRad = 0, maxRad = 150, 
-	thresh = [20, 80], slice_to_detect = 0, dp = 1.3, pad = 0):
+def find_tubes(	ct, 
+				slice_to_detect = 0,
+				dp = 1.3,
+				pad = 0,
+				min_distance = 180,
+				min_rad = 0,
+				max_rad = 150,
+				min_thresh = 20,
+				max_thresh = 80,
+				):
 
 	"""
 	This wont work on 16 bit
 	"""
 
-	# Find fish tubes
-	# output = ct.copy() # copy stack to label later
-	output = deepcopy(ct)
+	output = deepcopy(ct) # copy stack to label later
 
 	# Convert slice_to_detect to gray scale and threshold
-	# ct_slice_to_detect = cv2.cvtColor(ct[slice_to_detect], cv2.COLOR_BGR2GRAY)
 	ct_slice_to_detect = ct[slice_to_detect]
-	min_thresh, max_thresh = thresh
 	ret, ct_slice_to_detect = cv2.threshold(ct_slice_to_detect, min_thresh, max_thresh, 
 		cv2.THRESH_BINARY)
 
@@ -32,7 +36,7 @@ def find_tubes(ct, minDistance = 180, minRad = 0, maxRad = 150,
 
 	# detect circles in designated slice
 	circles = cv2.HoughCircles(ct_slice_to_detect, cv2.HOUGH_GRADIENT, dp=dp, 
-				minDist = minDistance, minRadius = minRad, maxRadius = maxRad) #param1=50, param2=30,
+				minDist = min_distance, minRadius = min_rad, maxRadius = max_rad) #param1=50, param2=30,
 				
 	if circles is None: return
 	else:
@@ -56,29 +60,47 @@ def find_tubes(ct, minDistance = 180, minRad = 0, maxRad = 150,
 		return circle_dict
 
 @magicgui(
-	# call_button='Detect',
 	auto_call=True,
 	dp={"widget_type": "FloatSlider", 'min' : 100, 'max' : 200},
 	pad={"widget_type": "Slider", 'min' : 0, 'max' : 20},
+	min_distance={"widget_type": "Slider", 'min' : 0, 'max' : 300},
+	min_rad={"widget_type": "Slider", 'min' : 0, 'max' : 100},
+	max_rad={"widget_type": "Slider", 'min' : 101, 'max' : 300},
+	min_thresh={"widget_type": "Slider", 'min' : 1, 'max' : 100},
+	max_thresh={"widget_type": "Slider", 'min' : 101, 'max' : 255},
 	layout='vertical',)
-def tubeDetector(layer:Layer, dp:float, pad:int) -> Layer:
+def tubeDetector(layer:Layer,
+					dp:float=150,
+					pad:int=0,
+					min_distance:int = 180,
+					min_rad:int = 0,
+					max_rad:int = 150,
+					min_thresh:int = 20,
+					max_thresh:int = 101,
+					) -> Layer:
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
+		# print(dp,pad,min_distance,min_rad,max_rad,min_thresh,max_thresh)
 
 		array = layer.metadata['og'] # get original scan
 		_slice = int(layer.position[0]) # get the slice youre looking at
 
-		circle_dict = find_tubes(array, dp=dp/100, slice_to_detect=_slice, pad=pad)
-		if circle_dict: 
+		circle_dict = find_tubes(array,
+								slice_to_detect=_slice,
+								dp=dp/100,
+								pad=pad,
+								min_distance=min_distance,
+								min_rad=min_rad,
+								max_rad=max_rad,
+								min_thresh=min_thresh,
+								max_thresh=max_thresh,
+								)
+		if circle_dict:
 			labelled = circle_dict['labelled_stack']
 			layer.metadata['circle_dict'] = circle_dict
 			layer.data = labelled
-		
+	
 	return
-
-# @tubeDetector.finished.connect
-# def notify():
-# 	print('finished')
 
 def inside_circle( x, y, a, b, r):
 	#check if point x, y is in circle with centre and radius a, b ,r 
@@ -89,7 +111,6 @@ def assign_circle_order(pos, circles, ordered_circles):
 	#add to ordered_circles
 	x, y = pos
 	for (a, b, r) in circles:
-		# print(x,y,a,b,r)
 		if inside_circle(x, y, a, b, r):
 			#check circle not already in order
 			if len(ordered_circles)>0 and True in [inside_circle(x,y,i,j,k) for (i,j,k) in ordered_circles]:
@@ -113,7 +134,7 @@ def number_scan(scan, order):
 	auto_call=True,
 	undo={"widget_type": "PushButton"},
 	layout='vertical',)
-def orderLabeller(layer:Layer, undo:bool):
+def orderLabeller(layer:Layer, undo:bool) -> Layer:
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 		m = layer.metadata
@@ -150,14 +171,10 @@ def create_orderLabeller(viewer, layer) -> None:
 		layer.metadata["ordered_circles"].pop() # remove last ordered circle
 		orderLabeller.update()
 
-	return widget
-
-	# @orderLabeller.finished.clicked.connect
-	# def finished():
-	# 	viewer.close()
+	return
     
 
-# class OrderLabeller(QWidget):
+# class OrderLabellerClass(QWidget):
 # 	def __init__(self, parent) -> None:
 # 		super().__init__(parent,)
 
@@ -169,29 +186,6 @@ def create_orderLabeller(viewer, layer) -> None:
 # 		layout.addWidget(self.undo_btn)
 # 		layout.addWidget(self.done_btn)
 
-# 	def inside_circle(self, x, y, a, b, r):
-# 		#check if point x, y is in circle with centre and radius a, b ,r 
-# 		return (x - a)**2 + (y - b)**2 < r**2
-
-# 	def assign_circle_order(self, pos, circles, ordered_circles):
-# 		#check if the click is in a circle 
-# 		#add to ordered_circles and deleted from original circles
-# 		x, y = pos
-# 		for (a, b, r) in circles:
-# 			if self.inside_circle(x, y, a, b, r):
-# 				#check circle not already in order
-# 				if ordered_circles and True in [self.inside_circle(x,y,i,j,k) for (i,j,k) in ordered_circles]:
-# 					break
-# 				ordered_circles.append([a, b, r])
-
-# 				image = self.number_image(image, len(ordered_circles), (a,b))
-# 				break
-# 		return ordered_circles
-
-# 	def number_image(self, img, num, loc):
-
-# 		font = cv2.FONT_HERSHEY_SIMPLEX
-# 		return cv2.putText(img=img.copy(), text=str(num), org=loc, fontFace=font, fontScale=4, color=(255,255,255), thickness=2)
 
 def rotate_image(image, angle, is_label, center=None):
 	"""
@@ -229,25 +223,23 @@ def rotate_array(array, angle, is_label, center=None):
 	angle={"widget_type": "Slider", 'max': 360, 'min':0},
 	reset_center={"widget_type": "PushButton"},
 	layout='vertical',)
-def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> None:
+def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> Layer:
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 		original = layer.metadata['og']
 		center_rotation = layer.metadata['center_rotation']
 		layer.metadata['angle'] = angle
 
-		if center_rotation:
-			position = center_rotation[::-1] # flip because qt :(
-			new_image = deepcopy(original)
-			cv2.circle(new_image, np.array(center_rotation, dtype='uint16')[::-1], 5, color=(0,0,255), thickness=2)
-			new_image = rotate_image(new_image, angle, is_label=False, center=position)
-			layer.data = new_image
-		else:
-			layer.data = rotate_image(original, angle, is_label=False, center=None)
+		if center_rotation == None:
+			center_rotation = [int(original.shape[0]/2), int(original.shape[1]/2)]
+		
+		new_image = deepcopy(original)
+		position = center_rotation[::-1] # flip because qt :(
+		cv2.circle(new_image, np.array(center_rotation, dtype='uint16')[::-1], 5, color=(0,0,255), thickness=2)
+		new_image = rotate_image(new_image, angle, is_label=False, center=position)
+		layer.data = new_image
 	
 	return
-
-
 
 def create_spinner(viewer, layer) -> None:
 	widget = spinner
@@ -268,6 +260,67 @@ def create_spinner(viewer, layer) -> None:
 		widget.update()
 		return
 
-# TODO find length
-# TODO paint center of rotation in spinner
+	return
+
 # TODO add q shortcut
+
+@magicgui(
+	auto_call=True,
+	reset={"widget_type": "PushButton"},
+	layout='vertical',)
+def fishRuler(layer:Layer, reset:bool=False) -> Layer:
+	if layer is not None:
+		assert isinstance(layer.data, np.ndarray)  # it will be!
+		if 'head' in layer.metadata.keys():
+			original = layer.metadata['og']
+			head = layer.metadata['head']
+			tail = layer.metadata['tail']
+			font = cv2.FONT_HERSHEY_SIMPLEX
+
+			new_image = deepcopy(original)
+			if head!=0: # this doesnt work with none
+				head_pos = np.array(head)
+				x, y = head_pos
+				cv2.circle(new_image, np.array(head_pos, dtype='uint16'), 5, color=(255,0,0), thickness=2)
+				cv2.putText(img=new_image, text='head', 
+									org=np.array(head_pos, dtype='uint16'), fontFace=font, 
+									fontScale=0.5, color=(255,255,255), thickness=1)			
+			if tail!=0:
+				tail_pos = np.array(tail)
+				x, y = tail_pos
+				cv2.circle(new_image, np.array(tail_pos, dtype='uint16'), 5, color=(0,255,0), thickness=1)
+				cv2.putText(img=new_image, text='tail', 
+									org=np.array(tail_pos, dtype='uint16'), fontFace=font, 
+									fontScale=0.5, color=(255,255,255), thickness=1)	
+			if head!=0 and tail!=0:
+				cv2.line(new_image, pt1=np.array(head_pos, dtype='uint16'),
+									pt2=np.array(tail_pos, dtype='uint16'), 
+									color=(255,255,255), thickness=1)
+			
+			layer.data = new_image
+	return
+
+def create_fishRuler(viewer, layer) -> None:
+	widget = fishRuler
+
+	viewer.window.add_dock_widget(widget, name="Measure length")
+	viewer.layers.events.changed.connect(widget.reset_choices)
+
+	@layer.mouse_drag_callbacks.append
+	def get_event(layer, event):
+		if event.button == 1: # if left click
+			layer.metadata['head'] = event.position[::-1]
+			widget.update()
+		if event.button == 2: # if left click
+			layer.metadata['tail'] = event.position[::-1]
+			widget.update()
+		return
+
+	@fishRuler.reset.clicked.connect
+	def reset_ruler():
+		layer.metadata['head'] = 0
+		layer.metadata['tail'] = 0
+		widget.update()
+		return
+
+	return

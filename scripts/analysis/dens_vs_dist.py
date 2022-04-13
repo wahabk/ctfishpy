@@ -38,7 +38,7 @@ if __name__ == '__main__':
 			otolith = deepcopy(label)
 			otolith[otolith != i] = 0
 			otolith[otolith == i] = 1
-			otolith, n_labels = scipy.ndimage.label(otolith)
+			otolith, n_labels = scipy.ndimage.label(otolith) # label left and right
 
 			left_right = [1,2]
 			for j in left_right:

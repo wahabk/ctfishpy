@@ -11,8 +11,9 @@ import cv2
 import h5py
 import gc
 import napari
-from .GUI import tubeDetector, create_orderLabeller, create_spinner
+from .GUI import tubeDetector, create_orderLabeller, create_spinner, create_fishRuler
 from .viewer import spinner
+import math
 
 class Lumpfish():
 	
@@ -374,72 +375,70 @@ class Lumpfish():
 			print("image already 8 bit!")
 			return new_array
 
-	def detectTubes(self, scan):
-
+	def detectTubes(self, viewer, scan):
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		m = {'og': scan}
 
-		viewer = napari.Viewer(title='tubeDetector')
+		viewer = napari.Viewer()
 		layer = viewer.add_image(scan, metadata=m)
 
 		viewer.window.add_dock_widget(tubeDetector, name="tubeDetector")
 		viewer.layers.events.changed.connect(tubeDetector.reset_choices)
 
-		napari.run()
+		viewer.show(block=True)
 		metadata = layer.metadata
 		
-		# QTimer().singleShot(500, app.quit)
-
 		return metadata['circle_dict']
 
-	def labelOrder(self, circle_dict):
+	def labelOrder(self, viewer, circle_dict):
 		scan = circle_dict['labelled_stack']
 		ordered_circles = []
 		m = {'og': scan, 'circles': circle_dict['circles'], 'ordered_circles' : ordered_circles}
 
-		viewer = napari.Viewer()
 		layer = viewer.add_image(scan, metadata=m, name='scan')
 
-		widget = create_orderLabeller(viewer, layer)
+		create_orderLabeller(viewer, layer)
 
 		# widgets are stored in napari._qt.widgets.qt_viewer_dock_widget
-		napari.run()
-
+		viewer.show(block=True)
 
 		metadata = layer.metadata
 		ordered_circles = metadata['ordered_circles']
 		return ordered_circles
 
-	def napari_spin(self, viewer, scan):
+	def spin(self, viewer, scan):
 		# create max projection
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		projection = np.max(scan, axis=0)
 		m = {'og': projection, 'center_rotation' : None, 'angle' : 0}
-		viewer = napari.Viewer()
-		layer = viewer.add_image(projection, metadata=m, name='projection')
 
+		layer = viewer.add_image(projection, metadata=m, name='projection')
 		create_spinner(viewer, layer)
 		viewer.show(block=True)
-		# napari.run()
+		# TODO will this remove the need for viewer to be instantiated each time in main thread?
+		# viewer.close() 
 
 		metadata = layer.metadata
 		angle = metadata['angle']
 		center = metadata['center_rotation']
 		return angle, center
 		
-	def spin(self, scan, center=None, label=None, thresh=False):
-		"""
-		Manual spinner made to align fish
-		"""
+	def measure_length(self, viewer, scan):
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
-		projection = np.max(scan, axis=0)
-		angle, center = spinner(projection, center, label, thresh)
-		return angle, center
+		projection = np.max(scan, axis=1)
+		meta = {'og': projection, 'head' : 0, 'tail' : 0}
+		# layer=None
+		layer = viewer.add_image(projection, metadata=meta, name='projection2')
 
+		create_fishRuler(viewer, layer)
+		viewer.show(block=True)
 
-	def lengthMeasure(self, projection):
-		return
+		metadata = layer.metadata
+		head = metadata['head']
+		tail = metadata['tail']
+		pixel_length = math.dist(head, tail)
+		return pixel_length
 
