@@ -81,9 +81,31 @@ class CTreader:
 		return list(m.loc[:]["n"])
 
 	def read_dicom(self, path):
+		'''
+		['AccessionNumber', 'BitsAllocated', 'BitsStored', 'Columns', 'ConversionType', 'HighBit', 'ImageComments',
+		'InstanceNumber', 'InstitutionName', 'LossyImageCompression', 'LossyImageCompressionMethod',
+		'NameOfPhysiciansReadingStudy', 'OperatorsName', 'PatientBirthDate', 'PatientID', 'PatientName',
+		'PatientOrientation', 'PatientSex', 'PhotometricInterpretation', 'PixelData', 'PixelRepresentation',
+		'PlanarConfiguration', 'ReferringPhysicianName', 'Rows', 'SOPClassUID', 'SOPInstanceUID',
+		'SamplesPerPixel', 'SeriesInstanceUID', 'SeriesNumber', 'SpecificCharacterSet', 'StudyDate', 'StudyID',
+		'StudyInstanceUID', 'StudyTime', '__array__', '__contains__', '__copy__', '__deepcopy__', '__delattr__',
+		'__delitem__', '__dir__', '__enter__', '__eq__', '__exit__', '__format__', '__ge__', '__getattr__',
+		'__getattribute__', '__getitem__', '__getstate__', '__gt__', '__init__', '__init_subclass__', '__iter__',
+		'__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__',
+		'__setattr__', '__setitem__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__',
+		'_character_set', '_convert_pixel_data_using_handler', '_convert_pixel_data_without_handler',
+		'_copy_implementation', '_dataset_slice', '_do_pixel_data_conversion', '_pretty_str', '_set_file_meta',
+		'_slice_dataset', 'add', 'add_new', 'clear', 'compress', 'convert_pixel_data', 'copy', 'data_element',
+		'decode', 'decompress', 'dir', 'elements', 'ensure_file_meta', 'fix_meta_info', 'formatted_lines',
+		'from_json', 'get', 'get_item', 'get_private_item', 'group_dataset', 'is_original_encoding',
+		'items', 'iterall', 'keys', 'overlay_array', 'pixel_array', 'pop', 'popitem', 'private_block',
+		'private_creators', 'remove_private_tags', 'save_as', 'set_original_encoding', 'setdefault', 'to_json', 
+		'to_json_dict', 'top', 'trait_names', 'update', 'values', 'walk', 'waveform_array']
+		'''
 
 		with pydicom.dcmread(path) as ds:
 			data = ds.pixel_array
+			print(dir(ds))
 		
 		return data
 

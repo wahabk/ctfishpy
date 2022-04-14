@@ -134,7 +134,7 @@ dmypy.json
 *.gif
 *.h5
 *.hdf5
-Data
+
 output/Model/weights/*
 output/Model/datagenie_Test/*
 

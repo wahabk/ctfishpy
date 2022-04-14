@@ -1,6 +1,5 @@
 from deprecated import deprecated
 from qtpy.QtCore import QSettings
-from qtpy.QtCore import QCoreApplication
 from pathlib2 import Path
 from tqdm import tqdm
 import tifffile as tiff
@@ -12,7 +11,6 @@ import h5py
 import gc
 import napari
 from .GUI import tubeDetector, create_orderLabeller, create_spinner, create_fishRuler
-from .viewer import spinner
 import math
 
 class Lumpfish():
