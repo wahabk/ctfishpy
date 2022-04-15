@@ -13,7 +13,7 @@ if __name__ == "__main__":
 	lump = ctfishpy.Lumpfish()
 	master = ctreader.mastersheet()
 
-	# scan, metadata = ctreader.read(468, align=True)
+	scan, metadata = ctreader.read(468, align=True)
 	# ctreader.view(scan)
 
 
@@ -23,8 +23,19 @@ if __name__ == "__main__":
 
 	# TODO write dicom
 
-	array = ctreader.read_dicom('examples/Data/image1.dcm')
-	print(array.shape)
-	array = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
+	# array = ctreader.read_dicom('examples/Data/image1.dcm')
+	# print(array.shape)
+	# array = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
+	# ctreader.view(array)
+
+	path = Path("/home/wahab/Data/Local/uCT/low_res_clean")
+	name = "ak_test.dcm"
+
+	print(path/name)
+
+	ctreader.write_dicom(path, name, scan)
+
+	array = ctreader.read_dicom(path/name)
+
 	ctreader.view(array)
 

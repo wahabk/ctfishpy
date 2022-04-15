@@ -17,7 +17,7 @@ import json
 import napari
 import warnings
 import pydicom
-from pydicom.dataset import FileDataset, FileMetaDataset
+from pydicom.dataset import FileDataset
 from pydicom.uid import UID
 import tempfile
 import datetime
@@ -108,6 +108,27 @@ class CTreader:
 			print(dir(ds))
 		
 		return data
+
+	def write_dicom(self, path, name, array):
+		
+		ds = FileDataset(path, {},
+                 file_meta={}, preamble=b"\0" * 128)
+
+		ds.PatientName = name
+
+		# Set creation date/time and endianness
+		dt = datetime.datetime.now()
+		ds.ContentDate = dt.strftime('%Y%m%d')
+		timeStr = dt.strftime('%H%M%S.%f')  # long format with micro seconds
+		ds.ContentTime = timeStr
+		ds.is_little_endian = True
+		ds.is_implicit_VR = True # make reader lookup from dict
+
+		ds.PixelData = array
+
+		ds.save_as(path/name, write_like_original=True)
+
+
 
 	def read_path(self, path, r=None):
 
