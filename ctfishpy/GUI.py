@@ -222,7 +222,7 @@ def rotate_array(array, angle, is_label, center=None):
 	auto_call=True,
 	angle={"widget_type": "Slider", 'max': 360, 'min':0},
 	reset_center={"widget_type": "PushButton"},
-	layout='vertical',)
+	layout='horizontal',)
 def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> Layer:
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
@@ -244,7 +244,7 @@ def spinner(layer:Layer, angle:int=0, reset_center:bool=False) -> Layer:
 def create_spinner(viewer, layer) -> None:
 	widget = spinner
 
-	viewer.window.add_dock_widget(widget, name="spinner")
+	viewer.window.add_dock_widget(widget, name="spinner", area='bottom')
 	viewer.layers.events.changed.connect(widget.reset_choices)
 
 	@layer.mouse_drag_callbacks.append

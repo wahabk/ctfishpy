@@ -17,7 +17,7 @@ import json
 import napari
 import warnings
 import pydicom
-from pydicom.dataset import FileDataset
+from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import tempfile
 import datetime
@@ -81,51 +81,56 @@ class CTreader:
 		return list(m.loc[:]["n"])
 
 	def read_dicom(self, path):
-		'''
-		['AccessionNumber', 'BitsAllocated', 'BitsStored', 'Columns', 'ConversionType', 'HighBit', 'ImageComments',
-		'InstanceNumber', 'InstitutionName', 'LossyImageCompression', 'LossyImageCompressionMethod',
-		'NameOfPhysiciansReadingStudy', 'OperatorsName', 'PatientBirthDate', 'PatientID', 'PatientName',
-		'PatientOrientation', 'PatientSex', 'PhotometricInterpretation', 'PixelData', 'PixelRepresentation',
-		'PlanarConfiguration', 'ReferringPhysicianName', 'Rows', 'SOPClassUID', 'SOPInstanceUID',
-		'SamplesPerPixel', 'SeriesInstanceUID', 'SeriesNumber', 'SpecificCharacterSet', 'StudyDate', 'StudyID',
-		'StudyInstanceUID', 'StudyTime', '__array__', '__contains__', '__copy__', '__deepcopy__', '__delattr__',
-		'__delitem__', '__dir__', '__enter__', '__eq__', '__exit__', '__format__', '__ge__', '__getattr__',
-		'__getattribute__', '__getitem__', '__getstate__', '__gt__', '__init__', '__init_subclass__', '__iter__',
-		'__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__',
-		'__setattr__', '__setitem__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__',
-		'_character_set', '_convert_pixel_data_using_handler', '_convert_pixel_data_without_handler',
-		'_copy_implementation', '_dataset_slice', '_do_pixel_data_conversion', '_pretty_str', '_set_file_meta',
-		'_slice_dataset', 'add', 'add_new', 'clear', 'compress', 'convert_pixel_data', 'copy', 'data_element',
-		'decode', 'decompress', 'dir', 'elements', 'ensure_file_meta', 'fix_meta_info', 'formatted_lines',
-		'from_json', 'get', 'get_item', 'get_private_item', 'group_dataset', 'is_original_encoding',
-		'items', 'iterall', 'keys', 'overlay_array', 'pixel_array', 'pop', 'popitem', 'private_block',
-		'private_creators', 'remove_private_tags', 'save_as', 'set_original_encoding', 'setdefault', 'to_json', 
-		'to_json_dict', 'top', 'trait_names', 'update', 'values', 'walk', 'waveform_array']
-		'''
-
 		with pydicom.dcmread(path) as ds:
+			ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
 			data = ds.pixel_array
-			print(dir(ds))
-		
+				
 		return data
 
 	def write_dicom(self, path, name, array):
 		
-		ds = FileDataset(path, {},
+		suffix = ".dcm"
+		# Populate required values for file meta information
+		file_meta = FileMetaDataset()
+		file_meta.MediaStorageSOPClassUID = UID('1.2.840.10008.5.1.4.1.1.2')
+		file_meta.MediaStorageSOPInstanceUID = UID("1.2.3")
+		file_meta.ImplementationClassUID = UID("1.2.3.4")
+		file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+
+		# Create the FileDataset instance (initially no data elements, but file_meta
+		# supplied)
+		ds = FileDataset(path/name/suffix, {},
                  file_meta={}, preamble=b"\0" * 128)
 
 		ds.PatientName = name
+		ds.PatientID = "123456"
 
 		# Set creation date/time and endianness
 		dt = datetime.datetime.now()
 		ds.ContentDate = dt.strftime('%Y%m%d')
 		timeStr = dt.strftime('%H%M%S.%f')  # long format with micro seconds
 		ds.ContentTime = timeStr
+		# Set the transfer syntax
+		# Write as a different transfer syntax XXX shouldn't need this but pydicom
+		# 0.9.5 bug not recognizing transfer syntax
+		# ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
 		ds.is_little_endian = True
 		ds.is_implicit_VR = True # make reader lookup from dict
+		ds.NumberOfFrames = array.shape[0]
+		ds.Rows = array.shape[1]
+		ds.Columns = array.shape[2]
+		ds.SamplesPerPixel = 1
+		ds.PhotometricInterpretation = 'MONOCHROME1'
+		ds.PixelRepresentation = 1
+		if array.dtype == "uint16": bits = 16
+		if array.dtype == "uint8": bits = 8
+		ds.BitsAllocated = bits
+		ds.BitsStored = bits
+		# missing: BitsAllocated, Rows, Columns, SamplesPerPixel, PhotometricInterpretation, PixelRepresentation, BitsStored
 
-		ds.PixelData = array
+		ds.PixelData = array.tobytes()
 
+		name = name + suffix
 		ds.save_as(path/name, write_like_original=True)
 
 
@@ -173,7 +178,8 @@ class CTreader:
 			angle = angles[str(fish)]
 
 		stack_metadata = self.read_metadata(fish)
-		# angle = stack_metadata['angle']
+		angle = stack_metadata['angle']
+		center = stack_metadata['center']
 
 		# images = list(tifpath.iterdir())
 		images = [str(i) for i in tifpath.iterdir()]
@@ -186,7 +192,7 @@ class CTreader:
 			for i in tqdm(range(*r)):
 				tiffslice = tiff.imread(images[i])
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False, center=center)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
@@ -194,7 +200,7 @@ class CTreader:
 			for i in tqdm(images):
 				tiffslice = tiff.imread(i)
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False, center=center)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
@@ -440,9 +446,9 @@ class CTreader:
 		new_img = (img > thresh) * img
 		return new_img
 
-	def saveJSON(self, nparray, jsonpath):
+	def write_json(self, nparray, jsonpath):
 		"""
-		A quick way to save nparrays as json
+		A quick way to save nparrays as json 
 		"""
 		json.dump(
 			nparray,
@@ -452,7 +458,7 @@ class CTreader:
 			indent=4,
 		)  ### this saves the array in .json format
 
-	def readJSON(self, jsonpath):
+	def read_json(self, jsonpath):
 		"""
 		Quickly read nparrays as json
 		"""

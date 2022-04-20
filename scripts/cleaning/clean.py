@@ -13,10 +13,11 @@ if __name__ == "__main__":
 	lump = ctfishpy.Lumpfish()
 	master = ctreader.mastersheet()
 
-	scan, metadata = ctreader.read(468, align=True)
-	# ctreader.view(scan)
+	# for i in [40, 468, 200]:
+	# 	scan, metadata = ctreader.read(i, align=True)
+	# 	ctreader.view(scan)
 
-
+	scan, metadata = ctreader.read(468, align=False)
 	# viewer = napari.Viewer(show=False)
 	# angle, center = lump.spin(viewer, scan)
 	# print(angle, center)
@@ -28,14 +29,25 @@ if __name__ == "__main__":
 	# array = cv2.cvtColor(array, cv2.COLOR_BGR2RGB)
 	# ctreader.view(array)
 
-	path = Path("/home/wahab/Data/Local/uCT/low_res_clean")
-	name = "ak_test.dcm"
+	# save temp metadata with shape as practice
+
+
+
+
+
+
+
+	path = Path("/home/wahab/Data/Local/uCT/low_res_dicoms")
+	name = "ak_test"
+	print(scan.dtype)
+	print(scan.size, scan.itemsize)
 
 	print(path/name)
 
 	ctreader.write_dicom(path, name, scan)
 
+	name = name+".dcm"
 	array = ctreader.read_dicom(path/name)
-
+	print(array.shape)
 	ctreader.view(array)
 

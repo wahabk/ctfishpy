@@ -1,3 +1,4 @@
+from cv2 import sort
 from deprecated import deprecated
 from qtpy.QtCore import QSettings
 from pathlib2 import Path
@@ -38,7 +39,7 @@ class Lumpfish():
 		tifpath = Path(path)
 		files = sorted(tifpath.iterdir())
 		images = [str(f) for f in files if f.suffix == '.tif']
-		# images.pop(891)
+		#TODO add tifpath search
 
 		ct = []
 		print(f'[CTFishPy] Reading uCT scan: {path}')
@@ -243,6 +244,7 @@ class Lumpfish():
 			crop_data = json.load(f)
 		return crop_data
 
+	@deprecated
 	def write_metadata(self, n, input):
 		'''
 		metadata = {
@@ -284,18 +286,25 @@ class Lumpfish():
 		with open(metadataPath, 'w') as f:
 			json.dump(data, f)
 
-	def write_tif(self, path, name, scan):
+	def write_tif(self, path, name, scan, metadata=None):
 		parent = Path(path)
 		folder = parent / f'{name}'
-		folder.mkdir(parents=True, exist_ok=True)
+		tifpath = folder / 'reconstructed_tifs'
+		tifpath.mkdir(parents=True, exist_ok=True)
+		metadata_path = folder / 'metadata.json'
 
 		i = 0
 		for img in tqdm(scan): # for each slice
-			filename = folder / f'{name}_{str(i).zfill(4)}.tiff'
+			filename = tifpath / f'{name}_{str(i).zfill(4)}.tiff'
 			if img.size == 0: raise Exception(f'cropped image is empty at fish: {name} slice: {i+1}')
 
 			tiff.imwrite(str(filename), img)
 			i += 1
+		
+		if metadata:
+			with open(metadata_path, "w") as fp:
+				json.dump(metadata, fp=fp, sort_keys=True, indent=4)
+
 		scan = None
 		gc.collect()
 
