@@ -2,6 +2,7 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
+from ast import DictComp
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
@@ -80,15 +81,21 @@ class CTreader:
 		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]["n"])
 
-	def read_dicom(self, path):
+	def read_dicom(self, path, bits=16, dtype='uint16'):
 		with pydicom.dcmread(path) as ds:
 			ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
+			ds.BitsAllocated = bits
+			ds.BitsStored = bits
 			data = ds.pixel_array
+			data = data.astype(dtype)
 				
 		return data
 
-	def write_dicom(self, path, name, array):
-		
+	def write_dicom(self, path:str, name:str, array:np.ndarray):
+		"""
+		save monochrome dicom 
+		this will auto determine 16 / 8 bit depth but will only accept np arrays in dtypes uint8 or uint16
+		"""
 		suffix = ".dcm"
 		# Populate required values for file meta information
 		file_meta = FileMetaDataset()
@@ -99,10 +106,10 @@ class CTreader:
 
 		# Create the FileDataset instance (initially no data elements, but file_meta
 		# supplied)
-		ds = FileDataset(path/name/suffix, {},
+		ds = FileDataset(path, {},
                  file_meta={}, preamble=b"\0" * 128)
 
-		ds.PatientName = name
+		ds.PatientName = str(name)
 		ds.PatientID = "123456"
 
 		# Set creation date/time and endianness
@@ -116,12 +123,12 @@ class CTreader:
 		# ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
 		ds.is_little_endian = True
 		ds.is_implicit_VR = True # make reader lookup from dict
+		ds.SamplesPerPixel = 1
+		ds.PixelRepresentation = 1
+		ds.PhotometricInterpretation = 'MONOCHROME1'
 		ds.NumberOfFrames = array.shape[0]
 		ds.Rows = array.shape[1]
 		ds.Columns = array.shape[2]
-		ds.SamplesPerPixel = 1
-		ds.PhotometricInterpretation = 'MONOCHROME1'
-		ds.PixelRepresentation = 1
 		if array.dtype == "uint16": bits = 16
 		if array.dtype == "uint8": bits = 8
 		ds.BitsAllocated = bits
@@ -130,8 +137,7 @@ class CTreader:
 
 		ds.PixelData = array.tobytes()
 
-		name = name + suffix
-		ds.save_as(path/name, write_like_original=True)
+		ds.save_as(path, write_like_original=True)
 
 
 
@@ -176,10 +182,11 @@ class CTreader:
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
 			angle = angles[str(fish)]
+		center=None
 
 		stack_metadata = self.read_metadata(fish)
-		angle = stack_metadata['angle']
-		center = stack_metadata['center']
+		# angle = stack_metadata['angle']
+		# center = stack_metadata['center']
 
 		# images = list(tifpath.iterdir())
 		images = [str(i) for i in tifpath.iterdir()]
