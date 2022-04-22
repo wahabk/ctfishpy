@@ -21,7 +21,8 @@ if __name__ == "__main__":
 
 
 	#rerotate468
-	# scan, metadata = ctreader.read(468, align=False)
+	# scan, metadata = ctreader.read(435, align=False)
+	# ctreader.view(scan)
 	# viewer = napari.Viewer(show=False)
 	# angle, center = lump.spin(viewer, scan)
 	# print(angle, center)
@@ -47,15 +48,35 @@ if __name__ == "__main__":
 	# print(array.shape)
 	# ctreader.view(array)
 
-	out_path = Path('/home/wahab/Data/Local/uCT/low_res_clean')
-	bad_bois = [424, 429, 433, 434, 435, 465, 467, 468, 534, 543, 559]
-	for fish in bad_bois:
+	# out_path = Path('/home/wahab/Data/Local/uCT/low_res_clean')
+	# done = []
+	# bad_bois = [424, 429, 433, 434, 435,465, 467, 468, 534, 543, 559]
+	# for fish in bad_bois:
 
-		scan, metadata = ctreader.read(fish)
-		ctreader.view(scan)
+	# 	scan, metadata = ctreader.read(fish, align=True)
+	# 	ctreader.view(scan)
 
-		new_path = out_path / str(fish) / "reconstructed_tifs"
-		scan = ctreader.read_path(new_path)
-		ctreader.view(scan)
+	# 	new_path = out_path / str(fish) / "reconstructed_tifs"
+	# 	scan = ctreader.read_path(new_path)
+	# 	ctreader.view(scan)
 
 
+
+	# with open(ctreader.anglePath, "r") as fp:
+	# 	angles = json.load(fp)
+
+	# print(angles)
+
+	# new_angles = {}
+
+	# for fish, angle, in angles.items():
+	# 	angles[fish]
+	# 	new_angles[fish] = {}
+	# 	new_angles[fish]['angle'] = angle
+	# 	new_angles[fish]['center'] = None
+
+	# print(new_angles)
+	# with open("ctfishpy/Metadata/new_angles.json", "w") as fp:
+	# 	json.dump(new_angles, fp=fp, sort_keys=True, indent=4)
+
+	

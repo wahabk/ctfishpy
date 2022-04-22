@@ -44,8 +44,8 @@ class CTreader:
 
 		if data_path:
 			self.dataset_path = Path(data_path)
-			low_res_clean_path = self.dataset_path / "low_res_clean/"
-			nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
+			self.low_res_clean_path = self.dataset_path / "LOW_RES_CLEAN/"
+			nums = [int(path.stem) for path in self.low_res_clean_path.iterdir() if path.is_dir()]
 			nums.sort()
 			self.fish_nums = nums
 		else:
@@ -172,7 +172,7 @@ class CTreader:
 		align : manually aligns fish for dorsal fin to point upwards
 		"""
 
-		fishpath = self.dataset_path / "low_res_clean" / str(fish).zfill(3)
+		fishpath = self.low_res_clean_path / str(fish).zfill(3)
 		tifpath = fishpath / "reconstructed_tifs"
 		metadatapath = fishpath / "metadata.json"
 
@@ -181,8 +181,13 @@ class CTreader:
 		if align:
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
-			angle = angles[str(fish)]
-		center=None
+			angle = angles[str(fish)]['angle']
+			center = angles[str(fish)]['center']
+		else:
+			angle=0
+			center=None
+
+		print(f"ANGLE: {angle}{center}")
 
 		stack_metadata = self.read_metadata(fish)
 		# angle = stack_metadata['angle']
@@ -228,7 +233,7 @@ class CTreader:
 		"""
 		Return metadata dictionary from each fish json
 		"""
-		fishpath = self.dataset_path / "low_res_clean" / str(fish).zfill(3)
+		fishpath = self.low_res_clean_path/ str(fish).zfill(3)
 		metadatapath = fishpath / "metadata.json"
 		with metadatapath.open() as metadatafile:
 			stack_metadata = json.load(metadatafile)
@@ -412,7 +417,7 @@ class CTreader:
 		"""
 		image_center = tuple(np.array(image.shape[1::-1]) / 2)
 		if center:
-			image_center = center
+			image_center = tuple(center)
 		rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
 		# THIS HAS TO BE NEAREST NEIGHBOUR BECAUSE LABELS ARE CATEGORICAL
 		if is_label:

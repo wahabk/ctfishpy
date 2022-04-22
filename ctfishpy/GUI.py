@@ -250,7 +250,7 @@ def create_spinner(viewer, layer) -> None:
 	@layer.mouse_drag_callbacks.append
 	def get_event(layer, event):
 		if event.button == 1: # if left click
-			layer.metadata['center_rotation'] = event.position
+			layer.metadata['center_rotation'] = event.position[::-1] #flip because qt :(
 			widget.update()
 		return
 
