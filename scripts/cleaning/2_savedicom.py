@@ -41,9 +41,12 @@ if __name__ == "__main__":
 
 	flipped = [223,262,295,501,543]
 	test = [40, 468, 223, 41, 200, ]
+	skip = [405]
 
+	print(ctreader.fish_nums[262:])
+	# exit()
 
-	for fish in ctreader.fish_nums:
+	for fish in ctreader.fish_nums[262:]:
 		print(f"Old name: {fish}")
 		new_row = new_master.loc[new_master['old_n'] == fish]
 		# import pdb; pdb.set_trace()
