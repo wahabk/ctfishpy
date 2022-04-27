@@ -45,13 +45,14 @@ class CTreader:
 		if data_path:
 			self.dataset_path = Path(data_path)
 			self.low_res_clean_path = self.dataset_path / "LOW_RES_CLEAN/"
+			self.dicoms_path = self.dataset_path / "DICOMS/"
 			nums = [int(path.stem) for path in self.low_res_clean_path.iterdir() if path.is_dir()]
 			nums.sort()
 			self.fish_nums = nums
 		else:
 			warnings.warn("Can't find local dataset path")
 
-		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
+		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv", index_col='n')
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
 		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
 		with open(self.centres_path, "r") as fp:

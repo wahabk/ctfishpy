@@ -7,11 +7,43 @@ from pathlib2 import Path
 import napari
 import cv2
 
+def test_metadata(master:pd.DataFrame):
+	#TODO see whats in master not in Data
+
+	pass
 
 if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 	lump = ctfishpy.Lumpfish()
 	master = ctreader.mastersheet()
+
+	# scan = ctreader.read_dicom(ctreader.dataset_path / "DICOMS/ak_1.dcm")
+	# scan = ctreader.to8bit(scan)
+	# ctreader.view(scan)
+
+	missing = [103, 208, 209, 210, 211, 212, 213, 214, 215, 405, 406, 422, 495, 496, 504, 505, 506, 507, 508, 509, 554, 555, 556, 557, 558, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 639]
+
+	print(master)
+
+	old_nums = ctreader.fish_nums
+
+	new_nums = [int(n.stem.split('_')[1]) for n in ctreader.dicoms_path.iterdir()]
+	new_nums = sorted(new_nums)
+
+	print(old_nums, new_nums)
+
+	master = master.replace({np.nan : None})
+	shapes = master['shape'].to_list()
+
+	indices = [True if n is None else False for n in shapes] 
+	print(indices)
+
+	missings = master.iloc[indices]
+
+	import pdb; pdb.set_trace()
+
+
+
 
 	# for i in [40, 468, 200]:
 	# 	scan, metadata = ctreader.read(i, align=True)
