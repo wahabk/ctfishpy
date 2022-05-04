@@ -7,7 +7,7 @@ from pathlib2 import Path
 import napari
 import cv2
 
-def test_metadata(master:pd.DataFrame):
+def test_metadata(master:pd.DataFrame, dataset_path:str):
 	#TODO see whats in master not in Data
 
 	pass
@@ -40,7 +40,15 @@ if __name__ == "__main__":
 
 	missings = master.iloc[indices]
 
-	import pdb; pdb.set_trace()
+	exists = []
+	for m in missing:
+		if m in ctreader.fish_nums:
+			exists.append(m)
+
+	print('missing', missing)
+	print('exists', exists)
+
+	# import pdb; pdb.set_trace()
 
 
 
