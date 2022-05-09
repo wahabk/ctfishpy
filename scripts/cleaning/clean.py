@@ -46,7 +46,7 @@ if __name__ == "__main__":
 	print('missing', missing)
 	print('exists', exists)
 
-	# TODO rename dicoms after rm
+	# rename dicoms after rm
 	current_names = master['ak_n'].to_list()
 	new_names = master.index.to_list()
 
@@ -54,13 +54,21 @@ if __name__ == "__main__":
 	print(new_names)
 	# exit()
 
-	for old, new in zip(current_names, new_names):
-		if old != new:
-			path = ctreader.dicoms_path / f"ak_{old}.dcm"
-			new_path = ctreader.dicoms_path / f"ak_{new}.dcm"
-			print(f"renaming {old} to {new}")
-			path.rename(new_path)
+	#rename dicoms
+	# for old, new in zip(current_names, new_names):
+	# 	if old != new:
+	# 		path = ctreader.dicoms_path / f"ak_{old}.dcm"
+	# 		new_path = ctreader.dicoms_path / f"ak_{new}.dcm"
+	# 		print(f"renaming {old} to {new}")
+	# 		path.rename(new_path)
 
+	#rename projections
+	# for axis in ['X', 'XY', 'Y', 'Z']:
+	# 	for old, new in zip(current_names, new_names):
+	# 		path = ctreader.dataset_path / "PROJECTIONS" / axis / f"{axis.lower()}_{old}.png"
+	# 		new_path = ctreader.dataset_path / "PROJECTIONS" / axis / f"{axis.lower()}_{new}.png"
+	# 		print(f"renaming {path} to {new_path}")
+	# 		path.rename(new_path)
 
 
 	#test dixoms
