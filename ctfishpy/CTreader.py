@@ -2,7 +2,6 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
-from ast import DictComp
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path

@@ -1,4 +1,4 @@
-from ctfishpy.tf_model.dataGenie import *
+from ctfishpy.tf_models.dataGenie import *
 import ctfishpy
 import os
 import time
