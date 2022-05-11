@@ -9,6 +9,9 @@ import cv2
 
 def test_metadata(master:pd.DataFrame, dataset_path:str):
 	#TODO see whats in master not in Data
+	master.index
+
+	ctreader.fish_nums
 
 	pass
 
@@ -30,16 +33,11 @@ if __name__ == "__main__":
 	new_nums = [int(n.stem.split('_')[1]) for n in ctreader.dicoms_path.iterdir()]
 	new_nums = sorted(new_nums)
 
-	print(old_nums, new_nums)
-
 	master = master.replace({np.nan : None})
 	shapes = master['shape'].to_list()
 
 	indices = [True if n is None else False for n in shapes] 
-	print(indices)
-
 	missings = master.iloc[indices]
-
 	exists = []
 	for m in missing:
 		if m in ctreader.fish_nums:
@@ -48,14 +46,37 @@ if __name__ == "__main__":
 	print('missing', missing)
 	print('exists', exists)
 
+	# rename dicoms after rm
+	current_names = master['ak_n'].to_list()
+	new_names = master.index.to_list()
+
+	print(current_names)
+	print(new_names)
+	# exit()
+
+	#rename dicoms
+	# for old, new in zip(current_names, new_names):
+	# 	if old != new:
+	# 		path = ctreader.dicoms_path / f"ak_{old}.dcm"
+	# 		new_path = ctreader.dicoms_path / f"ak_{new}.dcm"
+	# 		print(f"renaming {old} to {new}")
+	# 		path.rename(new_path)
+
+	#rename projections
+	# for axis in ['X', 'XY', 'Y', 'Z']:
+	# 	for old, new in zip(current_names, new_names):
+	# 		path = ctreader.dataset_path / "PROJECTIONS" / axis / f"{axis.lower()}_{old}.png"
+	# 		new_path = ctreader.dataset_path / "PROJECTIONS" / axis / f"{axis.lower()}_{new}.png"
+	# 		print(f"renaming {path} to {new_path}")
+	# 		path.rename(new_path)
+
+
+	#test dixoms
 	# import pdb; pdb.set_trace()
-
-
-
-
 	# for i in [40, 468, 200]:
 	# 	scan, metadata = ctreader.read(i, align=True)
 	# 	ctreader.view(scan)
+
 
 
 
@@ -68,12 +89,13 @@ if __name__ == "__main__":
 	# print(angle, center)
 
 
+
+
+
+
+
 	# save temp metadata with shape as practice
-
-
-
-
-
+	# fixing names and tifpaths
 	# path = Path("/home/wahab/Data/Local/uCT/low_res_dicoms")
 	# name = "ak_test"
 	# print(scan.dtype)
@@ -102,6 +124,12 @@ if __name__ == "__main__":
 
 
 
+
+
+
+
+
+	#fix anglepath
 	# with open(ctreader.anglePath, "r") as fp:
 	# 	angles = json.load(fp)
 

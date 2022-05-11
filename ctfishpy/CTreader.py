@@ -44,9 +44,9 @@ class CTreader:
 
 		if data_path:
 			self.dataset_path = Path(data_path)
-			self.low_res_clean_path = self.dataset_path / "LOW_RES_CLEAN/"
+			# self.low_res_clean_path = self.dataset_path / "LOW_RES_CLEAN/"
 			self.dicoms_path = self.dataset_path / "DICOMS/"
-			nums = [int(path.stem) for path in self.low_res_clean_path.iterdir() if path.is_dir()]
+			nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
 			nums.sort()
 			self.fish_nums = nums
 		else:
