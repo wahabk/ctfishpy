@@ -81,6 +81,13 @@ class CTreader:
 		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]["n"])
 
+	def read(self, fish:int):
+		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+		return scan
+
+	def get_metadata(self, fish:int):
+		return self.master.loc[fish].to_dict()
+
 	def read_dicom(self, path, bits=16, dtype='uint16'):
 		with pydicom.dcmread(path) as ds:
 			ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
@@ -139,9 +146,7 @@ class CTreader:
 
 		ds.save_as(path, write_like_original=True)
 
-
-
-	def read_path(self, path, r=None):
+	def read_tif(self, path, r=None):
 
 		images = [str(i) for i in path.iterdir() if i.suffix == '.tiff']
 		images.sort()
@@ -162,7 +167,8 @@ class CTreader:
 
 		return ct
 
-	def read(self, fish, r=None, align=False):
+	@deprecated
+	def old_read(self, fish, r=None, align=False):
 		"""
 		Main function to read zebrafish from local dataset path specified during initialisation
 
@@ -218,27 +224,6 @@ class CTreader:
 
 		return ct, stack_metadata
 
-	def read_range(self, n: int, center: list, roiSize: list):
-		#only read range
-		new_center = deepcopy(center)
-
-		roiZ = roiSize[0]
-		z_center = new_center[0]
-		new_center[0] = int(roiSize[0]/2)
-		ct, stack_metadata = self.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
-		ct = self.crop3d(ct, roiSize, center=new_center)
-		return ct, stack_metadata
-
-	def read_metadata(self, fish):
-		"""
-		Return metadata dictionary from each fish json
-		"""
-		fishpath = self.low_res_clean_path/ str(fish).zfill(3)
-		metadatapath = fishpath / "metadata.json"
-		with metadatapath.open() as metadatafile:
-			stack_metadata = json.load(metadatafile)
-		return stack_metadata
-
 	def read_label(self, organ, n, is_amira=True):
 		"""
 		Read and return hdf5 label files
@@ -246,6 +231,8 @@ class CTreader:
 		parameters
 		organ : give string of organ you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
 		n : number of fish to get labels
+
+		TODO clean marielle and zack otolith labels into new hdf5 or can i write amira?
 
 		NOTE: This always reads labels aligned where dorsal fin is pointing upwards 
 		so make you sure you align your scan when you read it
@@ -323,6 +310,7 @@ class CTreader:
 		parameters
 		label = label to save as a numpy array
 		put n =0 if label is a cc template
+		compression 9 or 1 smaller?
 		'''
 		folderPath = Path(f'{self.dataset_path}/Compressed/')
 		folderPath.mkdir(parents=True, exist_ok=True)
@@ -379,13 +367,13 @@ class CTreader:
 
 		return projections
 
-	def resize(self, img, percent=100):
-		# use scipy zoom for this
-		width = int(img.shape[1] * percent / 100)
-		height = int(img.shape[0] * percent / 100)
+	def resize(self, img, scale=100):
+		# use scipy ndimage zoom
+		width = int(img.shape[1] * scale / 100)
+		height = int(img.shape[0] * scale / 100)
 		return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
-	def to8bit(self, array):
+	def to8bit(self, array:np.ndarray):
 		"""
 		Change array from 16bit to 8bit by mapping the data range to 0 - 255
 
@@ -399,6 +387,9 @@ class CTreader:
 			return new_array
 
 	def rotate_array(self, array, angle, is_label, center=None):
+		"""
+		Rotate using affine transformation
+		"""
 		new_array = []
 		for a in array:
 			a_rotated = self.rotate_image(a, angle=angle, is_label=is_label, center=center)
@@ -458,26 +449,6 @@ class CTreader:
 		new_img = (img > thresh) * img
 		return new_img
 
-	def write_json(self, nparray, jsonpath):
-		"""
-		A quick way to save nparrays as json 
-		"""
-		json.dump(
-			nparray,
-			codecs.open(jsonpath, "w", encoding="utf-8"),
-			separators=(",", ":"),
-			sort_keys=True,
-			indent=4,
-		)  ### this saves the array in .json format
-
-	def read_json(self, jsonpath):
-		"""
-		Quickly read nparrays as json
-		"""
-		obj_text = codecs.open(jsonpath, "r", encoding="utf-8").read()
-		obj = json.loads(obj_text)
-		return np.array(obj)
-
 	def crop3d(self, array, roiSize, center=None):
 		roiZ, roiY, roiX = roiSize
 		zl = int(roiZ / 2)
@@ -491,25 +462,6 @@ class CTreader:
 		z, y, x = center
 		z, y, x = int(z), int(y), int(x)
 		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
-		return array
-
-	@deprecated()
-	def crop_around_center3d(self, array, roiSize, roiZ=None, center=None):
-		"""
-		Crop around the center of 3d array
-		You can specify the center of crop if you want
-		Also possible to set different ROI size for XY and Z
-		"""
-
-		xl = int(roiSize[0] / 2)
-		yl = int(roiSize[1] / 2)
-		zl = int(roiZ / 2)
-
-		if center == None:
-			c = int(array.shape[0] / 2)
-			center = [c, c, c]
-		z, x, y = center
-		array = array[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl]
 		return array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):

@@ -25,11 +25,9 @@ import neptune.new as neptune
 from neptune.new.types import File
 from ray import tune
 import torchio as tio
+from .CTreader import CTreader
 
-from .deepcolloid import DeepColloid
 from .models.unet import UNet
-from .simulator import crop_positions_for_label
-from .predict import *
 from torch.nn import BCELoss
 import torch.nn.functional as F
 
@@ -37,19 +35,19 @@ import torch.nn.functional as F
 Datasets
 """
 
-class ColloidsDatasetSimulated(torch.utils.data.Dataset):
+class CTDataset(torch.utils.data.Dataset):
 	"""
 	
-	Torch Dataset for simulated colloids
+	Torch Dataset for otoliths
 
 	transform is augmentation function
 
 	"""	
 
-	def __init__(self, dataset_path:str, dataset_name:str, indices:list, transform=None, label_transform=None, return_metadata=False, label_size:tuple=(64,64,64)):	
+	def __init__(self, dataset_path:str, bone_name:str, indices:list, transform=None, label_transform=None, return_metadata=False, label_size:tuple=(64,64,64)):	
 		super().__init__()
 		self.dataset_path = dataset_path
-		self.dataset_name = dataset_name
+		self.bone_name = bone_name
 		self.indices = indices
 		self.transform = transform
 		self.label_transform = label_transform
@@ -61,17 +59,15 @@ class ColloidsDatasetSimulated(torch.utils.data.Dataset):
 		return len(self.indices)
 
 	def __getitem__(self, index):
-		dc = DeepColloid(self.dataset_path)
+		ctreader = CTreader(self.dataset_path)
 		# Select sample
 		i = self.indices[index]
 
-		data = dc.read_hdf5(self.dataset_name, i)
+		data = ctreader.read(i)
 		X, y, positions, metadata = data['image'], data['label'], data['positions'], data['metadata']
 
-		# dc.view(X)
-		# napari.run()
-
-		y = dc.crop3d(y, self.label_size)
+		# if label size is smaller for roi
+		y = ctreader.crop3d(y, self.label_size)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		y = np.array(y/y.max() , dtype=np.float32)
@@ -89,6 +85,8 @@ class ColloidsDatasetSimulated(torch.utils.data.Dataset):
 		X = torch.from_numpy(X)
 		y = torch.from_numpy(y)
 
+
+		# This weird code is for applying the same transforms to x and y
 		if self.transform:
 			if self.label_transform:
 				stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
@@ -126,8 +124,6 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 	by default for ray tune
 	'''
 
-	dc = DeepColloid(dataset_path)
-
 	# setup neptune
 	run = neptune.init(
 		project="wahabk/colloidoscope",
@@ -151,6 +147,7 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 		n_classes = 1,
 		random_seed = 42,
 	)
+
 	run['Tags'] = name
 	run['parameters'] = params
 	#TODO find a way to precalculate this - should i only unpad the first block?
@@ -627,59 +624,6 @@ class LearningRateFinder:
 Utils
 """
 
-def dep_test(model, train_data, device='cpu'):
-
-	for d in train_data:
-		label, positions = predict(d, model, device=device, return_positions=True)
-
-def find_positions(result, threshold) -> np.ndarray:
-	label = result.copy()
-
-	label[label > threshold] = 1
-	label[label < threshold] = 0
-
-	str_3D=np.array([[[0, 0, 0],
-					[0, 1, 0],
-					[0, 0, 0]],
-
-					[[0, 1, 0],
-					[1, 1, 1],
-					[0, 1, 0]],
-
-					[[0, 0, 0],
-					[0, 1, 0],
-					[0, 0, 0]]], dtype='uint8')
-
-	resultLabel = scipy.ndimage.label(label, structure=str_3D)
-	positions = scipy.ndimage.center_of_mass(result, resultLabel[0], index=range(1,resultLabel[1]))
-	return np.array(positions)
-
-def read_real_examples():
-
-	d = {}
-
-	d['abraham'] = {}
-	d['abraham']['diameter'] = 15
-	d['abraham']['array'] = io.imread('examples/Data/abraham.tiff')
-	d['emily'] = {}
-	d['emily']['diameter'] = 9
-	d['emily']['array'] = io.imread('examples/Data/emily.tiff')
-	d['katherine'] = {}
-	d['katherine']['diameter'] = 9
-	d['katherine']['array'] = io.imread('examples/Data/katherine.tiff')
-	d['levke'] = {}
-	d['levke']['diameter'] = 9
-	d['levke']['array'] = io.imread('examples/Data/levke.tiff')
-
-	return d
-
-def run_trackpy(array, diameter=5, *args, **kwargs):
-	df = None
-	df = tp.locate(array, diameter=5, *args, **kwargs)
-	f = list(zip(df['z'], df['y'], df['x']))
-	tp_predictions = np.array(f)
-
-	return tp_predictions
 
 def renormalise(tensor: torch.Tensor):
 	array = tensor.cpu().numpy()  # send to cpu and transform to numpy.ndarray
@@ -704,18 +648,4 @@ class DiceLoss(torch.nn.Module):
         dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
         
         return 1 - dice
-
-def make_proj(test_array, test_label):
-
-	array_projection = np.max(test_array, axis=0)
-	label_projection = np.max(test_label, axis=0)*255
-	# new_label = np.zeros_like(array_projection)
-
-	if label_projection.shape != array_projection.shape:
-		label_projection.resize(array_projection.shape)
-
-	sidebyside = np.concatenate((array_projection, label_projection), axis=1)
-	sidebyside /= sidebyside.max()
-
-	return sidebyside
 

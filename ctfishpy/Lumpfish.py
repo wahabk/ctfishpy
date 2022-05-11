@@ -1,3 +1,14 @@
+"""
+Lumpfish
+
+Lumpfish are cleaner fish added to salmon farms. This script serves to seperate all the data cleaning and wrangling
+code from the main body of CTfishpy.
+
+You should not be using this unless you've spoken to the author. Please use CTreader.
+
+Use at your own risk as I try to write this quickly.
+"""
+
 from cv2 import sort
 from deprecated import deprecated
 from qtpy.QtCore import QSettings

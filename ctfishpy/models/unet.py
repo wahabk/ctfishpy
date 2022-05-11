@@ -619,3 +619,4 @@ class UNet(nn.Module):
         }
         d = {self.__class__.__name__: attributes}
         return f"{d}"
+
