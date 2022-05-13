@@ -11,17 +11,13 @@ import pandas as pd
 import numpy as np
 import cv2
 import h5py
-import codecs
-from copy import deepcopy
 import json
 import napari
 import warnings
 import pydicom
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
-import tempfile
 import datetime
-import os
 
 class CTreader:
 	def __init__(self, data_path=None):

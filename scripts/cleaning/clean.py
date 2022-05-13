@@ -54,13 +54,13 @@ if __name__ == "__main__":
 	print(new_names)
 	# exit()
 
-	#rename dicoms
-	# for old, new in zip(current_names, new_names):
-	# 	if old != new:
-	# 		path = ctreader.dicoms_path / f"ak_{old}.dcm"
-	# 		new_path = ctreader.dicoms_path / f"ak_{new}.dcm"
-	# 		print(f"renaming {old} to {new}")
-	# 		path.rename(new_path)
+	# rename dicoms
+	for old, new in zip(current_names, new_names):
+		if old != new:
+			path = ctreader.dicoms_path / f"ak_{old}.dcm"
+			new_path = ctreader.dicoms_path / f"ak_{new}.dcm"
+			print(f"renaming {old} to {new}")
+			path.rename(new_path)
 
 	#rename projections
 	# for axis in ['X', 'XY', 'Y', 'Z']:
