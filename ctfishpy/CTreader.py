@@ -56,6 +56,8 @@ class CTreader:
 		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
 		with open(self.centres_path, "r") as fp:
 			self.manual_centers = json.load(fp)
+		
+		self.bones = ["otoliths", "jaw"]
 
 	def metadata_tester():
 		"""

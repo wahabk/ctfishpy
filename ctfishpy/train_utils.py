@@ -44,10 +44,9 @@ class CTDataset(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, dataset_path:str, bone_name:str, indices:list, transform=None, label_transform=None, return_metadata=False, label_size:tuple=(64,64,64)):	
+	def __init__(self, bone:str, indices:list, transform=None, label_transform=None, return_metadata=False, label_size:tuple=None):	
 		super().__init__()
-		self.dataset_path = dataset_path
-		self.bone_name = bone_name
+		self.bone = bone
 		self.indices = indices
 		self.transform = transform
 		self.label_transform = label_transform
@@ -63,11 +62,15 @@ class CTDataset(torch.utils.data.Dataset):
 		# Select sample
 		i = self.indices[index]
 
-		data = ctreader.read(i)
-		X, y, positions, metadata = data['image'], data['label'], data['positions'], data['metadata']
+		X = ctreader.read(i)
+		y = ctreader.read_label(self.bone, i)
+
+
 
 		# if label size is smaller for roi
-		y = ctreader.crop3d(y, self.label_size)
+		if self.label_size is not None:
+			self.label_size == X.shape
+			y = ctreader.crop3d(y, self.label_size)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		y = np.array(y/y.max() , dtype=np.float32)
@@ -99,7 +102,6 @@ class CTDataset(torch.utils.data.Dataset):
 
 		return X, y,
 
-
 def compute_max_depth(shape=1920, max_depth=10, print_out=True):
     shapes = []
     shapes.append(shape)
@@ -119,22 +121,23 @@ Train and test
 """
 
 
-def train(config, name, dataset_path, dataset_name, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
+def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
 	'''
 	by default for ray tune
 	'''
 
 	# setup neptune
 	run = neptune.init(
-		project="wahabk/colloidoscope",
-		api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
+		project="wahabk/Fishnet",
+    	api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
 	)
+
 	params = dict(
-		roiSize = (64,64,64),
+		bone=bone,
+		roiSize = (128,128,256,1),
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
-		dataset_name = dataset_name,
 		batch_size = config['batch_size'],
 		n_blocks = config['n_blocks'],
 		norm = config['norm'],
@@ -144,7 +147,7 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 		start_filters = config['start_filters'],
 		activation = config['activation'],
 		num_workers = num_workers,
-		n_classes = 1,
+		n_classes = 3,
 		random_seed = 42,
 	)
 
@@ -171,10 +174,10 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 	])
 
 	# create a training data loader
-	train_ds = ColloidsDatasetSimulated(dataset_path, params['dataset_name'], params['train_data'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_ds = CTDataset(params['bone'], params['train_data'], transform=transforms_img, label_transform=None, label_size=label_size) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
 	# create a validation data loader
-	val_ds = ColloidsDatasetSimulated(dataset_path, params['dataset_name'], params['val_data'], label_size=label_size) 
+	val_ds = CTDataset(params['bone'], params['val_data'], label_size=label_size) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
 
 	# device
@@ -188,7 +191,7 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 				start_filters=params['start_filters'],
 				activation=params['activation'],
 				normalization=params['norm'],
-				conv_mode='valid',
+				conv_mode='same',
 				up_mode='transposed',
 				dim=3,
 				skip_connect=None,
@@ -232,7 +235,7 @@ def train(config, name, dataset_path, dataset_name, train_data, val_data, test_d
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
 
-	losses = test(model, dataset_path, dataset_name, test_data, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(model, bone, test_data, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 	# run['test/test'].log(losses) #if dict
 
@@ -314,6 +317,7 @@ def test(model, dataset_path, dataset_name, test_set, threshold=0.5, num_workers
 			# print(y.shape, y.max(), y.min())
 
 			#TODO make this dependant on criterion?
+			# TODO find ROC
 
 			out = model(x)  # send through model/network
 			loss = criterion(out, y)
@@ -323,10 +327,7 @@ def test(model, dataset_path, dataset_name, test_set, threshold=0.5, num_workers
 			result = out_sigmoid.cpu().numpy()  # send to cpu and transform to numpy.ndarray
 			result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
 
-			pred_positions = find_positions(result, threshold)
-			pred_positions = run_trackpy(result, diameter=dc.round_up_to_odd(metadata['params']['r']*2))
-			prec, rec = dc.get_precision_recall(true_positions, pred_positions, diameters, 0.5,)
-			print(pred_positions.shape)
+
 
 			m = {
 				'dataset': metadata['dataset'],
@@ -343,36 +344,7 @@ def test(model, dataset_path, dataset_name, test_set, threshold=0.5, num_workers
 			losses.append(m)
 
 	losses = pd.DataFrame(losses)
-
 	print(losses)
-	fig, axs = plt.subplots(3,2)
-	sns.scatterplot(x='volfrac', y = 'precision', data=losses, ax=axs[0,0])
-	sns.scatterplot(x='noise', y = 'precision', data=losses, ax=axs[0,1])
-	sns.scatterplot(x='psf_zoom', y = 'precision', data=losses, ax=axs[1,0])
-	sns.scatterplot(x='brightness', y = 'precision', data=losses, ax=axs[1,1])
-	sns.scatterplot(x='r', y = 'precision', data=losses, ax=axs[2,1])
-	fig.tight_layout()
-	run['test/params_vs_prec'].upload(fig)
-
-	plt.clf()
-	fig, axs = plt.subplots(3,2)
-	sns.scatterplot(x='volfrac', y = 'recall', data=losses, ax=axs[0,0])
-	sns.scatterplot(x='noise', y = 'recall', data=losses, ax=axs[0,1])
-	sns.scatterplot(x='psf_zoom', y = 'recall', data=losses, ax=axs[1,0])
-	sns.scatterplot(x='brightness', y = 'recall', data=losses, ax=axs[1,1])
-	sns.scatterplot(x='r', y = 'recall', data=losses, ax=axs[2,1])
-	fig.tight_layout()
-	run['test/params_vs_rec'].upload(fig)
-
-	plt.clf()
-	fig, axs = plt.subplots(3,2)
-	sns.scatterplot(x='volfrac', y = 'loss', data=losses, ax=axs[0,0])
-	sns.scatterplot(x='noise', y = 'loss', data=losses, ax=axs[0,1])
-	sns.scatterplot(x='psf_zoom', y = 'loss', data=losses, ax=axs[1,0])
-	sns.scatterplot(x='brightness', y = 'loss', data=losses, ax=axs[1,1])
-	sns.scatterplot(x='r', y = 'loss', data=losses, ax=axs[2,1])
-	fig.tight_layout()
-	run['test/params_vs_loss'].upload(fig)
 
 	return losses
 
