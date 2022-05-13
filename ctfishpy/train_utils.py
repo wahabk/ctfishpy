@@ -65,12 +65,12 @@ class CTDataset(torch.utils.data.Dataset):
 		X = ctreader.read(i)
 		y = ctreader.read_label(self.bone, i)
 
-
+		#TODO read man centers and crop
 
 		# if label size is smaller for roi
 		if self.label_size is not None:
 			self.label_size == X.shape
-			y = ctreader.crop3d(y, self.label_size)
+		y = ctreader.crop3d(y, self.label_size)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		y = np.array(y/y.max() , dtype=np.float32)
