@@ -28,6 +28,7 @@ if __name__ == "__main__":
 	wahab_samples 	= [78,200,218,240,277,330,337,341,462,464,364,385]
 	mariel_samples	= [421,423,242,463,259,459,461]
 	zac_samples		= [257,443,218,364,464]
+	# TODO translate to samples
 
 	all_data = wahab_samples+mariel_samples+zac_samples
 	print(f"All data: {len(all_data)}")

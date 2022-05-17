@@ -83,7 +83,7 @@ class CTreader:
 		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
 		return scan
 
-	def get_metadata(self, fish:int):
+	def read_metadata(self, fish:int):
 		return self.master.loc[fish].to_dict()
 
 	def read_dicom(self, path, bits=16, dtype='uint16'):

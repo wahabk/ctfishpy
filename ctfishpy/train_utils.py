@@ -44,10 +44,11 @@ class CTDataset(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, bone:str, indices:list, transform=None, label_transform=None, return_metadata=False, label_size:tuple=None):	
+	def __init__(self, bone:str, indices:list, roi_size:tuple, transform=None, label_transform=None, return_metadata=False, label_size:tuple=None):	
 		super().__init__()
 		self.bone = bone
 		self.indices = indices
+		self.roi_size = roi_size
 		self.transform = transform
 		self.label_transform = label_transform
 		self.return_metadata = return_metadata
@@ -59,17 +60,25 @@ class CTDataset(torch.utils.data.Dataset):
 
 	def __getitem__(self, index):
 		ctreader = CTreader(self.dataset_path)
+		master = ctreader.master
 		# Select sample
 		i = self.indices[index]
 
+		old_name = master.iloc[master['old_n' == i]]
+
 		X = ctreader.read(i)
-		y = ctreader.read_label(self.bone, i)
+		y = ctreader.read_label(self.bone, old_name)
+		metadata = ctreader.read_metadata(i)
+
+		centers = ctreader.manual_centers
+		center = centers[str(old_name)]
 
 		#TODO read man centers and crop
 
+		X = ctreader.crop3d(y, self.roi_size)
 		# if label size is smaller for roi
 		if self.label_size is not None:
-			self.label_size == X.shape
+			self.label_size == self.roi_size
 		y = ctreader.crop3d(y, self.label_size)
 
 		X = np.array(X/X.max(), dtype=np.float32)
