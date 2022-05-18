@@ -22,6 +22,7 @@ setup(
                 'PyQt5',
                 'qtpy',
                 'torch',
+                'monai',
                 'torchio',
                 'neptune-client',
                 'ray[tune]',

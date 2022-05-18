@@ -27,7 +27,7 @@ class CTreader:
 		if local_dataset_path.exists():
 			with open(local_dataset_path) as f:
 				data_path = f.readlines()[0]
-			print(data_path)
+			# print(data_path)
 		else:
 			local_dataset_path.touch()
 			print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
@@ -222,12 +222,12 @@ class CTreader:
 
 		return ct, stack_metadata
 
-	def read_label(self, organ, n, is_amira=True):
+	def read_label(self, bone, n, is_amira=True):
 		"""
 		Read and return hdf5 label files
 
 		parameters
-		organ : give string of organ you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
+		bone : give string of bone you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
 		n : number of fish to get labels
 
 		TODO clean marielle and zack otolith labels into new hdf5 or can i write amira?
@@ -237,50 +237,48 @@ class CTreader:
 
 		"""
 
-		# if organ not in ['Otoliths']:
-		# 	raise Exception('organ not found')
+		# if bone not in ['Otoliths']:
+		# 	raise Exception('bone not found')
 
 
-		if n!=0 and is_amira==False:
-			label_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
-			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
+		if is_amira==False:
+			label_path = str(self.dataset_path / f'LABELS/Organs/{bone}/{bone}.h5')
 
 			with h5py.File(label_path, "r") as f:
 				label = np.array(f[str(n)])
 			
 
-		elif n!=0 and is_amira==True:
-			label_path = self.dataset_path / f'Labels/Organs/{organ}/{n}.am'
-			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
+		elif is_amira==True:
+			label_path = self.dataset_path / f'LABELS/Organs/{bone}/{n}.am'
 			
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
 			# fix for different ordering from mariel labels
 			mariel_samples	= [421,423,242,463,259,459,256,530,589] 
-			if n in mariel_samples and organ == 'Otoliths':
+			if n in mariel_samples and bone == 'Otoliths':
 				label[label==2]=1
 				label[label==3]=2
 				label[label==4]=3
 
-		if organ == 'Otoliths':
+		if bone == 'Otoliths':
 			if is_amira:
 				align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False # This is a fix for undergrad labelled data
 			else:
 				align = True
-		elif organ == 'Otoliths_unet2d':
+		elif bone == 'Otoliths_unet2d':
 			align = False
 		
 		if align:
 			# get manual alignment
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
-			angle = angles[str(n)]
+			angle = angles[str(n)]['angle']
+			center = angles[str(n)]['center']
 			# stack_metadata = self.read_metadata(n)
-			label = [self.rotate_image(i, angle, is_label=True) for i in label]
+			label = self.rotate_array(label, angle, is_label=True, center=center)
 			label = np.array(label)
 
-		print("Labels ready.")
 		return label
 
 	def write_label(self, organ, label, n, dtype='uint8'):

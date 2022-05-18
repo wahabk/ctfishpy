@@ -135,7 +135,8 @@ dmypy.json
 *.h5
 *.hdf5
 
-output/Model/weights/*
-output/Model/datagenie_Test/*
+output/old/Model/weights/*
+output/old/Model/datagenie_Test/*
+output/weights/
 
 ctfishpy/Metadata/local_dataset_path.txt

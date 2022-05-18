@@ -6,9 +6,9 @@ This file contains:
 - Pytorch Trainer
 - training and testing functions
 - training utilities
-
 """
 
+import ctfishpy
 import numpy as np
 import pandas as pd
 import scipy
@@ -16,8 +16,6 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm, trange
 import math
 import os
-from skimage import io
-import seaborn as sns
 import copy
 
 import torch
@@ -26,10 +24,7 @@ from neptune.new.types import File
 from ray import tune
 import torchio as tio
 from .CTreader import CTreader
-
 from .models.unet import UNet
-from torch.nn import BCELoss
-import torch.nn.functional as F
 
 """
 Datasets
@@ -59,27 +54,30 @@ class CTDataset(torch.utils.data.Dataset):
 		return len(self.indices)
 
 	def __getitem__(self, index):
-		ctreader = CTreader(self.dataset_path)
+		ctreader = ctfishpy.CTreader()
 		master = ctreader.master
 		# Select sample
-		i = self.indices[index]
+		old_name = self.indices[index]
 
-		old_name = master.iloc[master['old_n' == i]]
+		i = master.loc[master['old_n'] == old_name].index[0]
+
+		#fix for undergrads
+		align = True if old_name in [78,200,218,240,277,330,337,341,462,464,364,385] else False
+		is_amira = True
 
 		X = ctreader.read(i)
-		y = ctreader.read_label(self.bone, old_name)
+		y = ctreader.read_label(self.bone, old_name, is_amira=is_amira)
 		metadata = ctreader.read_metadata(i)
 
-		centers = ctreader.manual_centers
-		center = centers[str(old_name)]
+		center = ctreader.manual_centers[str(old_name)]
 
 		#TODO read man centers and crop
 
-		X = ctreader.crop3d(y, self.roi_size)
+		X = ctreader.crop3d(X, self.roi_size, center=center)
 		# if label size is smaller for roi
 		if self.label_size is not None:
 			self.label_size == self.roi_size
-		y = ctreader.crop3d(y, self.label_size)
+		y = ctreader.crop3d(y, self.label_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		y = np.array(y/y.max() , dtype=np.float32)
@@ -91,12 +89,8 @@ class CTDataset(torch.utils.data.Dataset):
 		X = np.expand_dims(X, 0)      # if numpy array
 		y = np.expand_dims(y, 0)
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
-
-		# import pdb; pdb.set_trace()
-
 		X = torch.from_numpy(X)
 		y = torch.from_numpy(y)
-
 
 		# This weird code is for applying the same transforms to x and y
 		if self.transform:
@@ -251,65 +245,26 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	run.stop()
 
 
-def test(model, dataset_path, dataset_name, test_set, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=(64,64,64)):
-	# TODO add detection r param
-	
-	dc = DeepColloid(dataset_path)
+def test(model, bone, test_set, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=(64,64,64)):
+	pass
+
+	ctreader = ctfishpy.CTreader()
 	print('Running test, this may take a while...')
 	
 	# test on real data
-	real_dict = read_real_examples()
-	for name, d in real_dict.items():
-		pred_positions, label = dc.detect(d['array'], diameter = 7, model=model, debug=True)
-		print(pred_positions)
-		if len(pred_positions>0):
-			sidebyside = make_proj(d['array'], label)
-			run[name].upload(File.as_image(sidebyside))
 
-			trackpy_pos = run_trackpy(d['array'], diameter = dc.round_up_to_odd(d['diameter'])-2)
-			x, y = dc.get_gr(trackpy_pos, 50, 100)
-			plt.plot(x, y, label=f'tp n ={len(trackpy_pos)}', color='gray')
-			x, y = dc.get_gr(pred_positions, 50, 100)
-			plt.plot(x, y, label=f'unet n ={len(pred_positions)}', color='red')
-			plt.legend()
-			fig = plt.gcf()
-			run[name+'gr'].upload(fig)
-			plt.clf()
 
 	# test predict on sim
-	data_dict = dc.read_hdf5('test', 1)
-	test_array, true_positions, label, diameters, metadata = data_dict['image'], data_dict['positions'], data_dict['label'], data_dict['diameters'], data_dict['metadata']
-	pred_positions, test_label = dc.detect(test_array, diameter = 7, model=model, debug=True)
-	sidebyside = make_proj(test_array, test_label)
+	sidebyside = None
 	run['prediction'].upload(File.as_image(sidebyside))
-	trackpy_positions = dc.run_trackpy(test_array, dc.round_up_to_odd(metadata['params']['r']*2))
 
-
-	if len(pred_positions) == 0:
-		print('Skipping gr() as bad pred')
-	else:
-		x, y = dc.get_gr(true_positions, 50, 100)
-		plt.plot(x, y, label=f'true n ={len(true_positions)}', color='gray')
-		x, y = dc.get_gr(pred_positions, 50, 100)
-		plt.plot(x, y, label=f'unet n ={len(pred_positions)}', color='red')
-
-		x, y = dc.get_gr(trackpy_positions, 50, 100)
-		plt.plot(x, y, label=f'trackpy n ={len(trackpy_positions)}', color='black')
-		plt.legend()
-		fig = plt.gcf()
-		run['gr'].upload(fig)
-		plt.clf()
-
-	ap, precisions, recalls, thresholds = dc.average_precision(true_positions, pred_positions, diameters=diameters)
-	run['AP'] = ap
-	fig = dc.plot_pr(ap, precisions, recalls, thresholds, name='Unet', tag='o-', color='red')
-	ap, precisions, recalls, thresholds = dc.average_precision(true_positions, trackpy_positions, diameters=diameters)
-	fig = dc.plot_pr(ap, precisions, recalls, thresholds, name='trackpy', tag='x-', color='gray')
+	# TODO plot roc
+	fig = None
 
 	run['PR_curve'].upload(fig)
-	plt.clf()
 
-	test_ds = ColloidsDatasetSimulated(dataset_path, dataset_name, test_set, return_metadata=False, label_size=label_size) 
+
+	test_ds = CTDataset(bone, test_set, transform=None, label_transform=None, label_size=label_size) 
 	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
 	losses = []
@@ -317,15 +272,16 @@ def test(model, dataset_path, dataset_name, test_set, threshold=0.5, num_workers
 	with torch.no_grad():
 		for idx, batch in enumerate(test_loader):
 			i = test_set[idx]
-			metadata, true_positions, diameters = dc.read_metadata(dataset_name, i)
-			true_positions, diameters = crop_positions_for_label(true_positions, label_size, diameters=diameters)
 
-			x, y = batch
+			x = ctreader.read(i)
+			y = ctreader.read_label(bone, i)
+			metadata = ctreader.read_metadata(i)
+
 			x, y = x.to(device), y.to(device)
 			# print(x.shape, x.max(), x.min())
 			# print(y.shape, y.max(), y.min())
-
-			#TODO make this dependant on criterion?
+ 
+			# TODO make this dependant on criterion?
 			# TODO find ROC
 
 			out = model(x)  # send through model/network
