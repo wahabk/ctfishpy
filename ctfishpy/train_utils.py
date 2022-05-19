@@ -1,0 +1,588 @@
+"""
+Colloidoscope train_utils
+
+This file contains:
+- Pytorch datasets
+- Pytorch Trainer
+- training and testing functions
+- training utilities
+"""
+
+import ctfishpy
+import numpy as np
+import pandas as pd
+import scipy
+from matplotlib import pyplot as plt
+from tqdm import tqdm, trange
+import math
+import os
+import copy
+
+import torch
+import neptune.new as neptune
+from neptune.new.types import File
+from ray import tune
+import torchio as tio
+from .CTreader import CTreader
+from .models.unet import UNet
+
+"""
+Datasets
+"""
+
+class CTDataset(torch.utils.data.Dataset):
+	"""
+	
+	Torch Dataset for otoliths
+
+	transform is augmentation function
+
+	"""	
+
+	def __init__(self, bone:str, indices:list, roi_size:tuple, transform=None, label_transform=None, return_metadata=False, label_size:tuple=None):	
+		super().__init__()
+		self.bone = bone
+		self.indices = indices
+		self.roi_size = roi_size
+		self.transform = transform
+		self.label_transform = label_transform
+		self.return_metadata = return_metadata
+		self.label_size = label_size
+
+
+	def __len__(self):
+		return len(self.indices)
+
+	def __getitem__(self, index):
+		ctreader = ctfishpy.CTreader()
+		master = ctreader.master
+		# Select sample
+		old_name = self.indices[index]
+
+		i = master.loc[master['old_n'] == old_name].index[0]
+
+		#fix for undergrads
+		align = True if old_name in [78,200,218,240,277,330,337,341,462,464,364,385] else False
+		is_amira = True
+
+		X = ctreader.read(i)
+		y = ctreader.read_label(self.bone, old_name, is_amira=is_amira)
+		metadata = ctreader.read_metadata(i)
+
+		center = ctreader.manual_centers[str(old_name)]
+
+		#TODO read man centers and crop
+
+		X = ctreader.crop3d(X, self.roi_size, center=center)
+		# if label size is smaller for roi
+		if self.label_size is not None:
+			self.label_size == self.roi_size
+		y = ctreader.crop3d(y, self.label_size, center=center)
+
+		X = np.array(X/X.max(), dtype=np.float32)
+		y = np.array(y/y.max() , dtype=np.float32)
+		
+		# print('x', np.min(X), np.max(X), X.shape)
+		# print('y', np.min(y), np.max(y), y.shape)
+
+		#for reshaping
+		X = np.expand_dims(X, 0)      # if numpy array
+		y = np.expand_dims(y, 0)
+		# tensor = tensor.unsqueeze(1)  # if torch tensor
+		X = torch.from_numpy(X)
+		y = torch.from_numpy(y)
+
+		# This weird code is for applying the same transforms to x and y
+		if self.transform:
+			if self.label_transform:
+				stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
+				stacked = self.label_transform(stacked)
+				X, y = torch.chunk(stacked, chunks=2, dim=0)
+			X = self.transform(X)
+
+		# print('x', np.min(X), np.max(X), X.shape)
+		# print('y', np.min(y), np.max(y), y.shape)
+
+		return X, y,
+
+def compute_max_depth(shape=1920, max_depth=10, print_out=True):
+    shapes = []
+    shapes.append(shape)
+    for level in range(1, max_depth):
+        if shape % 2 ** level == 0 and shape / 2 ** level > 1:
+            shapes.append(shape / 2 ** level)
+            if print_out:
+                print(f'Level {level}: {shape / 2 ** level}')
+        else:
+            if print_out:
+                print(f'Max-level: {level - 1}')
+            break
+    return shapes
+
+"""
+Train and test
+"""
+
+
+def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
+	'''
+	by default for ray tune
+	'''
+
+	# setup neptune
+	run = neptune.init(
+		project="wahabk/Fishnet",
+    	api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
+	)
+
+	params = dict(
+		bone=bone,
+		roiSize = (128,128,256,1),
+		train_data = train_data,
+		val_data = val_data,
+		test_data = test_data,
+		batch_size = config['batch_size'],
+		n_blocks = config['n_blocks'],
+		norm = config['norm'],
+		loss_function = config['loss_function'],
+		lr = config['lr'],
+		epochs = config['epochs'],
+		start_filters = config['start_filters'],
+		activation = config['activation'],
+		num_workers = num_workers,
+		n_classes = 3,
+		random_seed = 42,
+	)
+
+	run['Tags'] = name
+	run['parameters'] = params
+	#TODO find a way to precalculate this - should i only unpad the first block?
+	if config['n_blocks'] == 2: label_size = (48,48,48)
+	if config['n_blocks'] == 3: label_size = (24,24,24)
+
+	transforms_affine = tio.Compose([
+		# tio.RandomFlip(axes=(1,2), flip_probability=0.5),
+		# tio.RandomAffine(),
+	])
+	transforms_img = tio.Compose([
+		tio.RandomAnisotropy(p=0.1),              # make images look anisotropic 25% of times
+		tio.RandomBlur(p=0.1),
+		# tio.OneOf({
+		# 	tio.RandomNoise(0.1, 0.01): 0.1,
+		# 	tio.RandomBiasField(0.1): 0.1,
+		# 	tio.RandomGamma((-0.3,0.3)): 0.1,
+		# 	tio.RandomMotion(): 0.3,
+		# }),
+		tio.RescaleIntensity((0.05,0.95)),
+	])
+
+	# create a training data loader
+	train_ds = CTDataset(params['bone'], params['train_data'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
+	# create a validation data loader
+	val_ds = CTDataset(params['bone'], params['val_data'], label_size=label_size) 
+	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
+
+	# device
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'training on {device}')
+
+	# model
+	model = UNet(in_channels=1,
+				out_channels=params['n_classes'],
+				n_blocks=params['n_blocks'],
+				start_filters=params['start_filters'],
+				activation=params['activation'],
+				normalization=params['norm'],
+				conv_mode='same',
+				up_mode='transposed',
+				dim=3,
+				skip_connect=None,
+				)
+
+	model = torch.nn.DataParallel(model, device_ids=device_ids)
+	model.to(device)
+
+	# loss function
+	# criterion = torch.nn.BCEWithLogitsLoss()
+	criterion = params['loss_function']
+
+	params['loss_function'] = str(copy.deepcopy(params['loss_function']))
+
+	# optimizer
+	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+	optimizer = torch.optim.Adam(model.parameters(), params['lr'])
+	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
+	# scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.0001, max_lr=0.01, cycle_momentum=False)
+
+	# trainer
+	trainer = Trainer(model=model,
+					device=device,
+					criterion=criterion,
+					optimizer=optimizer,
+					training_DataLoader=train_loader,
+					validation_DataLoader=val_loader,
+					lr_scheduler=scheduler,
+					epochs=params['epochs'],
+					logger=run,
+					tuner=tuner,
+					)
+
+	# start training
+	training_losses, validation_losses, lr_rates = trainer.run_trainer()
+
+	run['learning_rates'].log(lr_rates)
+	
+	if save:
+		model_name = save
+		torch.save(model.state_dict(), model_name)
+		# run['model/weights'].upload(model_name)
+
+	losses = test(model, bone, test_data, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	run['test/df'].upload(File.as_html(losses))
+	# run['test/test'].log(losses) #if dict
+
+	run.stop()
+
+
+def test(model, bone, test_set, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=(64,64,64)):
+	pass
+
+	ctreader = ctfishpy.CTreader()
+	print('Running test, this may take a while...')
+	
+	# test on real data
+
+
+	# test predict on sim
+	sidebyside = None
+	run['prediction'].upload(File.as_image(sidebyside))
+
+	# TODO plot roc
+	fig = None
+
+	run['PR_curve'].upload(fig)
+
+
+	test_ds = CTDataset(bone, test_set, transform=None, label_transform=None, label_size=label_size) 
+	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+
+	losses = []
+	model.eval()
+	with torch.no_grad():
+		for idx, batch in enumerate(test_loader):
+			i = test_set[idx]
+
+			x = ctreader.read(i)
+			y = ctreader.read_label(bone, i)
+			metadata = ctreader.read_metadata(i)
+
+			x, y = x.to(device), y.to(device)
+			# print(x.shape, x.max(), x.min())
+			# print(y.shape, y.max(), y.min())
+ 
+			# TODO make this dependant on criterion?
+			# TODO find ROC
+
+			out = model(x)  # send through model/network
+			loss = criterion(out, y)
+			loss = loss.cpu().numpy()
+			out_sigmoid = torch.sigmoid(out)  # perform sigmoid on output because logits
+			# post process to numpy array
+			result = out_sigmoid.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+			result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
+
+
+
+			m = {
+				'dataset': metadata['dataset'],
+				'n' 	 : metadata['n'],
+				'idx'	 : i,
+				'volfrac': metadata['volfrac'],
+				'n_particles':  metadata['n_particles'],
+				**metadata['params'],
+				'loss'	 : float(loss),
+				'precision'	 : float(prec),
+				'recall'	 : float(rec),
+			}
+
+			losses.append(m)
+
+	losses = pd.DataFrame(losses)
+	print(losses)
+
+	return losses
+
+
+
+"""
+Trainer
+"""
+
+class Trainer:
+	def __init__(self,
+				 model: torch.nn.Module,
+				 device: torch.device,
+				 criterion: torch.nn.Module,
+				 optimizer: torch.optim.Optimizer,
+				 training_DataLoader: torch.utils.data.Dataset,
+				 validation_DataLoader: torch.utils.data.Dataset = None,
+				 lr_scheduler: torch.optim.lr_scheduler = None,
+				 epochs: int = 100,
+				 epoch: int = 0,
+				 notebook: bool = False,
+				 logger=None,
+				 tuner=False,
+				 ):
+
+		self.model = model
+		self.criterion = criterion
+		self.optimizer = optimizer
+		self.lr_scheduler = lr_scheduler
+		self.training_DataLoader = training_DataLoader
+		self.validation_DataLoader = validation_DataLoader
+		self.device = device
+		self.epochs = epochs
+		self.epoch = epoch
+		self.notebook = notebook
+		self.logger = logger
+		self.tuner = tuner
+
+		self.training_loss = []
+		self.validation_loss = []
+		self.learning_rate = []
+
+	def run_trainer(self):
+
+		if self.notebook:
+			from tqdm.notebook import tqdm, trange
+		else:
+			from tqdm import tqdm, trange
+
+		progressbar = trange(self.epochs, desc='Progress')
+		for i in progressbar:
+			"""Epoch counter"""
+			self.epoch += 1  # epoch counter
+
+			"""Training block"""
+			self._train()
+
+			if self.logger: self.logger['epochs/loss'].log(self.training_loss[-1])
+
+			"""Validation block"""
+			if self.validation_DataLoader is not None:
+				self._validate()
+
+			if self.logger: self.logger['epochs/val'].log(self.validation_loss[-1])
+
+			if self.tuner:
+				with tune.checkpoint_dir(self.epoch) as checkpoint_dir:
+					path = os.path.join(checkpoint_dir, "checkpoint")
+					torch.save((self.model.state_dict(), self.optimizer.state_dict()), path)
+
+
+			"""Learning rate scheduler block"""
+			if self.lr_scheduler is not None:
+				if self.validation_DataLoader is not None and self.lr_scheduler.__class__.__name__ == 'ReduceLROnPlateau':
+					self.lr_scheduler.step(self.validation_loss[i])  # learning rate scheduler step with validation loss
+				else:
+					self.lr_scheduler.step()  # learning rate scheduler step
+		return self.training_loss, self.validation_loss, self.learning_rate
+
+	def _train(self):
+
+		if self.notebook:
+			from tqdm.notebook import tqdm, trange
+		else:
+			from tqdm import tqdm, trange
+
+		self.model.train()  # train mode
+		train_losses = []  # accumulate the losses here
+		batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
+						  leave=False)
+
+		for i, (x, y) in batch_iter:
+			input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+			self.optimizer.zero_grad()  # zerograd the parameters
+			out = self.model(input_)  # one forward pass
+			# if self.criterion == 'BCELoss()':
+			# 	out_sigmoid = torch.nn.Sigmoid(out)
+			# 	loss_value = self.criterion(out_sigmoid, target)  # calculate loss
+
+			# print(input_.shape, out.shape, target.shape)
+			# print(out.max(), target.max())
+			# out_sigmoid = sig(out)
+
+			loss = self.criterion(out, target)  # calculate loss
+			loss_value = loss.item() # .item? for other losses
+			train_losses.append(loss_value)
+			if self.logger: self.logger['train/loss'].log(loss_value)
+			loss.backward()  # one backward pass
+			self.optimizer.step()  # update the parameters
+
+			batch_iter.set_description(f'Training: (loss {loss_value:.4f})')  # update progressbar
+
+		self.training_loss.append(np.mean(train_losses))
+		self.learning_rate.append(self.optimizer.param_groups[0]['lr'])
+
+		batch_iter.close()
+
+	def _validate(self):
+
+		if self.notebook:
+			from tqdm.notebook import tqdm, trange
+		else:
+			from tqdm import tqdm, trange
+
+		self.model.eval()  # evaluation mode
+		valid_losses = []  # accumulate the losses here
+		batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
+						  leave=False)
+
+		for i, (x, y) in batch_iter:
+			input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+
+			with torch.no_grad():
+				out = self.model(input_)
+				loss = self.criterion(out, target)
+				loss_value = loss.item()
+				valid_losses.append(loss_value)
+				if self.logger: self.logger['val/loss'].log(loss_value)
+				batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
+
+		self.validation_loss.append(np.mean(valid_losses))
+		if self.tuner: tune.report(val_loss=(np.mean(valid_losses)))
+
+
+		batch_iter.close()
+
+
+
+"""
+LR finder
+"""
+
+
+class LearningRateFinder:
+	"""
+	Train a model using different learning rates within a range to find the optimal learning rate.
+	"""
+
+	def __init__(self,
+				 model: torch.nn.Module,
+				 criterion,
+				 optimizer,
+				 device
+				 ):
+		self.model = model
+		self.criterion = criterion
+		self.optimizer = optimizer
+		self.loss_history = {}
+		self._model_init = model.state_dict()
+		self._opt_init = optimizer.state_dict()
+		self.device = device
+
+	def fit(self,
+			data_loader: torch.utils.data.DataLoader,
+			steps=100,
+			min_lr=1e-7,
+			max_lr=1,
+			constant_increment=False,
+			):
+		"""
+		Trains the model for number of steps using varied learning rate and store the statistics
+		"""
+		self.loss_history = {}
+		self.model.train()
+		current_lr = min_lr
+		steps_counter = 0
+		epochs = math.ceil(steps / len(data_loader))
+
+		progressbar = trange(epochs, desc='Progress')
+		for epoch in progressbar:
+			batch_iter = tqdm(enumerate(data_loader), 'Training', total=len(data_loader),
+							  leave=False)
+
+			for i, (x, y) in batch_iter:
+				x, y = x.to(self.device), y.to(self.device)
+				for param_group in self.optimizer.param_groups:
+					param_group['lr'] = current_lr
+				self.optimizer.zero_grad()
+				out = self.model(x)
+				loss = self.criterion(out, y)
+				loss.backward()
+				self.optimizer.step()
+				self.loss_history[current_lr] = loss.item()
+
+				steps_counter += 1
+				if steps_counter > steps:
+					break
+
+				if constant_increment:
+					current_lr += (max_lr - min_lr) / steps
+				else:
+					current_lr = current_lr * (max_lr / min_lr) ** (1 / steps)
+
+
+	def plot(self,
+			 smoothing=True,
+			 clipping=True,
+			 smoothing_factor=0.1
+			 ):
+		"""
+		Shows loss vs learning rate(log scale) in a matplotlib plot
+		"""
+		loss_data = pd.Series(list(self.loss_history.values()))
+		lr_list = list(self.loss_history.keys())
+		if smoothing:
+			loss_data = loss_data.ewm(alpha=smoothing_factor).mean()
+			loss_data = loss_data.divide(pd.Series(
+				[1 - (1.0 - smoothing_factor) ** i for i in range(1, loss_data.shape[0] + 1)]))  # bias correction
+		if clipping:
+			loss_data = loss_data[10:-5]
+			lr_list = lr_list[10:-5]
+		plt.figure()
+		plt.plot(lr_list, loss_data)
+		plt.xscale('log')
+		plt.title('Loss vs Learning rate')
+		plt.xlabel('Learning rate (log scale)')
+		plt.ylabel('Loss (exponential moving average)')
+		plt.savefig('output/learning_rate_finder.png')
+
+	def reset(self):
+		"""
+		Resets the model and optimizer to its initial state
+		"""
+		self.model.load_state_dict(self._model_init)
+		self.optimizer.load_state_dict(self._opt_init)
+		print('Model and optimizer in initial state.')
+
+"""
+Utils
+"""
+
+
+def renormalise(tensor: torch.Tensor):
+	array = tensor.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+	array = np.squeeze(array)  # remove batch dim and channel dim -> [H, W]
+	array = array * 255
+	return array
+
+class DiceLoss(torch.nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        # inputs = torch.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
+        
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        
+        return 1 - dice
+

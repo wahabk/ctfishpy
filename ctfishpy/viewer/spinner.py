@@ -31,13 +31,12 @@ class mainViewer(QMainWindow):
 
 		self.initUI()
 
-
 	def initUI(self):
 		#initialise UI
 		self.setWindowTitle('CTFishPy')
 		self.statusBar().showMessage('Status bar: Ready')
 
-		self.spinner = Spinner(self.stack, center=self.center, label = self.label, parent = self, thresh = self.thresh)
+		self.spinner = Spinner_class(self.stack, center=self.center, label = self.label, parent = self, thresh = self.thresh)
 		self.setCentralWidget(self.spinner)
 		#widget.findChildren(QWidget)[0]
 
@@ -54,7 +53,7 @@ class mainViewer(QMainWindow):
 		self.statusBar().showMessage(f'{slice_}/{self.stack_length}')
 
 
-class Spinner(QWidget):
+class Spinner_class(QWidget):
 
 	def __init__(self, stack, center, label = None, thresh = False, stride = 1, parent = None):
 		super().__init__()
@@ -62,7 +61,7 @@ class Spinner(QWidget):
 		# init variables
 		if np.max(stack) == 1: stack = stack*255 #fix labels
 		self.og_image = stack
-		self.max_angle = 365
+		self.max_angle = 360
 		self.stride = stride
 		self.angle = 0
 		self.parent = parent
@@ -129,7 +128,8 @@ class Spinner(QWidget):
 		x = event.pos().x()
 		y = event.pos().y()
 		self.center = (x,y)
-			
+		self.update()
+	
 	def update(self):
 
 		if self.angle > self.max_angle-1: 	self.angle = 0

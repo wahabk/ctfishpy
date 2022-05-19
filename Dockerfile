@@ -28,6 +28,6 @@ WORKDIR /ctfishpy
 # 	-v /data/:/data/ \
 # 	-v /home/mb16907/wahab/code/ctfishpy:/ctfishpy \
 # 	--gpus all \
-# 	test \
+# 	fish \
 
 # TODO use buildkit https://stackoverflow.com/questions/58018300/using-a-pip-cache-directory-in-docker-builds
