@@ -6,7 +6,7 @@ import numpy as np
 def test_viewer():
     ctreader = ctfishpy.CTreader()
 
-    scan, metadata = ctreader.read(40)
+    scan = ctreader.read(40)
 
     viewer = napari.Viewer()
     viewer.add_image(scan)
