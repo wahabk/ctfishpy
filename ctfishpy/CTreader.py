@@ -18,35 +18,40 @@ import pydicom
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import datetime
+import os
 
 class CTreader:
 	def __init__(self, data_path=None):
 		# print(Path().resolve())
 		# TODO resolve this issue with local dataset path instead of dotenv
-		local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
-		if local_dataset_path.exists():
-			with open(local_dataset_path) as f:
-				data_path = f.readlines()[0]
-			# print(data_path)
-		else:
-			local_dataset_path.touch()
-			print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
-			new_path = input('Path:')
+		self.local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
+		# if local_dataset_path.exists():
 
-			with open(local_dataset_path, "w") as f:
-				f.write(f"{new_path}")
-			data_path = new_path
+
 
 		if data_path:
-			self.dataset_path = Path(data_path)
-			# self.low_res_clean_path = self.dataset_path / "LOW_RES_CLEAN/"
-			self.dicoms_path = self.dataset_path / "DICOMS/"
-			nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
-			nums.sort()
-			self.fish_nums = nums
+			self.dataset_path = Path(data_path)			
 		else:
-			warnings.warn("Can't find local dataset path")
+			try:
+				with open(self.local_dataset_path) as f:
+					data_path = f.readlines()[0]
+				self.dataset_path = Path(data_path)
+			except:
+				self.local_dataset_path.touch()
+				print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
+				new_path = input('Path:')
 
+				with open(self.local_dataset_path, "w") as f:
+					f.write(f"{new_path}")
+				data_path = new_path
+
+				self.dataset_path = Path(data_path)
+				# warnings.warn("Can't find local dataset path")
+		
+		self.dicoms_path = self.dataset_path / "DICOMS/"
+		nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
+		nums.sort()
+		self.fish_nums = nums
 		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv", index_col='n')
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
 		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
@@ -54,6 +59,9 @@ class CTreader:
 			self.manual_centers = json.load(fp)
 		
 		self.bones = ["otoliths", "jaw"]
+
+	def clear_data_path(self,):
+		os.remove(self.local_dataset_path)
 
 	def metadata_tester():
 		"""
