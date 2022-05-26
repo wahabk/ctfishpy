@@ -18,10 +18,11 @@ if __name__ == "__main__":
 	# path = Path('F:/Data/uCT/qiao/QT_020-023_[tifs]')
 	# path = Path('D:\Data\qiao\QT_020-023_[tifs]')
 	# path = Path('/home/wahab/Data/HDD/uCT/qiao/yushi_data/QT_051_055/QT_051_055_[tifs]')
-	path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/56_60/tifs/')
+	# path = Path('/home/ak18001/Data/HDD/uCT/Misc/yushi_data/56_60/tifs/')
+	path = Path('/Users/wahab/Data/uCT/MISC/51_55/tifs/')
 	name = path.stem
 
-	ct = lump.read_tiff(path, r=(0,500), scale = 40)
+	ct = lump.read_tiff(path, r=(500,600), scale = 40)
 	color =  np.array([np.stack((img,)*3, axis=-1) for img in ct.copy()]) # convert to color
 
 	circle_dict = detectTubes(color)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
 	del color
 	gc.collect()
 
-	ct = lump.read_tiff(path, r=None, scale = 100)
+	ct = lump.read_tiff(path, r=(500,600), scale = 100)
 	croppedCTs = lump.crop(ct, ordered_circles, scale=[40,100])
 	[print(cropped.shape) for cropped in croppedCTs]
 
@@ -54,11 +55,11 @@ if __name__ == "__main__":
 
 		# save projections
 		z, y, x = ctreader.make_max_projections(cropped)
-		projections = path.parent / f'{name}_{i+1}' / 'projections'
+		projections = path.parent / f'{name}_{i+1}' / 'PROJECTIONS'
 		projections.mkdir(parents=True, exist_ok=True)
-		cv2.imwrite(str(projections / f'x_{i+1}.png'), x)
-		cv2.imwrite(str(projections / f'y_{i+1}.png'), y)
-		cv2.imwrite(str(projections / f'z_{i+1}.png'), z)
+		# cv2.imwrite(str(projections / f'x_{i+1}.png'), x)
+		# cv2.imwrite(str(projections / f'y_{i+1}.png'), y)
+		# cv2.imwrite(str(projections / f'z_{i+1}.png'), z)
 
 		lump.write_tif(path.parent, f'{name}_{i+1}', cropped)
 		
