@@ -1,6 +1,6 @@
 import ctfishpy
-from ctfishpy.viewer.circle_order_labeller import circle_order_labeller
-from ctfishpy.viewer.tubeDetector import detectTubes
+# from ctfishpy.viewer.circle_order_labeller import circle_order_labeller
+# from ctfishpy.viewer.tubeDetector import detectTubes
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np

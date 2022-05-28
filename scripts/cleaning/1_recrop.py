@@ -8,11 +8,13 @@ import napari
 from qtpy.QtCore import QThread, QCoreApplication
 
 if __name__ == "__main__":
-	ctreader = ctfishpy.CTreader()
+	data_path = "/Users/wahab/Data/uCT/"
+	ctreader = ctfishpy.CTreader(data_path)
 	lump = ctfishpy.Lumpfish()
 	master = ctreader.mastersheet()
 
-	dirty_path = Path("/home/wahab/Data/Local/uCT/low_res")
+	# dirty_path = Path("/home/wahab/Data/Local/uCT/low_res")
+	dirty_path = Path("/Users/wahab/Data/uCT/51_55")
 	# dirty_path = Path("/home/ak18001/Data/HDD/low_res")
 
 	# out_path = Path('/home/ak18001/Data/Local/uCT/low_res_clean')
@@ -32,8 +34,9 @@ if __name__ == "__main__":
 	original_scale = 100
 	detection_scale = 40
 	for nums in dirty:
-		path = dirty_path / nums
-		ct, group_metadata = lump.read_dirty(path, r=None, scale=original_scale)
+		# path = dirty_path / nums
+		path = "/Users/wahab/Data/uCT/MISC/51_55"
+		ct, group_metadata = lump.read_dirty(path, r=(500,600), scale=original_scale)
 		print(group_metadata)
 
 		# find fish numbers from file name
@@ -66,6 +69,6 @@ if __name__ == "__main__":
 			metadata['angle'] = angle
 			metadata['center'] = center
 
-			lump.write_tif(out_path, num, cropped, metadata)
+			# lump.write_tif(out_path, num, cropped, metadata)
 
 		exit()
