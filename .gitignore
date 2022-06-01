@@ -140,3 +140,4 @@ output/old/Model/datagenie_Test/*
 output/weights/
 
 ctfishpy/Metadata/local_dataset_path.txt
+.neptune/

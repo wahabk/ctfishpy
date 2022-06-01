@@ -76,10 +76,10 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	# create a training data loader
 	train_ds = CTDataset(params['bone'], params['train_data'], roi_size=params['roiSize'], transform=transforms_img, label_transform=None, label_size=label_size) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
+	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
 	val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], label_size=label_size) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
+	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -141,9 +141,8 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
 
-	# losses = test(model, bone, test_data, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
-	# run['test/df'].upload(File.as_html(losses))
-	# run['test/test'].log(losses) #if dict
+	losses = test(model, bone, test_data, params['roiSize'], run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
@@ -165,13 +164,15 @@ if __name__ == "__main__":
 
 	all_data = wahab_samples+mariel_samples+zac_samples
 	print(f"All data: {len(all_data)}")
-	random.shuffle(all_data)
+	# random.shuffle(all_data)
 
 	train_data = all_data[1:16]
 	val_data = all_data[16:20]
-	test_data =	all_data[21:24]
-	name = 'replicating otoliths'
-	save = 'output/weights/unet.pt'
+	test_data =	all_data[20:24]
+	print(f"train = {train_data} val = {val_data} test = {test_data}")
+	name = 'trying new test'
+	save = False
+	# save = 'output/weights/unet.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	#TODO ADD label size
@@ -179,10 +180,10 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 0.001,
-		"batch_size": 4,
+		"batch_size": 8,
 		"n_blocks": 6,
 		"norm": 'batch',
-		"epochs": 15,
+		"epochs": 1,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0,
@@ -193,4 +194,4 @@ if __name__ == "__main__":
 	# TODO add model in train
 
 	train(config, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,])
+			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=12)

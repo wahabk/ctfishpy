@@ -1,75 +1,59 @@
-"""
-CTreader is the main class you use to interact with ctfishpy
-"""
-
-from sklearn.utils import deprecated
+from copy import deepcopy
+from moviepy.editor import ImageSequenceClip
 from .read_amira import read_amira
+try: from ..viewer import * 
+except: from ..viewer import cc_fixer, mainViewer, spinner
 from pathlib2 import Path
 import tifffile as tiff
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import json
 import cv2
 import h5py
 import json
-import napari
+# import napari
 import warnings
 import pydicom
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import datetime
-import os
-import time
 
 class CTreader:
 	def __init__(self, data_path=None):
-		# print(Path().resolve())
-		# TODO resolve this issue with local dataset path instead of dotenv
-		self.local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
-		# if local_dataset_path.exists():
+		load_dotenv()
+		data_path = os.environ.get('DATASET_PATH')
 
+		if data_path == None:
+			envpath = Path('.env')
+			envpath.touch()
 
+			print('[CTfishpy] .env file not found, please tell me the path to your dataset folder?')
+			new_path = input('Path:')
+
+			with open(".env", "w") as f:
+				f.write(f"DATASET_PATH={new_path}")
+
+			load_dotenv()
+			data_path = os.environ.get('DATASET_PATH')
 
 		if data_path:
-			self.dataset_path = Path(data_path)			
+			self.dataset_path = Path(data_path)
+			low_res_clean_path = self.dataset_path / "low_res_clean/"
+			nums = [int(path.stem) for path in low_res_clean_path.iterdir() if path.is_dir()]
+			nums.sort()
+			self.fish_nums = nums
 		else:
-			try:
-				with open(self.local_dataset_path) as f:
-					data_path = f.readlines()[0]
-				self.dataset_path = Path(data_path)
-			except:
-				self.local_dataset_path.touch()
-				print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
-				new_path = input('Path:')
+			raise Exception('cant find data')
 
-				with open(self.local_dataset_path, "w") as f:
-					f.write(f"{new_path}")
-				data_path = new_path
 
-				self.dataset_path = Path(data_path)
-				# warnings.warn("Can't find local dataset path")
-		
-		self.dicoms_path = self.dataset_path / "DICOMS/"
-		nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
-		nums.sort()
-		self.fish_nums = nums
-		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv", index_col='n')
+
+
+		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv")
 		self.anglePath = Path("ctfishpy/Metadata/angles.json")
 		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
 		with open(self.centres_path, "r") as fp:
 			self.manual_centers = json.load(fp)
-		
-		self.bones = ["otoliths", "jaw"]
-
-	def clear_data_path(self,):
-		os.remove(self.local_dataset_path)
-
-	def metadata_tester():
-		"""
-		Test fish_nums in local dataset vs mastersheet
-		test mastersheet NANs
-		"""
-		pass
 
 	def mastersheet(self):
 		return self.master
@@ -88,78 +72,12 @@ class CTreader:
 		# List numbers of fish in a dictionary after trimming
 		return list(m.loc[:]["n"])
 
-	def read(self, fish:int):
-		start = time.time()
-		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
-		end = time.time()
-		print(f"Reading dicom {fish} took {end-start} seconds") 
-		return scan
-
-	def read_metadata(self, fish:int, old_n = False):
-		return self.master.loc[fish].to_dict()
-
-	def read_dicom(self, path, bits=16, dtype='uint16'):
-		with pydicom.dcmread(path) as ds:
-			ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-			ds.BitsAllocated = bits
-			ds.BitsStored = bits
-			data = ds.pixel_array
-			data = data.astype(dtype)
-				
-		return data
-
-	def write_dicom(self, path:str, name:str, array:np.ndarray):
-		"""
-		save monochrome dicom 
-		this will auto determine 16 / 8 bit depth but will only accept np arrays in dtypes uint8 or uint16
-		"""
-		suffix = ".dcm"
-		# Populate required values for file meta information
-		file_meta = FileMetaDataset()
-		file_meta.MediaStorageSOPClassUID = UID('1.2.840.10008.5.1.4.1.1.2')
-		file_meta.MediaStorageSOPInstanceUID = UID("1.2.3")
-		file_meta.ImplementationClassUID = UID("1.2.3.4")
-		file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
-
-		# Create the FileDataset instance (initially no data elements, but file_meta
-		# supplied)
-		ds = FileDataset(path, {},
-                 file_meta={}, preamble=b"\0" * 128)
-
-		ds.PatientName = str(name)
-		ds.PatientID = "123456"
-
-		# Set creation date/time and endianness
-		dt = datetime.datetime.now()
-		ds.ContentDate = dt.strftime('%Y%m%d')
-		timeStr = dt.strftime('%H%M%S.%f')  # long format with micro seconds
-		ds.ContentTime = timeStr
-		# Set the transfer syntax
-		# Write as a different transfer syntax XXX shouldn't need this but pydicom
-		# 0.9.5 bug not recognizing transfer syntax
-		# ds.file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
-		ds.is_little_endian = True
-		ds.is_implicit_VR = True # make reader lookup from dict
-		ds.SamplesPerPixel = 1
-		ds.PixelRepresentation = 1
-		ds.PhotometricInterpretation = 'MONOCHROME1'
-		ds.NumberOfFrames = array.shape[0]
-		ds.Rows = array.shape[1]
-		ds.Columns = array.shape[2]
-		if array.dtype == "uint16": bits = 16
-		if array.dtype == "uint8": bits = 8
-		ds.BitsAllocated = bits
-		ds.BitsStored = bits
-		# missing: BitsAllocated, Rows, Columns, SamplesPerPixel, PhotometricInterpretation, PixelRepresentation, BitsStored
-
-		ds.PixelData = array.tobytes()
-
-		ds.save_as(path, write_like_original=True)
-
-	def read_tif(self, path, r=None):
+	def read_path(self, path, r=None):
 
 		images = [str(i) for i in path.iterdir() if i.suffix == '.tiff']
 		images.sort()
+
+		
 
 		ct = []
 		print(f"[CTFishPy] Reading uCT scan. Fish: {path}")
@@ -177,18 +95,17 @@ class CTreader:
 
 		return ct
 
-	@deprecated
-	def old_read(self, fish, r=None, align=False):
+	def read(self, fish, r=None, align=False):
 		"""
-		Main function to read zebrafish from local dataset path specified during initialisation
+		Main function to read zebrafish from local dataset path specified in .env
 
 		parameters
-		fish : index of sample you want to read
+		fish : number of sample you want to read
 		r : range of slices you want to read to save RAM
 		align : manually aligns fish for dorsal fin to point upwards
 		"""
 
-		fishpath = self.low_res_clean_path / str(fish).zfill(3)
+		fishpath = self.dataset_path / "low_res_clean" / str(fish).zfill(3)
 		tifpath = fishpath / "reconstructed_tifs"
 		metadatapath = fishpath / "metadata.json"
 
@@ -197,17 +114,10 @@ class CTreader:
 		if align:
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
-			angle = angles[str(fish)]['angle']
-			center = angles[str(fish)]['center']
-		else:
-			angle=0
-			center=None
-
-		print(f"ANGLE: {angle}{center}")
+			angle = angles[str(fish)]
 
 		stack_metadata = self.read_metadata(fish)
 		# angle = stack_metadata['angle']
-		# center = stack_metadata['center']
 
 		# images = list(tifpath.iterdir())
 		images = [str(i) for i in tifpath.iterdir()]
@@ -220,7 +130,7 @@ class CTreader:
 			for i in tqdm(range(*r)):
 				tiffslice = tiff.imread(images[i])
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle, is_label=False, center=center)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
@@ -228,69 +138,90 @@ class CTreader:
 			for i in tqdm(images):
 				tiffslice = tiff.imread(i)
 				if align == True:
-					tiffslice = self.rotate_image(tiffslice, angle, is_label=False, center=center)
+					tiffslice = self.rotate_image(tiffslice, angle, is_label=False)
 				ct.append(tiffslice)
 			ct = np.array(ct, dtype='uint16')
 
 		return ct, stack_metadata
 
-	def read_label(self, bone, n, is_amira=True):
+	def read_range(self, n: int, center: list, roiSize: list):
+		#only read range
+		new_center = deepcopy(center)
+
+		roiZ = roiSize[0]
+		z_center = new_center[0]
+		new_center[0] = int(roiSize[0]/2)
+		ct, stack_metadata = self.read(n, r = (z_center - int(roiZ/2), z_center + int(roiZ/2)), align=True)
+		ct = self.crop3d(ct, roiSize, center=new_center)
+		return ct, stack_metadata
+
+	def read_metadata(self, fish):
+		"""
+		Return metadata dictionary from each fish json
+		"""
+		fishpath = self.dataset_path / "low_res_clean" / str(fish).zfill(3)
+		metadatapath = fishpath / "metadata.json"
+		with metadatapath.open() as metadatafile:
+			stack_metadata = json.load(metadatafile)
+		return stack_metadata
+
+	def read_label(self, organ, n, is_amira=True):
 		"""
 		Read and return hdf5 label files
 
 		parameters
-		bone : give string of bone you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
+		organ : give string of organ you want to read, for now this is 'Otoliths' or 'Otoliths_unet2d'
 		n : number of fish to get labels
-
-		TODO clean marielle and zack otolith labels into new hdf5 or can i write amira?
 
 		NOTE: This always reads labels aligned where dorsal fin is pointing upwards 
 		so make you sure you align your scan when you read it
 
 		"""
 
-		# if bone not in ['Otoliths']:
-		# 	raise Exception('bone not found')
+		# if organ not in ['Otoliths']:
+		# 	raise Exception('organ not found')
 
 
-		if is_amira==False:
-			label_path = str(self.dataset_path / f'LABELS/Organs/{bone}/{bone}.h5')
+		if n!=0 and is_amira==False:
+			label_path = str(self.dataset_path / f'Labels/Organs/{organ}/{organ}.h5')
+			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 
 			with h5py.File(label_path, "r") as f:
 				label = np.array(f[str(n)])
 			
 
-		elif is_amira==True:
-			label_path = self.dataset_path / f'LABELS/Organs/{bone}/{n}.am'
+		elif n!=0 and is_amira==True:
+			label_path = self.dataset_path / f'Labels/Organs/{organ}/{n}.am'
+			print(f"[CTFishPy] Reading labels fish: {n} {label_path} ")
 			
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
 			# fix for different ordering from mariel labels
 			mariel_samples	= [421,423,242,463,259,459,256,530,589] 
-			if n in mariel_samples and bone == 'Otoliths':
+			if n in mariel_samples and organ == 'Otoliths':
 				label[label==2]=1
 				label[label==3]=2
 				label[label==4]=3
 
-		if bone == 'Otoliths':
+		if organ == 'Otoliths':
 			if is_amira:
 				align = True if n in [78,200,218,240,277,330,337,341,462,464,364,385] else False # This is a fix for undergrad labelled data
 			else:
 				align = True
-		elif bone == 'Otoliths_unet2d':
+		elif organ == 'Otoliths_unet2d':
 			align = False
 		
 		if align:
 			# get manual alignment
 			with open(self.anglePath, "r") as fp:
 				angles = json.load(fp)
-			angle = angles[str(n)]['angle']
-			center = angles[str(n)]['center']
+			angle = angles[str(n)]
 			# stack_metadata = self.read_metadata(n)
-			label = self.rotate_array(label, angle, is_label=True, center=center)
+			label = [self.rotate_image(i, angle, is_label=True) for i in label]
 			label = np.array(label)
 
+		print("Labels ready.")
 		return label
 
 	def write_label(self, organ, label, n, dtype='uint8'):
@@ -318,7 +249,6 @@ class CTreader:
 		parameters
 		label = label to save as a numpy array
 		put n =0 if label is a cc template
-		compression 9 or 1 smaller?
 		'''
 		folderPath = Path(f'{self.dataset_path}/Compressed/')
 		folderPath.mkdir(parents=True, exist_ok=True)
@@ -326,15 +256,6 @@ class CTreader:
 		with h5py.File(path, 'a') as f:
 			dset = f.create_dataset(name=str(n), data = scan, shape=scan.shape, dtype=dtype, compression=compression)
 		
-	def view(self, array: np.ndarray, label: np.ndarray=None):
-
-		viewer = napari.view_image(array, name='Scan')
-
-		if label is not None:
-			viewer.add_image(label, opacity=0.5, name='label')
-
-		napari.run()
-
 	def read_max_projections(self, n):
 		"""
 		Return z,y,x which represent axial, saggital, and coronal max projections
@@ -347,59 +268,79 @@ class CTreader:
 		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
 		return np.array([z, y, x])
 
-	def make_max_projections(self, stack):
+	def make_max_projections(self, stack, label=None):
 		"""
 		Make z,y,x which represent axial, saggital, and coronal max projections
-
-		if label provided it will color the scan for figures
 		"""
 		# import pdb; pdb.set_trace()
-
 		z = np.max(stack, axis=0)
 		y = np.max(stack, axis=1)
 		x = np.max(stack, axis=2)
-		projections = [z,y,x] #np.array([z, y, x])
+		projections = np.array([z, y, x])
+
+		if label:
+			projections = self.label_projections(projections, label)
 
 		return projections
 
-	def label_projections(self, scan_proj, mask_proj):
-		scan_proj = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan_proj]
+	def label_projections(self, projections, label):
+		label_projections_list = self.make_max_projections(label)
 
-		[print(a.shape) for a in scan_proj]
-		[print(a.shape) for a in mask_proj]
+		for i, p in enumerate(projections):
+			p[ label_projections_list[i] == 1 ]=[255,0,0]
+			p[ label_projections_list[i] == 2 ]=[255,255,0]
+			p[ label_projections_list[i] == 3 ]=[0,0,255]
+			p[ label_projections_list[i] == 4 ]=[0,255,255]
 
-		for i, p in enumerate(scan_proj):
-			p[mask_proj[i] == 1 ]=[255,0,0]
-			p[mask_proj[i] == 2 ]=[255,255,0]
-			p[mask_proj[i] == 3 ]=[0,0,255]
-			p[mask_proj[i] == 4 ]=[0,255,255]
+		return projections
 
-		return scan_proj
+	def view(self, ct, label=None, thresh=False):
+		"""
+		Main viewer using PyQt5
+		"""
+		mainviewer.mainViewer(ct, label, thresh)
 
-	def resize(self, img, scale=100):
-		# use scipy ndimage zoom
-		width = int(img.shape[1] * scale / 100)
-		height = int(img.shape[0] * scale / 100)
+	def spin(self, img, center=None, label=None, thresh=False):
+		"""
+		Manual spinner made to align fish
+		"""
+		angle = spinner(img, center, label, thresh)
+		return angle
+
+	def cc_fixer(self, projections):
+		"""
+		my localiser aka cc_fixer
+
+		Positions that come from PyQt QPixmap are for some reason in y, x format
+		
+		"""
+
+		positions = [cc_fixer.mainFixer(p) for p in projections[:2]]
+
+		x = int(positions[0][1])
+		y = int(positions[0][0])		
+		z = int(positions[1][1])
+		return [z, x, y]
+
+	def resize(self, img, percent=100):
+		width = int(img.shape[1] * percent / 100)
+		height = int(img.shape[0] * percent / 100)
 		return cv2.resize(img, (width, height), interpolation=cv2.INTER_AREA)
 
-	def to8bit(self, array:np.ndarray):
+	def to8bit(self, img):
 		"""
-		Change array from 16bit to 8bit by mapping the data range to 0 - 255
-
-		*NOTE* This does not convert to 8bit normally and is for GUI functions
+		Change img from 16bit to 8bit by mapping the data range to 0 - 255
 		"""
-		if array.dtype == "uint16":
-			new_array = ((array - array.min()) / (array.ptp() / 255.0)).astype(np.uint8)
-			return new_array
+		if img.dtype == "uint16":
+			new_img = ((img - img.min()) / (img.ptp() / 255.0)).astype(np.uint8)
+			return new_img
 		else:
 			print("image already 8 bit!")
-			return new_array
+			return img
 
 	def rotate_array(self, array, angle, is_label, center=None):
-		"""
-		Rotate using affine transformation
-		"""
 		new_array = []
+		print('Rotating...')
 		for a in array:
 			a_rotated = self.rotate_image(a, angle=angle, is_label=is_label, center=center)
 			new_array.append(a_rotated)
@@ -417,7 +358,7 @@ class CTreader:
 		"""
 		image_center = tuple(np.array(image.shape[1::-1]) / 2)
 		if center:
-			image_center = tuple(center)
+			image_center = center
 		rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
 		# THIS HAS TO BE NEAREST NEIGHBOUR BECAUSE LABELS ARE CATEGORICAL
 		if is_label:
@@ -458,6 +399,26 @@ class CTreader:
 		new_img = (img > thresh) * img
 		return new_img
 
+	def saveJSON(self, nparray, jsonpath):
+		"""
+		A quick way to save nparrays as json
+		"""
+		json.dump(
+			nparray,
+			codecs.open(jsonpath, "w", encoding="utf-8"),
+			separators=(",", ":"),
+			sort_keys=True,
+			indent=4,
+		)  ### this saves the array in .json format
+
+	def readJSON(self, jsonpath):
+		"""
+		Quickly read nparrays as json
+		"""
+		obj_text = codecs.open(jsonpath, "r", encoding="utf-8").read()
+		obj = json.loads(obj_text)
+		return np.array(obj)
+
 	def crop3d(self, array, roiSize, center=None):
 		roiZ, roiY, roiX = roiSize
 		zl = int(roiZ / 2)
@@ -473,6 +434,24 @@ class CTreader:
 		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
 		return array
 
+	def crop_around_center3d(self, array, roiSize, roiZ=None, center=None):
+		"""
+		Crop around the center of 3d array
+		You can specify the center of crop if you want
+		Also possible to set different ROI size for XY and Z
+		"""
+
+		xl = int(roiSize[0] / 2)
+		yl = int(roiSize[1] / 2)
+		zl = int(roiZ / 2)
+
+		if center == None:
+			c = int(array.shape[0] / 2)
+			center = [c, c, c]
+		z, x, y = center
+		array = array[z - zl : z + zl, x - xl : x + xl, y - yl : y + yl]
+		return array
+
 	def crop_around_center2d(self, array, center=None, roiSize=100):
 		"""
 		I have to crop a lot of images so this is a handy utility function
@@ -485,6 +464,34 @@ class CTreader:
 		x, y = center
 		array = array[x - l : x + l, y - l : y + l]
 		return array
+
+	def make_gif(self, stack, file_name, fps = 10, label=None, scale=None):
+		#decompose grayscale numpy array into RGB
+		if stack.dtype == 'uint16': stack = ((stack - stack.min()) / (stack.ptp() / 255.0)).astype(np.uint8) 
+		new_stack = np.array([np.stack((img,)*3, axis=-1) for img in stack], dtype='uint8')
+
+		colors = [(0,0,0), (255,0,0), (255,255,0), (0,0,255)]
+
+		if label is not None:
+			for i in np.unique(label):
+				if i != 0:
+					new_stack[label==i] = colors[i]
+		
+		if scale is not None:
+			im = new_stack[0]
+			width = int(im.shape[1] * scale / 100)
+			height = int(im.shape[0] * scale / 100)
+			dim = (width, height)
+
+			# resize image
+			resized = [cv2.resize(img, dim, interpolation = cv2.INTER_AREA) for img in new_stack]
+			new_stack = resized
+	
+
+		# write_gif(new_stack, file_name, fps = fps)
+		
+		clip = ImageSequenceClip(list(new_stack), fps=fps)
+		clip.write_gif(file_name, fps=fps)
 
 	def getVol(self, label, metadata, nclasses):
 		counts = np.array([np.count_nonzero(label == i) for i in range(1, nclasses+1)])

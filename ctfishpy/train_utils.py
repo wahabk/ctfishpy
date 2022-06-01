@@ -8,6 +8,7 @@ This file contains:
 - training utilities
 """
 
+from cProfile import label
 import ctfishpy
 import numpy as np
 import pandas as pd
@@ -26,6 +27,8 @@ import torchio as tio
 from .CTreader import CTreader
 from .models.unet import UNet
 
+from sklearn.metrics import roc_curve, auc
+
 """
 Datasets
 """
@@ -39,14 +42,13 @@ class CTDataset(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, bone:str, indices:list, roi_size:tuple, transform=None, label_transform=None, return_metadata=False, label_size:tuple=None):	
+	def __init__(self, bone:str, indices:list, roi_size:tuple, transform=None, label_transform=None, label_size:tuple=None):	
 		super().__init__()
 		self.bone = bone
 		self.indices = indices
 		self.roi_size = roi_size
 		self.transform = transform
 		self.label_transform = label_transform
-		self.return_metadata = return_metadata
 		self.label_size = label_size
 
 
@@ -59,10 +61,11 @@ class CTDataset(torch.utils.data.Dataset):
 		# Select sample
 		old_name = self.indices[index]
 
+		# print(f"\n\n READING {old_name} {index} {self.indices} \n\n")
+
 		i = master.loc[master['old_n'] == old_name].index[0]
 
 		#fix for undergrads
-		align = True if old_name in [78,200,218,240,277,330,337,341,462,464,364,385] else False
 		is_amira = True
 
 		X = ctreader.read(i)
@@ -123,148 +126,29 @@ def compute_max_depth(shape=1920, max_depth=10, print_out=True):
 Train and test
 """
 
+def plot_auc_roc(fpr, tpr, auc_roc):
+	fig, ax = plt.subplots(1,1)
+	ax.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % auc_roc)
+	ax.plot([0, 1], [0, 1], 'k--')
+	ax.set_xlim([0.0, 1.0])
+	ax.set_ylim([0.0, 1.05])
+	ax.set_xlabel('False Positive Rate')
+	ax.set_ylabel('True Positive Rate')
+	ax.set_title('Receiver operating characteristic')
+	ax.legend(loc="lower right")
 
-def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
-	'''
-	by default for ray tune
-	'''
+	return fig
 
-	# setup neptune
-	run = neptune.init(
-		project="wahabk/Fishnet",
-    	api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
-	)
-
-	params = dict(
-		bone=bone,
-		roiSize = (128,128,256,1),
-		train_data = train_data,
-		val_data = val_data,
-		test_data = test_data,
-		batch_size = config['batch_size'],
-		n_blocks = config['n_blocks'],
-		norm = config['norm'],
-		loss_function = config['loss_function'],
-		lr = config['lr'],
-		epochs = config['epochs'],
-		start_filters = config['start_filters'],
-		activation = config['activation'],
-		num_workers = num_workers,
-		n_classes = 3,
-		random_seed = 42,
-	)
-
-	run['Tags'] = name
-	run['parameters'] = params
-	#TODO find a way to precalculate this - should i only unpad the first block?
-	if config['n_blocks'] == 2: label_size = (48,48,48)
-	if config['n_blocks'] == 3: label_size = (24,24,24)
-
-	transforms_affine = tio.Compose([
-		# tio.RandomFlip(axes=(1,2), flip_probability=0.5),
-		# tio.RandomAffine(),
-	])
-	transforms_img = tio.Compose([
-		tio.RandomAnisotropy(p=0.1),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.1),
-		# tio.OneOf({
-		# 	tio.RandomNoise(0.1, 0.01): 0.1,
-		# 	tio.RandomBiasField(0.1): 0.1,
-		# 	tio.RandomGamma((-0.3,0.3)): 0.1,
-		# 	tio.RandomMotion(): 0.3,
-		# }),
-		tio.RescaleIntensity((0.05,0.95)),
-	])
-
-	# create a training data loader
-	train_ds = CTDataset(params['bone'], params['train_data'], transform=transforms_img, label_transform=None, label_size=label_size) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
-	# create a validation data loader
-	val_ds = CTDataset(params['bone'], params['val_data'], label_size=label_size) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available())
-
-	# device
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	print(f'training on {device}')
-
-	# model
-	model = UNet(in_channels=1,
-				out_channels=params['n_classes'],
-				n_blocks=params['n_blocks'],
-				start_filters=params['start_filters'],
-				activation=params['activation'],
-				normalization=params['norm'],
-				conv_mode='same',
-				up_mode='transposed',
-				dim=3,
-				skip_connect=None,
-				)
-
-	model = torch.nn.DataParallel(model, device_ids=device_ids)
-	model.to(device)
-
-	# loss function
-	# criterion = torch.nn.BCEWithLogitsLoss()
-	criterion = params['loss_function']
-
-	params['loss_function'] = str(copy.deepcopy(params['loss_function']))
-
-	# optimizer
-	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-	optimizer = torch.optim.Adam(model.parameters(), params['lr'])
-	scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
-	# scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.0001, max_lr=0.01, cycle_momentum=False)
-
-	# trainer
-	trainer = Trainer(model=model,
-					device=device,
-					criterion=criterion,
-					optimizer=optimizer,
-					training_DataLoader=train_loader,
-					validation_DataLoader=val_loader,
-					lr_scheduler=scheduler,
-					epochs=params['epochs'],
-					logger=run,
-					tuner=tuner,
-					)
-
-	# start training
-	training_losses, validation_losses, lr_rates = trainer.run_trainer()
-
-	run['learning_rates'].log(lr_rates)
-	
-	if save:
-		model_name = save
-		torch.save(model.state_dict(), model_name)
-		# run['model/weights'].upload(model_name)
-
-	losses = test(model, bone, test_data, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
-	run['test/df'].upload(File.as_html(losses))
-	# run['test/test'].log(losses) #if dict
-
-	run.stop()
-
-
-def test(model, bone, test_set, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=(64,64,64)):
-	pass
+def test(model, bone, test_set, roiSize, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
 
 	ctreader = ctfishpy.CTreader()
 	print('Running test, this may take a while...')
-	
+
+	if label_size is None:
+		label_size = roiSize
+
 	# test on real data
-
-
-	# test predict on sim
-	sidebyside = None
-	run['prediction'].upload(File.as_image(sidebyside))
-
-	# TODO plot roc
-	fig = None
-
-	run['PR_curve'].upload(fig)
-
-
-	test_ds = CTDataset(bone, test_set, transform=None, label_transform=None, label_size=label_size) 
+	test_ds = CTDataset(bone, test_set, roiSize, transform=None, label_transform=None, label_size=label_size) 
 	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
 	losses = []
@@ -273,37 +157,60 @@ def test(model, bone, test_set, threshold=0.5, num_workers=4, batch_size=1, crit
 		for idx, batch in enumerate(test_loader):
 			i = test_set[idx]
 
-			x = ctreader.read(i)
-			y = ctreader.read_label(bone, i)
+			x, y = batch
 			metadata = ctreader.read_metadata(i)
-
+			
 			x, y = x.to(device), y.to(device)
 			# print(x.shape, x.max(), x.min())
 			# print(y.shape, y.max(), y.min())
- 
-			# TODO make this dependant on criterion?
-			# TODO find ROC
 
 			out = model(x)  # send through model/network
-			loss = criterion(out, y)
+
+			if isinstance(criterion, torch.nn.BCEWithLogitsLoss) == False:
+				out = torch.sigmoid(out)
+				loss = criterion(out, y)
+			else:
+				loss = criterion(out, y)
+				out = torch.sigmoid(out)
 			loss = loss.cpu().numpy()
-			out_sigmoid = torch.sigmoid(out)  # perform sigmoid on output because logits
+
 			# post process to numpy array
-			result = out_sigmoid.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+			result = out.cpu().numpy()  # send to cpu and transform to numpy.ndarray
 			result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
 
+			array = x.cpu().numpy()[0,0]
+			true_label = y.cpu().numpy()[0,0]
+			pred_label = result
 
+			print(loss)
+			print(true_label.shape, true_label.max(), true_label.min(), true_label.dtype)
+			print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
+			print(array.shape, array.max(), array.min(), array.dtype)
+
+			true_vector = np.array(true_label, dtype='uint8').flatten()
+			pred_vector = pred_label.flatten()
+
+			fpr, tpr, _ = roc_curve(true_vector, pred_vector)
+			aucroc = auc(fpr, tpr)
+
+			fig = plot_auc_roc(fpr, tpr, aucroc)
+			run[f'AUC_{i}'].upload(fig)
+
+			# test predict on sim
+			array_projections = ctreader.make_max_projections(array)
+			label_projections = ctreader.make_max_projections(pred_label)
+			labelled_projections = ctreader.label_projections(array_projections, label_projections)
+			sidebyside = np.concatenate(labelled_projections[0:2], 0)
+			run[f'prediction_{i}'].upload(File.as_image(sidebyside))
+
+			# TODO threshold label for imaging and one hot encode
 
 			m = {
-				'dataset': metadata['dataset'],
-				'n' 	 : metadata['n'],
+				'bone': bone,
 				'idx'	 : i,
-				'volfrac': metadata['volfrac'],
-				'n_particles':  metadata['n_particles'],
-				**metadata['params'],
+				**metadata,
 				'loss'	 : float(loss),
-				'precision'	 : float(prec),
-				'recall'	 : float(rec),
+				'aucroc' : float(aucroc),
 			}
 
 			losses.append(m)
@@ -560,6 +467,9 @@ class LearningRateFinder:
 """
 Utils
 """
+
+def plot_side_by_side(array, label):
+	pass
 
 
 def renormalise(tensor: torch.Tensor):

@@ -141,12 +141,11 @@ dependencies:
     - pluggy
     - prometheus-client
     - prompt-toolkit
-    - protobuf
+    - protobuf==3.19
     - psutil
     - psygnal
     - ptyprocess
     - pure-eval
-    - py
     - pycodestyle
     - pycparser
     - pydantic
