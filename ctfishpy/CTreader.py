@@ -92,7 +92,7 @@ class CTreader:
 		start = time.time()
 		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
 		end = time.time()
-		print(f"Reading dicom {fish} took {end-start} seconds") 
+		# print(f"Reading dicom {fish} took {end-start} seconds") 
 		return scan
 
 	def read_metadata(self, fish:int, old_n = False):
@@ -124,7 +124,7 @@ class CTreader:
 		# Create the FileDataset instance (initially no data elements, but file_meta
 		# supplied)
 		ds = FileDataset(path, {},
-                 file_meta={}, preamble=b"\0" * 128)
+				 file_meta={}, preamble=b"\0" * 128)
 
 		ds.PatientName = str(name)
 		ds.PatientID = "123456"
@@ -234,7 +234,47 @@ class CTreader:
 
 		return ct, stack_metadata
 
-	def read_label(self, bone, n, is_amira=True):
+	def read_label(self, bone, n, is_amira=False, name=None):
+		"""
+		Read and return hdf5 label files
+
+		parameters
+		bone : give string of bone you want to read, for now this is 'Otoliths'
+		n : number of fish to get label
+
+		"""
+
+		if is_amira==False:
+			if name is None:
+				name = bone
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{name}.h5')
+
+			with h5py.File(label_path, "r") as f:
+				label = np.array(f[str(n)])
+
+		elif is_amira==True:
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.h5')
+			label_dict = read_amira(label_path)
+			label = label_dict['data'][-1]['data'].T
+
+		return label
+
+	def get_label_keys(self, bone, name=None) -> list:
+
+		if name is None:
+			name = bone
+
+		label_path = str(self.dataset_path / f'LABELS/{bone}/{name}.h5')
+
+		with h5py.File(label_path, "r") as f:
+			keys = list(f.keys())
+			nums = keys
+		nums = [int(n) for n in list(keys)]
+		nums.sort()
+		return nums
+
+	# @deprecated
+	def old_read_label(self, bone, n, is_amira=True):
 		"""
 		Read and return hdf5 label files
 
@@ -369,8 +409,8 @@ class CTreader:
 	def label_projections(self, scan_proj, mask_proj):
 		scan_proj = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan_proj]
 
-		[print(a.shape) for a in scan_proj]
-		[print(a.shape) for a in mask_proj]
+		# [print(a.shape) for a in scan_proj]
+		# [print(a.shape) for a in mask_proj]
 
 		for i, p in enumerate(scan_proj):
 			p[mask_proj[i] == 1 ]=[255,0,0]

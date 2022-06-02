@@ -45,7 +45,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		activation = config['activation'],
 		num_res_units = config['num_res_units'],
 		num_workers = num_workers,
-		n_classes = 1,
+		n_classes = 4, #including background
 		random_seed = 42,
 	)
 
@@ -54,18 +54,18 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 
 	transforms_affine = tio.Compose([
-		# tio.RandomFlip(axes=(1,2), flip_probability=0.5),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
 		# tio.RandomAffine(),
 	])
 	transforms_img = tio.Compose([
-		tio.RandomAnisotropy(p=0.1),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.1),
-		# tio.OneOf({
-		# 	tio.RandomNoise(0.1, 0.01): 0.1,
-		# 	tio.RandomBiasField(0.1): 0.1,
-		# 	tio.RandomGamma((-0.3,0.3)): 0.1,
-		# 	tio.RandomMotion(): 0.3,
-		# }),
+		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
+		tio.RandomBlur(p=0.3),
+		tio.OneOf({
+			tio.RandomNoise(0.1, 0.01): 0.1,
+			tio.RandomBiasField(0.1): 0.1,
+			tio.RandomGamma((-0.3,0.3)): 0.1,
+			tio.RandomMotion(): 0.3,
+		}),
 		tio.RescaleIntensity((0.05,0.95)),
 	])
 
@@ -75,10 +75,10 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	label_size = params['roiSize']
 
 	# create a training data loader
-	train_ds = CTDataset(params['bone'], params['train_data'], roi_size=params['roiSize'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_ds = CTDataset(params['bone'], params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
-	val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], label_size=label_size) 
+	val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# device
@@ -107,9 +107,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	model.to(device)
 
 	# loss function
-	# criterion = torch.nn.BCEWithLogitsLoss()
 	criterion = params['loss_function']
-
 	params['loss_function'] = str(params['loss_function'])
 
 	# optimizer
@@ -127,6 +125,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 					validation_DataLoader=val_loader,
 					lr_scheduler=scheduler,
 					epochs=params['epochs'],
+					n_classes=params['n_classes'],
 					logger=run,
 					tuner=tuner,
 					)
@@ -141,7 +140,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
 
-	losses = test(model, bone, test_data, params['roiSize'], run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(model, bone, test_data, params, threshold=0.1, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
@@ -157,18 +156,19 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader()
 
 	bone = 'Otoliths'
-	wahab_samples 	= [78,200,218,240,277,330,337,341,462,464,364,385]
-	mariel_samples	= [421,423,242,463,259,459,461]
-	zac_samples		= [257,443,218,364,464]
-	# TODO translate to samples
 
-	all_data = wahab_samples+mariel_samples+zac_samples
+	old_ns = [78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464] 
+	all_data = [39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
+
 	print(f"All data: {len(all_data)}")
-	# random.shuffle(all_data)
 
-	train_data = all_data[1:16]
-	val_data = all_data[16:20]
-	test_data =	all_data[20:24]
+	random.shuffle(all_data)
+	train_data = all_data[1:14]
+	val_data = all_data[14:18]
+	test_data =	all_data[18:]
+	# train_data = all_data[1:2]
+	# val_data = all_data[3:4]
+	# test_data =	all_data[4:5]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'trying new test'
 	save = False
@@ -179,16 +179,17 @@ if __name__ == "__main__":
 	#TODO use seg models pytorch
 
 	config = {
-		"lr": 0.001,
-		"batch_size": 8,
-		"n_blocks": 6,
+		"lr": 0.0001,
+		"batch_size": 4,
+		"n_blocks": 3,
 		"norm": 'batch',
-		"epochs": 1,
-		"start_filters": 32,
+		"epochs": 100,
+		"start_filters": 16,
 		"activation": "RELU",
-		"dropout": 0,
-		"num_res_units": 0,
-		"loss_function": torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"dropout": 0.1,
+		"num_res_units": 3,
+		"loss_function": torch.nn.CrossEntropyLoss() #monai.losses.DiceLoss(include_background=False,) #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		
 	}
 
 	# TODO add model in train

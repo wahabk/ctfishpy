@@ -8,7 +8,6 @@ This file contains:
 - training utilities
 """
 
-from cProfile import label
 import ctfishpy
 import numpy as np
 import pandas as pd
@@ -20,6 +19,7 @@ import os
 import copy
 
 import torch
+import torch.nn.functional as F
 import neptune.new as neptune
 from neptune.new.types import File
 from ray import tune
@@ -42,11 +42,12 @@ class CTDataset(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, bone:str, indices:list, roi_size:tuple, transform=None, label_transform=None, label_size:tuple=None):	
+	def __init__(self, bone:str, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
 		super().__init__()
 		self.bone = bone
 		self.indices = indices
 		self.roi_size = roi_size
+		self.n_classes = n_classes
 		self.transform = transform
 		self.label_transform = label_transform
 		self.label_size = label_size
@@ -59,22 +60,14 @@ class CTDataset(torch.utils.data.Dataset):
 		ctreader = ctfishpy.CTreader()
 		master = ctreader.master
 		# Select sample
-		old_name = self.indices[index]
-
-		# print(f"\n\n READING {old_name} {index} {self.indices} \n\n")
-
-		i = master.loc[master['old_n'] == old_name].index[0]
-
-		#fix for undergrads
-		is_amira = True
-
+		i = self.indices[index]
+		old_name = master.iloc[i-1]['old_n']
+		
 		X = ctreader.read(i)
-		y = ctreader.read_label(self.bone, old_name, is_amira=is_amira)
+		y = ctreader.read_label(self.bone, i)
 		metadata = ctreader.read_metadata(i)
 
 		center = ctreader.manual_centers[str(old_name)]
-
-		#TODO read man centers and crop
 
 		X = ctreader.crop3d(X, self.roi_size, center=center)
 		# if label size is smaller for roi
@@ -83,8 +76,8 @@ class CTDataset(torch.utils.data.Dataset):
 		y = ctreader.crop3d(y, self.label_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
-		y = np.array(y/y.max() , dtype=np.float32)
-		
+		y = np.array(y/y.max() , dtype=np.int64)
+
 		# print('x', np.min(X), np.max(X), X.shape)
 		# print('y', np.min(y), np.max(y), y.shape)
 
@@ -92,8 +85,10 @@ class CTDataset(torch.utils.data.Dataset):
 		X = np.expand_dims(X, 0)      # if numpy array
 		y = np.expand_dims(y, 0)
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
+
 		X = torch.from_numpy(X)
-		y = torch.from_numpy(y)
+		y = torch.from_numpy(y).to(torch.int64)
+		y = F.one_hot(y, self.n_classes)
 
 		# This weird code is for applying the same transforms to x and y
 		if self.transform:
@@ -103,8 +98,11 @@ class CTDataset(torch.utils.data.Dataset):
 				X, y = torch.chunk(stacked, chunks=2, dim=0)
 			X = self.transform(X)
 
-		# print('x', np.min(X), np.max(X), X.shape)
-		# print('y', np.min(y), np.max(y), y.shape)
+		y = y.permute([0,4,1,2,3])
+		y = y.squeeze().to(torch.float32)
+
+		# print('x', X.shape)
+		# print('y', y.shape)
 
 		return X, y,
 
@@ -139,16 +137,26 @@ def plot_auc_roc(fpr, tpr, auc_roc):
 
 	return fig
 
-def test(model, bone, test_set, roiSize, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+def undo_one_hot(result, n_classes, threshold=0.5):
+	label = np.zeros(result.shape[1:], dtype = 'uint8')
+	for i in range(n_classes):
+		r = result[i, :, :, :,]
+		label[r>threshold] = i
+	return label
+
+def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+	roiSize = params['roiSize']
+	n_classes = params['n_classes']
 
 	ctreader = ctfishpy.CTreader()
 	print('Running test, this may take a while...')
+
 
 	if label_size is None:
 		label_size = roiSize
 
 	# test on real data
-	test_ds = CTDataset(bone, test_set, roiSize, transform=None, label_transform=None, label_size=label_size) 
+	test_ds = CTDataset(bone, test_set, roiSize, n_classes, transform=None, label_transform=None, label_size=label_size) 
 	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
 	losses = []
@@ -156,22 +164,15 @@ def test(model, bone, test_set, roiSize, num_workers=4, batch_size=1, criterion=
 	with torch.no_grad():
 		for idx, batch in enumerate(test_loader):
 			i = test_set[idx]
-
-			x, y = batch
 			metadata = ctreader.read_metadata(i)
-			
+			x, y = batch
 			x, y = x.to(device), y.to(device)
 			# print(x.shape, x.max(), x.min())
 			# print(y.shape, y.max(), y.min())
 
 			out = model(x)  # send through model/network
-
-			if isinstance(criterion, torch.nn.BCEWithLogitsLoss) == False:
-				out = torch.sigmoid(out)
-				loss = criterion(out, y)
-			else:
-				loss = criterion(out, y)
-				out = torch.sigmoid(out)
+			loss = criterion(out, y)
+			out = torch.softmax(out, n_classes)
 			loss = loss.cpu().numpy()
 
 			# post process to numpy array
@@ -179,23 +180,28 @@ def test(model, bone, test_set, roiSize, num_workers=4, batch_size=1, criterion=
 			result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
 
 			array = x.cpu().numpy()[0,0]
-			true_label = y.cpu().numpy()[0,0]
+			# array = np.array(array, dtype='uint8')
+			true_label = y.cpu().numpy()[0]
 			pred_label = result
-
-			print(loss)
-			print(true_label.shape, true_label.max(), true_label.min(), true_label.dtype)
-			print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
-			print(array.shape, array.max(), array.min(), array.dtype)
-
 			true_vector = np.array(true_label, dtype='uint8').flatten()
 			pred_vector = pred_label.flatten()
 
+			# print(loss)
+			# print(true_label.shape, true_label.max(), true_label.min(), true_label.dtype)
+			# print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
+			# print(array.shape, array.max(), array.min(), array.dtype)
+
+
 			fpr, tpr, _ = roc_curve(true_vector, pred_vector)
 			aucroc = auc(fpr, tpr)
-
 			fig = plot_auc_roc(fpr, tpr, aucroc)
 			run[f'AUC_{i}'].upload(fig)
 
+			pred_label = undo_one_hot(pred_label, n_classes, threshold=threshold)
+			print(array.shape, array.max(), array.min(), array.dtype)
+			print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
+
+			# print(f"final pred shape {pred_label.shape}")
 			# test predict on sim
 			array_projections = ctreader.make_max_projections(array)
 			label_projections = ctreader.make_max_projections(pred_label)
@@ -218,6 +224,10 @@ def test(model, bone, test_set, roiSize, num_workers=4, batch_size=1, criterion=
 	losses = pd.DataFrame(losses)
 	print(losses)
 
+	#TODO plot losses against class
+	# TODO plot data distrib 
+	#plot label brightness distrib
+
 	return losses
 
 
@@ -236,6 +246,7 @@ class Trainer:
 				 validation_DataLoader: torch.utils.data.Dataset = None,
 				 lr_scheduler: torch.optim.lr_scheduler = None,
 				 epochs: int = 100,
+				 n_classes:int = 1,
 				 epoch: int = 0,
 				 notebook: bool = False,
 				 logger=None,
@@ -250,6 +261,7 @@ class Trainer:
 		self.validation_DataLoader = validation_DataLoader
 		self.device = device
 		self.epochs = epochs
+		self.n_classes = n_classes
 		self.epoch = epoch
 		self.notebook = notebook
 		self.logger = logger
@@ -312,18 +324,15 @@ class Trainer:
 			input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
 			self.optimizer.zero_grad()  # zerograd the parameters
 			out = self.model(input_)  # one forward pass
-			# if self.criterion == 'BCELoss()':
-			# 	out_sigmoid = torch.nn.Sigmoid(out)
-			# 	loss_value = self.criterion(out_sigmoid, target)  # calculate loss
-
-			# print(input_.shape, out.shape, target.shape)
-			# print(out.max(), target.max())
-			# out_sigmoid = sig(out)
 
 			loss = self.criterion(out, target)  # calculate loss
-			loss_value = loss.item() # .item? for other losses
+			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
+				out = torch.softmax(out, self.n_classes)
+			loss_value = loss.item()
 			train_losses.append(loss_value)
+
 			if self.logger: self.logger['train/loss'].log(loss_value)
+
 			loss.backward()  # one backward pass
 			self.optimizer.step()  # update the parameters
 
@@ -351,10 +360,13 @@ class Trainer:
 
 			with torch.no_grad():
 				out = self.model(input_)
-				loss = self.criterion(out, target)
+				loss = self.criterion(out, target)  # calculate loss
+				if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
+					out = torch.softmax(out, self.n_classes)
 				loss_value = loss.item()
 				valid_losses.append(loss_value)
 				if self.logger: self.logger['val/loss'].log(loss_value)
+
 				batch_iter.set_description(f'Validation: (loss {loss_value:.4f})')
 
 		self.validation_loss.append(np.mean(valid_losses))
@@ -362,7 +374,6 @@ class Trainer:
 
 
 		batch_iter.close()
-
 
 
 """
