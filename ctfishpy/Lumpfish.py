@@ -21,7 +21,10 @@ import cv2
 import h5py
 import gc
 import napari
-from .GUI import tubeDetector, create_orderLabeller, create_spinner, create_fishRuler
+try:
+	from .GUI import tubeDetector, create_orderLabeller, create_spinner, create_fishRuler
+except:
+    print('NOT INITIALISING NAPARI GUIS - XCB ERROR')
 import math
 
 class Lumpfish():

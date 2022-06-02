@@ -254,19 +254,20 @@ class CTreader:
 
 
 		if is_amira==False:
-			label_path = str(self.dataset_path / f'LABELS/Organs/{bone}/{bone}.h5')
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{bone}.h5')
 
 			with h5py.File(label_path, "r") as f:
 				label = np.array(f[str(n)])
 			
 
 		elif is_amira==True:
-			label_path = self.dataset_path / f'LABELS/Organs/{bone}/{n}.am'
+			label_path = self.dataset_path / f'LABELS/{bone}/{n}.am'
 			
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
 			# fix for different ordering from mariel labels
+							 # [421,423,242,463,259,459,461]
 			mariel_samples	= [421,423,242,463,259,459,256,530,589] 
 			if n in mariel_samples and bone == 'Otoliths':
 				label[label==2]=1
@@ -293,18 +294,21 @@ class CTreader:
 
 		return label
 
-	def write_label(self, organ, label, n, dtype='uint8'):
+	def write_label(self, bone, label, n, name=None, dtype='uint8'):
 		'''
-		Write label to organ hdf5
+		Write label to bone hdf5
 
 		parameters
 		label : label to save as a numpy array
 		n : number of fish, put n = 0 if label is a cc template
 		'''
-		folderPath =  Path(f'{self.dataset_path}/Labels/Organs/{organ}/')
+
+		if name is None:
+			name = bone
+
+		folderPath =  Path(f'{self.dataset_path}/LABELS/{bone}/')
 		folderPath.mkdir(parents=True, exist_ok=True)
-		path = Path(f'{self.dataset_path}/Labels/Organs/{organ}/{organ}.h5')
-		if n == 0: path = Path(f'{self.dataset_path}/Labels/Templates/{organ}.h5')
+		path = Path(f'{self.dataset_path}/LABELS/{bone}/{bone}.h5')
 
 		with h5py.File(path, "a") as f:
 			# print(f.keys())

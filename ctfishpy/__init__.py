@@ -1,5 +1,8 @@
 from ctfishpy.CTreader import CTreader
-# from ctfishpy.Lumpfish import Lumpfish
+# try:
+#     from ctfishpy.Lumpfish import Lumpfish
+# except:
+#     print('NOT INITIALISING NAPARI GUIS - XCB ERROR')
 from ctfishpy.read_amira import read_amira
 from ctfishpy.train_utils import Trainer, test, CTDataset, LearningRateFinder
 from ctfishpy.models import UNet
