@@ -253,7 +253,7 @@ class CTreader:
 				label = np.array(f[str(n)])
 
 		elif is_amira==True:
-			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.h5')
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.am')
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
