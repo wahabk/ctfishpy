@@ -2,6 +2,7 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
+from copy import deepcopy
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
@@ -27,8 +28,6 @@ class CTreader:
 		# TODO resolve this issue with local dataset path instead of dotenv
 		self.local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
 		# if local_dataset_path.exists():
-
-
 
 		if data_path:
 			self.dataset_path = Path(data_path)			
@@ -91,6 +90,16 @@ class CTreader:
 	def read(self, fish:int):
 		start = time.time()
 		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+		end = time.time()
+		# print(f"Reading dicom {fish} took {end-start} seconds") 
+		return scan
+
+	def read_roi(self, fish:int, roi, center):
+		start = time.time()
+		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+
+		scan = self.crop3d(scan, roi, center)
+
 		end = time.time()
 		# print(f"Reading dicom {fish} took {end-start} seconds") 
 		return scan
@@ -408,7 +417,7 @@ class CTreader:
 
 	def label_projections(self, scan_proj, mask_proj):
 		scan_proj = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan_proj]
-
+		
 		# [print(a.shape) for a in scan_proj]
 		# [print(a.shape) for a in mask_proj]
 
@@ -514,8 +523,8 @@ class CTreader:
 
 		z, y, x = center
 		z, y, x = int(z), int(y), int(x)
-		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
-		return array
+		new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
+		return new_array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):
 		"""

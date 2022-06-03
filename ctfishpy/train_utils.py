@@ -67,8 +67,6 @@ class CTDataset(torch.utils.data.Dataset):
 		y = ctreader.read_label(self.bone, i)
 		metadata = ctreader.read_metadata(i)
 
-		print(f"finished reading label y {y.max(), y.shape}")
-
 		center = ctreader.manual_centers[str(old_name)]
 
 		X = ctreader.crop3d(X, self.roi_size, center=center)
@@ -143,17 +141,10 @@ class CTDatasetPrecached(torch.utils.data.Dataset):
 		i = self.indices[index]
 		old_name = master.iloc[i-1]['old_n']
 		
+
 		X = self.dataset[index]
 		y = self.labels[index]
 		metadata = ctreader.read_metadata(i)
-
-		center = ctreader.manual_centers[str(old_name)]
-
-		X = ctreader.crop3d(X, self.roi_size, center=center)
-		# if label size is smaller for roi
-		if self.label_size is None:
-			self.label_size = self.roi_size
-		y = ctreader.crop3d(y, self.label_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		# print('x', np.min(X), np.max(X), X.shape)
@@ -220,7 +211,7 @@ def plot_auc_roc(fpr, tpr, auc_roc):
 def undo_one_hot(result, n_classes, threshold=0.5):
 	label = np.zeros(result.shape[1:], dtype = 'uint8')
 	for i in range(n_classes):
-		print(f'undoing class {i}')
+		# print(f'undoing class {i}')
 		r = result[i, :, :, :,]
 		label[r>threshold] = i
 	return label
@@ -252,8 +243,8 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 			# print(y.shape, y.max(), y.min())
 
 			out = model(x)  # send through model/network
+			out = torch.softmax(out, 1)
 			loss = criterion(out, y)
-			out = torch.softmax(out, n_classes)
 			loss = loss.cpu().numpy()
 
 			# post process to numpy array
@@ -406,9 +397,9 @@ class Trainer:
 			self.optimizer.zero_grad()  # zerograd the parameters
 			out = self.model(input_)  # one forward pass
 
-			loss = self.criterion(out, target)  # calculate loss
 			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
-				out = torch.softmax(out, self.n_classes)
+				out = torch.softmax(out, 1)
+			loss = self.criterion(out, target)  # calculate loss
 			loss_value = loss.item()
 			train_losses.append(loss_value)
 
@@ -441,9 +432,9 @@ class Trainer:
 
 			with torch.no_grad():
 				out = self.model(input_)
-				loss = self.criterion(out, target)  # calculate loss
 				if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
-					out = torch.softmax(out, self.n_classes)
+					out = torch.softmax(out, 1)
+				loss = self.criterion(out, target)  # calculate loss
 				loss_value = loss.item()
 				valid_losses.append(loss_value)
 				if self.logger: self.logger['val/loss'].log(loss_value)

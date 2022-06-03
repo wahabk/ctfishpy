@@ -3,23 +3,32 @@ import numpy as np
 import ctfishpy
 from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset
 from ctfishpy.models import UNet
-
+import torchio as tio
+from neptune.new.types import File
 import matplotlib.pyplot as plt
 import neptune.new as neptune
 import os
+from ray import tune
 import random
+from ray.tune.schedulers import ASHAScheduler
+from functools import partial
+from pathlib2 import Path
+
+import copy
 import monai
 import math
-import torchio as tio
-from neptune.new.types import File
-from tqdm import tqdm
+from monai.networks.layers.factories import Act, Norm
 import gc
-import torch.nn.functional as F
+from tqdm import tqdm
 
 print(os.cpu_count())
-print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
+print ('Current cuda device ', torch.cuda.current_device())
 print('------------num available devices:', torch.cuda.device_count())
+
+import torch.nn as nn
+import torch.nn.functional as F 
+
 
 def dice_loss(true, pred, eps=1e-7):
 	"""Computes the Sørensen-Dice loss.
@@ -71,7 +80,8 @@ def precache(indices, bone, roiSize, label_size=None):
 		
 	return dataset, labels
 
-def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
+def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+	os.chdir(work_dir)
 	'''
 	by default for ray tune
 	'''
@@ -205,6 +215,8 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	run.stop()
 
+
+
 if __name__ == "__main__":
 
 	# dataset_path = '/home/ak18001/Data/HDD/Colloids'
@@ -212,8 +224,9 @@ if __name__ == "__main__":
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
 
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader(dataset_path)
 
 	bone = 'Otoliths'
 
@@ -231,27 +244,47 @@ if __name__ == "__main__":
 	# val_data = all_data[4:6]
 	# test_data =	all_data[1:4]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'HP sauce'
+	name = 'trying new test'
 	save = False
 	# save = 'output/weights/unet.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	#TODO ADD label size
-	#TODO use seg models pytorch
+
+	num_samples = 50
+	max_num_epochs = 400
+	gpus_per_trial = 1
+	device_ids = [0,]
+	save = False
 
 	config = {
-		"lr": 0.00005,
-		"batch_size": 4,
-		"n_blocks": 4,
-		"norm": 'batch',
-		"epochs": 200,
-		"start_filters": 16,
-		"activation": "RELU",
-		"dropout": 0,
-		"loss_function": dice_loss,#k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"lr": tune.loguniform(0.01, 0.00001),
+		"batch_size": tune.choice([1,4]),
+		"n_blocks": tune.randint(2,7),
+		"norm": tune.choice(["BATCH", "INSTANCE"]),
+		"epochs": 300,
+		"start_filters": tune.choice([8,32]),
+		"activation": tune.choice(["RELU", "PRELU", "SWISH"]),
+		"dropout": tune.choice([0,0.1]),
+		"loss_function": tune.choice([dice_loss])#  monai.losses.DiceLoss(include_background=True,monai.losses.DiceLoss(include_background=False,), , torch.nn.CrossEntropyLoss()]) #BinaryFocalLoss(alpha=1.5, gamma=0.5), 
 	}
 
-	# TODO add model in train
+	# the scheduler will terminate badly performing trials
+	# scheduler = ASHAScheduler(
+	# 	metric="val_loss",
+	# 	mode="min",
+	# 	max_t=max_num_epochs,
+	# 	grace_period=1,
+	# 	reduction_factor=2)
 
-	train(config, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10)
+	work_dir = Path().parent.resolve()
+
+	result = tune.run(
+		partial(train, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
+		resources_per_trial={"cpu": 10, "gpu": 1},
+		config=config,
+		num_samples=num_samples,
+		scheduler=None,
+		checkpoint_at_end=False,
+		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'
