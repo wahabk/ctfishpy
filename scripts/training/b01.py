@@ -54,8 +54,8 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 
 	transforms_affine = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
-		# tio.RandomAffine(),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.8),
+		tio.RandomAffine(),
 	])
 	transforms_img = tio.Compose([
 		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times

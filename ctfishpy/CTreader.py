@@ -375,8 +375,8 @@ class CTreader:
 		viewer = napari.view_image(array, name='Scan')
 
 		if label is not None:
-			viewer.add_image(label, opacity=0.5, name='label')
-
+			# viewer.add_image(label, opacity=0.5, name='label')
+			viewer.add_labels(label, opacity=0.5, name="Label")
 		napari.run()
 
 	def read_max_projections(self, n):

@@ -67,6 +67,8 @@ class CTDataset(torch.utils.data.Dataset):
 		y = ctreader.read_label(self.bone, i)
 		metadata = ctreader.read_metadata(i)
 
+		print(f"finished reading label y {y.max(), y.shape}")
+
 		center = ctreader.manual_centers[str(old_name)]
 
 		X = ctreader.crop3d(X, self.roi_size, center=center)
@@ -76,7 +78,7 @@ class CTDataset(torch.utils.data.Dataset):
 		y = ctreader.crop3d(y, self.label_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
-		y = np.array(y/y.max() , dtype=np.int64)
+		# y = np.array(y/y.max() , dtype=np.int64)
 
 		# print('x', np.min(X), np.max(X), X.shape)
 		# print('y', np.min(y), np.max(y), y.shape)
@@ -87,8 +89,8 @@ class CTDataset(torch.utils.data.Dataset):
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
 
 		X = torch.from_numpy(X)
-		y = torch.from_numpy(y).to(torch.int64)
-		y = F.one_hot(y, self.n_classes)
+		y = torch.from_numpy(y) #.to(torch.int64)
+		
 
 		# This weird code is for applying the same transforms to x and y
 		if self.transform:
@@ -98,6 +100,8 @@ class CTDataset(torch.utils.data.Dataset):
 				X, y = torch.chunk(stacked, chunks=2, dim=0)
 			X = self.transform(X)
 
+
+		y = F.one_hot(y.to(torch.int64), self.n_classes)
 		y = y.permute([0,4,1,2,3])
 		y = y.squeeze().to(torch.float32)
 
@@ -105,6 +109,82 @@ class CTDataset(torch.utils.data.Dataset):
 		# print('y', y.shape)
 
 		return X, y,
+
+class CTDatasetPrecached(torch.utils.data.Dataset):
+	"""
+	
+	Torch Dataset for otoliths
+
+	transform is augmentation function
+
+	"""	
+
+	def __init__(self, bone:str, dataset:np.ndarray, labels:np.ndarray, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
+		super().__init__()
+		self.bone = bone
+		self.dataset = dataset
+		self.labels = labels
+		assert(len(dataset) == len(labels))
+		self.indices = indices
+		self.roi_size = roi_size
+		self.n_classes = n_classes
+		self.transform = transform
+		self.label_transform = label_transform
+		self.label_size = label_size
+
+
+	def __len__(self):
+		return len(self.indices)
+
+	def __getitem__(self, index):
+		ctreader = ctfishpy.CTreader()
+		master = ctreader.master
+		# Select sample
+		i = self.indices[index]
+		old_name = master.iloc[i-1]['old_n']
+		
+		X = self.dataset[index]
+		y = self.labels[index]
+		metadata = ctreader.read_metadata(i)
+
+		center = ctreader.manual_centers[str(old_name)]
+
+		X = ctreader.crop3d(X, self.roi_size, center=center)
+		# if label size is smaller for roi
+		if self.label_size is None:
+			self.label_size = self.roi_size
+		y = ctreader.crop3d(y, self.label_size, center=center)
+
+		X = np.array(X/X.max(), dtype=np.float32)
+		# print('x', np.min(X), np.max(X), X.shape)
+		# print('y', np.min(y), np.max(y), y.shape)
+
+		#for reshaping
+		X = np.expand_dims(X, 0)      # if numpy array
+		y = np.expand_dims(y, 0)
+		# tensor = tensor.unsqueeze(1)  # if torch tensor
+		X = torch.from_numpy(X)
+		y = torch.from_numpy(y) #.to(torch.int64)
+		
+
+		# This weird code is for applying the same transforms to x and y
+		if self.transform:
+			if self.label_transform:
+				stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
+				stacked = self.label_transform(stacked)
+				X, y = torch.chunk(stacked, chunks=2, dim=0)
+			X = self.transform(X)
+
+
+		y = F.one_hot(y.to(torch.int64), self.n_classes)
+		y = y.permute([0,4,1,2,3]) #permute one_hot to channels first after batch
+		y = y.squeeze().to(torch.float32)
+
+		# print('x', X.shape)
+		# print('y', y.shape)
+
+		return X, y,
+
 
 def compute_max_depth(shape=1920, max_depth=10, print_out=True):
     shapes = []
@@ -140,6 +220,7 @@ def plot_auc_roc(fpr, tpr, auc_roc):
 def undo_one_hot(result, n_classes, threshold=0.5):
 	label = np.zeros(result.shape[1:], dtype = 'uint8')
 	for i in range(n_classes):
+		print(f'undoing class {i}')
 		r = result[i, :, :, :,]
 		label[r>threshold] = i
 	return label
@@ -483,8 +564,7 @@ def plot_side_by_side(array, label):
 	pass
 
 
-def renormalise(tensor: torch.Tensor):
-	array = tensor.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+def renormalise(array):
 	array = np.squeeze(array)  # remove batch dim and channel dim -> [H, W]
 	array = array * 255
 	return array
