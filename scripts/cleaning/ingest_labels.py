@@ -24,7 +24,7 @@ if __name__ == "__main__":
 	print(all_data, len(all_data))
 
 	keys = ctreader.get_label_keys(bone)
-	print(keys)
+	print(keys, len(keys))
 
 	all_amiras = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78,218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589,]
 	missing = list(set(all_amiras) - set(all_data))

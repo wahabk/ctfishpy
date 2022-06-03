@@ -253,7 +253,7 @@ class CTreader:
 				label = np.array(f[str(n)])
 
 		elif is_amira==True:
-			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.h5')
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.am')
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
 
@@ -375,8 +375,8 @@ class CTreader:
 		viewer = napari.view_image(array, name='Scan')
 
 		if label is not None:
-			viewer.add_image(label, opacity=0.5, name='label')
-
+			# viewer.add_image(label, opacity=0.5, name='label')
+			viewer.add_labels(label, opacity=0.5, name="Label")
 		napari.run()
 
 	def read_max_projections(self, n):
