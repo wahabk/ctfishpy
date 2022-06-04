@@ -200,7 +200,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(model, bone, test_data, params, threshold=0.1, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
@@ -224,12 +224,12 @@ if __name__ == "__main__":
 	print(f"All data: {len(all_keys)}")
 
 	random.shuffle(all_keys)
-	train_data = all_keys[1:20]
-	val_data = all_keys[20:22]
-	test_data =	all_keys[22:]
-	# train_data = all_data[1:4]
-	# val_data = all_data[4:6]
-	# test_data =	all_data[1:4]
+	# train_data = all_keys[1:20]
+	# val_data = all_keys[20:22]
+	# test_data =	all_keys[22:]
+	train_data = all_data[1:4]
+	val_data = all_data[4:6]
+	test_data =	all_data[1:4]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'HP sauce'
 	save = False
@@ -240,13 +240,13 @@ if __name__ == "__main__":
 	#TODO use seg models pytorch
 
 	config = {
-		"lr": 0.00005,
+		"lr": 3e-3,
 		"batch_size": 4,
-		"n_blocks": 4,
-		"norm": 'batch',
-		"epochs": 200,
-		"start_filters": 16,
-		"activation": "RELU",
+		"n_blocks": 2,
+		"norm": 'INSTANCE',
+		"epochs": 30,
+		"start_filters": 32,
+		"activation": "PRELU",
 		"dropout": 0,
 		"loss_function": dice_loss,#k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}

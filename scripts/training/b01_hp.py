@@ -109,10 +109,11 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_workers = num_workers,
 		n_classes = 4, #including background
 		random_seed = 42,
+		dropout = config['dropout'],
 	)
 
 	run['Tags'] = name
-	run['parameters'] = params
+	
 
 
 	transforms_affine = tio.Compose([
@@ -167,6 +168,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_res_units=params["n_blocks"],
 		act=params['activation'], # TODO try PReLU
 		norm=params["norm"],
+		dropout=params["dropout"],
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -174,7 +176,10 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	# loss function
 	criterion = params['loss_function']
+	if isinstance(criterion, monai.losses.TverskyLoss):
+		params['alpha'] = criterion.alpha
 	params['loss_function'] = str(params['loss_function'])
+	run['parameters'] = params
 
 	# optimizer
 	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -210,7 +215,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(model, bone, test_data, params, threshold=0.1, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
@@ -230,21 +235,23 @@ if __name__ == "__main__":
 
 	bone = 'Otoliths'
 
-	old_ns = [78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464] 
-	all_data = [39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
-	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
+	old_ns = 	[40, 78, 200, 218, 240, 242, 256, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589]
+	all_data = 	[39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
+	all_keys = 	[1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
+	test_data = [1,64,374,427]
 
 	print(f"All data: {len(all_keys)}")
+	[all_keys.remove(i) for i in test_data]
 
 	random.shuffle(all_keys)
 	train_data = all_keys[1:20]
-	val_data = all_keys[20:22]
-	test_data =	all_keys[22:]
+	val_data = all_keys[20:]
+	# test_data =	all_keys[22:]
 	# train_data = all_data[1:4]
 	# val_data = all_data[4:6]
 	# test_data =	all_data[1:4]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'trying new test'
+	name = 'HP SAUCE with FLAV'
 	save = False
 	# save = 'output/weights/unet.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
@@ -258,15 +265,23 @@ if __name__ == "__main__":
 	save = False
 
 	config = {
-		"lr": tune.loguniform(0.01, 0.00001),
-		"batch_size": tune.choice([1,4]),
-		"n_blocks": tune.randint(2,7),
-		"norm": tune.choice(["BATCH", "INSTANCE"]),
-		"epochs": 300,
+		"lr": 3e-3,#tune.loguniform(0.01, 0.00001),
+		"batch_size": tune.choice([1,2,4]),
+		"n_blocks": tune.randint(2,4),
+		"norm": tune.choice(["INSTANCE"]),
+		"epochs": 150,
 		"start_filters": tune.choice([8,32]),
-		"activation": tune.choice(["RELU", "PRELU", "SWISH"]),
+		"activation": tune.choice(["PRELU"]),
 		"dropout": tune.choice([0,0.1]),
-		"loss_function": tune.choice([dice_loss])#  monai.losses.DiceLoss(include_background=True,monai.losses.DiceLoss(include_background=False,), , torch.nn.CrossEntropyLoss()]) #BinaryFocalLoss(alpha=1.5, gamma=0.5), 
+		"loss_function": tune.grid_search([monai.losses.TverskyLoss(include_background=True, alpha=0.1), 
+											monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.9),])#  ,monai.losses.DiceLoss(include_background=False,), , torch.nn.CrossEntropyLoss()]) #BinaryFocalLoss(alpha=1.5, gamma=0.5), 
 	}
 
 	# the scheduler will terminate badly performing trials

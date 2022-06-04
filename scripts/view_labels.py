@@ -16,22 +16,30 @@ zac_samples		= [257,443,218,364,464]
 sample = wahab_samples+mariel_samples+zac_samples
 val_sample = [40]
 
-organ = 'Otoliths'
+bone = 'Otoliths'
 ctreader = ctfishpy.CTreader()
-segs = 'Otoliths'
 #341,40
-for n in [40]:#[527,530,582,589]:
+for n in [1]:#[527,530,582,589]:
 	
-	center = ctreader.manual_centers[str(n)]
-	roiSize = (160,128,288)
+	center = ctreader.manual_centers[str(40)]
+	roiSize = (128,128,160)
 
 	ct = ctreader.read(n)
 	ct = ctreader.crop3d(ct, roiSize, center=center)
-	label = ctreader.read_label(segs, n, is_amira=True)
+	ct = np.array(ct/ct.max(), dtype = np.float32)
+	print(ct.max(), ct.min())
+	# ct = ctreader.to8bit(ct)
+	scan_proj = ctreader.make_max_projections(ct)
+	label = ctreader.read_label(bone, n)
 	label = ctreader.crop3d(label, roiSize, center=center)
+	lab_proj = ctreader.make_max_projections(label)
+
+	projections = ctreader.label_projections(scan_proj, lab_proj)
+	print(projections[1].max(), projections[1].min())
+	plt.imsave("output/tests/projection.jpg", projections[1])
 
 	# plt.imshow(label[109])
 	# plt.show()
-	ctreader.view(ct, label=label)
+	# ctreader.view(ct, label=label)
 	
 	# ctreader.make_gif(ct, f'output/man_labels{n}.gif', fps=20, label = label)

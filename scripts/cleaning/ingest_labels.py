@@ -23,8 +23,10 @@ if __name__ == "__main__":
 	all_data.sort()
 	print(all_data, len(all_data))
 
-	# keys = ctreader.get_label_keys(bone)
-	# print(keys, len(keys))
+	keys = ctreader.get_label_keys(bone)
+	print(keys, len(keys))
+	print([master.iloc[new_n-1]['old_n'] for new_n in keys])
+	exit()
 
 	# all_amiras = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78,218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589,]
 

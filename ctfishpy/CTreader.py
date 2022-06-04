@@ -416,10 +416,7 @@ class CTreader:
 		return projections
 
 	def label_projections(self, scan_proj, mask_proj):
-		scan_proj = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan_proj]
-		
-		# [print(a.shape) for a in scan_proj]
-		# [print(a.shape) for a in mask_proj]
+		scan_proj = [np.array(cv2.cvtColor(s/s.max(), cv2.COLOR_GRAY2RGB)*255, dtype=np.uint8) for s in scan_proj]		
 
 		for i, p in enumerate(scan_proj):
 			p[mask_proj[i] == 1 ]=[255,0,0]
@@ -427,7 +424,7 @@ class CTreader:
 			p[mask_proj[i] == 3 ]=[0,0,255]
 			p[mask_proj[i] == 4 ]=[0,255,255]
 
-		return scan_proj
+		return [np.array(s, dtype=np.uint8) for s in scan_proj]
 
 	def resize(self, img, scale=100):
 		# use scipy ndimage zoom
@@ -445,7 +442,7 @@ class CTreader:
 			new_array = ((array - array.min()) / (array.ptp() / 255.0)).astype(np.uint8)
 			return new_array
 		else:
-			print("image already 8 bit!")
+			raise Exception("image already 8 bit!")
 			return new_array
 
 	def rotate_array(self, array, angle, is_label, center=None):

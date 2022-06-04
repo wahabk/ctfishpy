@@ -258,11 +258,6 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 			true_vector = np.array(true_label, dtype='uint8').flatten()
 			pred_vector = pred_label.flatten()
 
-			# print(loss)
-			# print(true_label.shape, true_label.max(), true_label.min(), true_label.dtype)
-			# print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
-			# print(array.shape, array.max(), array.min(), array.dtype)
-
 
 			fpr, tpr, _ = roc_curve(true_vector, pred_vector)
 			aucroc = auc(fpr, tpr)
@@ -270,8 +265,6 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 			run[f'AUC_{i}'].upload(fig)
 
 			pred_label = undo_one_hot(pred_label, n_classes, threshold=threshold)
-			print(array.shape, array.max(), array.min(), array.dtype)
-			print(pred_label.shape, pred_label.max(), pred_label.min(), pred_label.dtype)
 
 			# print(f"final pred shape {pred_label.shape}")
 			# test predict on sim
@@ -279,7 +272,7 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 			label_projections = ctreader.make_max_projections(pred_label)
 			labelled_projections = ctreader.label_projections(array_projections, label_projections)
 			sidebyside = np.concatenate(labelled_projections[0:2], 0)
-			run[f'prediction_{i}'].upload(File.as_image(sidebyside))
+			run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
 
 			# TODO threshold label for imaging and one hot encode
 
@@ -296,7 +289,7 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 	losses = pd.DataFrame(losses)
 	print(losses)
 
-	#TODO plot losses against class
+	# TODO plot losses against class
 	# TODO plot data distrib 
 	#plot label brightness distrib
 
