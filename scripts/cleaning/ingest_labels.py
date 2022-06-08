@@ -25,26 +25,40 @@ if __name__ == "__main__":
 
 	keys = ctreader.get_label_keys(bone)
 	print(keys, len(keys))
+	print([master.iloc[new_n-1]['old_n'] for new_n in keys])
+	exit()
 
-	all_amiras = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78,218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589,]
-	missing = list(set(all_amiras) - set(all_data))
-	print('missing', missing)
+	# all_amiras = [200, 240, 256, 259, 330, 341, 385, 421, 443, 461, 463, 527, 582, 78,218, 242, 257, 277, 337, 364, 40,  423, 459, 462, 464, 530, 589,]
 
-	new_names = [master.loc[master['old_n'] == old_n].index[0] for old_n in all_data]
-	new_names.sort()
-	print(new_names, len(new_names))
+	# new_names = [master.loc[master['old_n'] == old_n].index[0] for old_n in all_data]
+	# new_names.sort()
+	# print(new_names, len(new_names))
+	# missing = list(set(keys) - set(new_names))
+	# print('missing', missing)
+
+	# exit()
+	labels_path = ctreader.dataset_path / 'LABELS' / bone 
+
+	for f in labels_path.iterdir():
+		if f.suffix == '.am':
+			old_n = int(f.stem)
+			print('reading', old_n, f)
+
+			label = ctreader.old_read_label(bone, old_n, is_amira=True)
+			new_n = master.loc[master['old_n'] == old_n].index[0]
+			print('writing', new_n)
+			ctreader.write_label(bone, label, new_n)
 
 
+	# for new_n in missing:
+	# 	print('reading', new_n)
+	# 	old_n = master.iloc[new_n-1]['old_n']
+	# 	label = ctreader.read_label(bone, old_n, is_amira=True)
 
+	# 	# new_n = master.loc[master['old_n'] == old_n].index[0]
 
-	for old_n in missing:
-		print('reading', old_n)
-		label = ctreader.old_read_label(bone, old_n)
+	# 	print('writing', new_n)
 
-		new_n = master.loc[master['old_n'] == old_n].index[0]
-
-		print('writing', new_n)
-
-		ctreader.write_label(bone, label, new_n)
+	# 	ctreader.write_label(bone, label, new_n)
 
 	

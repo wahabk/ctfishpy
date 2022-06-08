@@ -3,23 +3,32 @@ import numpy as np
 import ctfishpy
 from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset
 from ctfishpy.models import UNet
-
+import torchio as tio
+from neptune.new.types import File
 import matplotlib.pyplot as plt
 import neptune.new as neptune
 import os
+from ray import tune
 import random
+from ray.tune.schedulers import ASHAScheduler
+from functools import partial
+from pathlib2 import Path
+
+import copy
 import monai
 import math
-import torchio as tio
-from neptune.new.types import File
-from tqdm import tqdm
+from monai.networks.layers.factories import Act, Norm
 import gc
-import torch.nn.functional as F
+from tqdm import tqdm
 
 print(os.cpu_count())
-print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
+print ('Current cuda device ', torch.cuda.current_device())
 print('------------num available devices:', torch.cuda.device_count())
+
+import torch.nn as nn
+import torch.nn.functional as F 
+
 
 def dice_loss(true, pred, eps=1e-7):
 	"""Computes the Sørensen-Dice loss.
@@ -71,7 +80,8 @@ def precache(indices, bone, roiSize, label_size=None):
 		
 	return dataset, labels
 
-def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
+def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+	os.chdir(work_dir)
 	'''
 	by default for ray tune
 	'''
@@ -99,10 +109,11 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_workers = num_workers,
 		n_classes = 4, #including background
 		random_seed = 42,
+		dropout = config['dropout'],
 	)
 
 	run['Tags'] = name
-	run['parameters'] = params
+	
 
 
 	transforms_affine = tio.Compose([
@@ -157,6 +168,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_res_units=params["n_blocks"],
 		act=params['activation'], # TODO try PReLU
 		norm=params["norm"],
+		dropout=params["dropout"],
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -164,7 +176,10 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	# loss function
 	criterion = params['loss_function']
+	if isinstance(criterion, monai.losses.TverskyLoss):
+		params['alpha'] = criterion.alpha
 	params['loss_function'] = str(params['loss_function'])
+	run['parameters'] = params
 
 	# optimizer
 	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -205,6 +220,8 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	run.stop()
 
+
+
 if __name__ == "__main__":
 
 	# dataset_path = '/home/ak18001/Data/HDD/Colloids'
@@ -212,46 +229,77 @@ if __name__ == "__main__":
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
 
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader(dataset_path)
 
 	bone = 'Otoliths'
 
-	old_ns = [78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464] 
-	all_data = [39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
-	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
+	old_ns = 	[40, 78, 200, 218, 240, 242, 256, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589]
+	all_data = 	[39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
+	all_keys = 	[1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
+	test_data = [1,64,374,427]
 
 	print(f"All data: {len(all_keys)}")
+	[all_keys.remove(i) for i in test_data]
 
 	random.shuffle(all_keys)
-	# train_data = all_keys[1:20]
-	# val_data = all_keys[20:22]
+	train_data = all_keys[1:20]
+	val_data = all_keys[20:]
 	# test_data =	all_keys[22:]
-	train_data = all_data[1:4]
-	val_data = all_data[4:6]
-	test_data =	all_data[1:4]
+	# train_data = all_data[1:4]
+	# val_data = all_data[4:6]
+	# test_data =	all_data[1:4]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'HP sauce'
+	name = 'HP SAUCE with FLAV'
 	save = False
 	# save = 'output/weights/unet.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	#TODO ADD label size
-	#TODO use seg models pytorch
+
+	num_samples = 50
+	max_num_epochs = 400
+	gpus_per_trial = 1
+	device_ids = [0,]
+	save = False
 
 	config = {
-		"lr": 3e-3,
-		"batch_size": 4,
-		"n_blocks": 2,
-		"norm": 'INSTANCE',
-		"epochs": 30,
-		"start_filters": 32,
-		"activation": "PRELU",
-		"dropout": 0,
-		"loss_function": dice_loss,#k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"lr": 3e-3,#tune.loguniform(0.01, 0.00001),
+		"batch_size": tune.choice([1,2,4]),
+		"n_blocks": tune.randint(2,4),
+		"norm": tune.choice(["INSTANCE"]),
+		"epochs": 150,
+		"start_filters": tune.choice([8,32]),
+		"activation": tune.choice(["PRELU"]),
+		"dropout": tune.choice([0,0.1]),
+		"loss_function": tune.grid_search([monai.losses.TverskyLoss(include_background=True, alpha=0.1), 
+											monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+											monai.losses.TverskyLoss(include_background=True, alpha=0.9),])#  ,monai.losses.DiceLoss(include_background=False,), , torch.nn.CrossEntropyLoss()]) #BinaryFocalLoss(alpha=1.5, gamma=0.5), 
 	}
 
-	# TODO add model in train
+	# the scheduler will terminate badly performing trials
+	# scheduler = ASHAScheduler(
+	# 	metric="val_loss",
+	# 	mode="min",
+	# 	max_t=max_num_epochs,
+	# 	grace_period=1,
+	# 	reduction_factor=2)
 
-	train(config, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10)
+	work_dir = Path().parent.resolve()
+
+	result = tune.run(
+		partial(train, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
+		resources_per_trial={"cpu": 10, "gpu": 1},
+		config=config,
+		num_samples=num_samples,
+		scheduler=None,
+		checkpoint_at_end=False,
+		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'

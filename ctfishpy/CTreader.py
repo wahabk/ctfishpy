@@ -2,6 +2,7 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
+from copy import deepcopy
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
@@ -27,8 +28,6 @@ class CTreader:
 		# TODO resolve this issue with local dataset path instead of dotenv
 		self.local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
 		# if local_dataset_path.exists():
-
-
 
 		if data_path:
 			self.dataset_path = Path(data_path)			
@@ -91,6 +90,16 @@ class CTreader:
 	def read(self, fish:int):
 		start = time.time()
 		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+		end = time.time()
+		# print(f"Reading dicom {fish} took {end-start} seconds") 
+		return scan
+
+	def read_roi(self, fish:int, roi, center):
+		start = time.time()
+		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+
+		scan = self.crop3d(scan, roi, center)
+
 		end = time.time()
 		# print(f"Reading dicom {fish} took {end-start} seconds") 
 		return scan
@@ -407,10 +416,7 @@ class CTreader:
 		return projections
 
 	def label_projections(self, scan_proj, mask_proj):
-		scan_proj = [cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan_proj]
-
-		# [print(a.shape) for a in scan_proj]
-		# [print(a.shape) for a in mask_proj]
+		scan_proj = [np.array(cv2.cvtColor(s/s.max(), cv2.COLOR_GRAY2RGB)*255, dtype=np.uint8) for s in scan_proj]		
 
 		for i, p in enumerate(scan_proj):
 			p[mask_proj[i] == 1 ]=[255,0,0]
@@ -418,7 +424,7 @@ class CTreader:
 			p[mask_proj[i] == 3 ]=[0,0,255]
 			p[mask_proj[i] == 4 ]=[0,255,255]
 
-		return scan_proj
+		return [np.array(s, dtype=np.uint8) for s in scan_proj]
 
 	def resize(self, img, scale=100):
 		# use scipy ndimage zoom
@@ -436,7 +442,7 @@ class CTreader:
 			new_array = ((array - array.min()) / (array.ptp() / 255.0)).astype(np.uint8)
 			return new_array
 		else:
-			print("image already 8 bit!")
+			raise Exception("image already 8 bit!")
 			return new_array
 
 	def rotate_array(self, array, angle, is_label, center=None):
@@ -514,8 +520,8 @@ class CTreader:
 
 		z, y, x = center
 		z, y, x = int(z), int(y), int(x)
-		array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]
-		return array
+		new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
+		return new_array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):
 		"""
