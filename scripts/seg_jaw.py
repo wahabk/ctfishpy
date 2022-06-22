@@ -4,45 +4,50 @@ import numpy as np
 
 from napari.layers import Image, Layer, Labels
 from magicgui import magicgui
+from scipy.ndimage import zoom
 
 from copy import deepcopy
 import cv2
 
-from skimage.segmentation import flood_fill
+from skimage.segmentation import flood
 
 @magicgui(auto_call=True,
 	threshold={"widget_type": "Slider", "max":255, "min":0},
+	new_value={"widget_type": "SpinBox", "max":255, "min":0},
+	only_in={"widget_type": "CheckBox"},
 	# reset_center={"widget_type": "PushButton"},
-	layout='vertical',)
-def labeller(layer:Layer, labels:Labels, threshold:int=125) -> None: # reset_center:bool=False
+	layout='Horizontal',)
+def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1, only_in:bool=False) -> None: # reset_center:bool=False
 	if layer is not None:
-		if labels is not None:
-			print(layer)
-			print(labels)
+		if label_layer is not None:
 			assert isinstance(layer.data, np.ndarray)  # it will be!
-			assert isinstance(labels.data, np.ndarray)  # it will be!
+			assert isinstance(label_layer.data, np.ndarray)  # it will be!
 
 			print(layer.metadata)
+
+			label = deepcopy(label_layer.data)
+			image = layer.data
 
 			point = layer.metadata['point']
 			if point is not None:
 				if len(point) == 3:
 					point = tuple([int(x) for x in point])
-					print(f"clicked {point}, threshold {threshold}")
-					new_label = flood_fill(layer.data, point, new_value=1, tolerance=threshold, in_place=False)
-
+					new_label = None
+					new_label = flood(image, point, tolerance=threshold)
 
 					print(new_label.min(), new_label.max(), new_label.shape)
+					print(label.min(), label.max(), label.shape)
 
-					labels.data = new_label
+					label_layer.data[new_label==True] = new_value
 	
+	layer.metadata['point'] = None
 	return 
 
 def create_labeller(viewer, layer) -> None:
 	widget = labeller
 	layer.metadata['point'] = None
 
-	viewer.window.add_dock_widget(widget, name="labeller", area='bottom')
+	viewer.window.add_dock_widget(widget, name="labeller", area='right')
 	viewer.layers.events.changed.connect(widget.reset_choices)
 
 	@layer.mouse_drag_callbacks.append
@@ -81,15 +86,21 @@ if __name__ == "__main__":
 	scan = ctreader.read(1)
 
 	scan = ctreader.to8bit(scan)
+	scan = scan[1000:]
+	# scan = zoom(scan, 0.5)
 
-	point = (1368, 328, 356)
+	# point = (1368, 328, 356)
 
-	temp_label = flood_fill(scan, seed_point=point, new_value=1)
+	# temp_label = flood_fill(scan, seed_point=point, new_value=1)
 
-	ctreader.view(scan, temp_label)
+	# ctreader.view(scan, temp_label)
 
 	# ctreader.view(scan)
+	print(scan.shape)
 	lab = label(scan)
 
 	print(lab.min(), lab.max(), lab.shape)
 
+	#TODO rewrite this one first as qt widget
+	#TODO write only in
+	#TODO write sweep thresh
