@@ -21,10 +21,6 @@ import cv2
 import h5py
 import gc
 import napari
-try:
-	from .GUI import tubeDetector, create_orderLabeller, create_spinner, create_fishRuler
-except:
-    print('NOT INITIALISING NAPARI GUIS - XCB ERROR')
 import math
 
 class Lumpfish():
@@ -46,13 +42,10 @@ class Lumpfish():
 		#to count use master['age'].value_counts()
 		return pd.read_csv('./uCT_mastersheet.csv')
 
-	def read_tiff(self, path, r = None, scale = 40, get_metadata=False):
-		#TODO merge with read dirty
-
+	def read_tiff(self, path, r = None, scale = 40):
 		tifpath = Path(path)
 		files = sorted(tifpath.iterdir())
 		images = [str(f) for f in files if f.suffix == '.tif']
-		#TODO add tifpath search
 
 		ct = []
 		print(f'[CTFishPy] Reading uCT scan: {path}')
@@ -73,32 +66,7 @@ class Lumpfish():
 		if scale:
 			ct = self.rescale(ct, scale)
 
-		if get_metadata:
-			# TODO go path above, then I can merge this with read dirty
-			# read xtekct
-			path = Path(path) # change str path to pathlib format
-			files = path.iterdir()
-			xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
-
-			# check if xtekct exists
-			if not Path(xtekctpath).is_file():
-				raise Exception("[CTFishPy] XtekCT file not found. ")
-			
-			xtekct = QSettings(xtekctpath, QSettings.IniFormat)
-			x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
-			y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
-			z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
-
-			metadata = {'path': str(path), 
-						'scale' : scale,
-						'x_voxel_size' : x_voxelsize,
-						'y_voxel_size' : y_voxelsize,
-						'z_voxel_size' : z_voxelsize}
-
-			return ct, metadata # ct: (slice, x, y, 3)
-
-		else:
-			return ct
+		return ct
 
 	def rescale(self, scan:np.ndarray, scale:int):
 		if scale == 100: return scan
@@ -112,66 +80,6 @@ class Lumpfish():
 		ct = np.array(new_ct)
 
 		return ct
-
-	@deprecated(reason="this will soon be merged with read_tiff")
-	def read_dirty(self, path, r = None, scale = 100):
-
-		path = Path(path)
-		dirs = [x for x in path.iterdir() if x.is_dir()]
-		dirs = sorted(dirs)
-		print(dirs)
-		
-		# Find tif folder and if it doesnt exist read images in main folder
-		tif = []
-		for i in dirs: 
-			if 'tifs' in str(i):
-				tif.append(i)
-		if tif: tifpath = path / tif[0]
-		else: tifpath = path
-
-		print('tifpath:', tifpath)
-		tifpath = Path(tifpath)
-		files = sorted(tifpath.iterdir())
-		images = [str(f) for f in files if f.suffix == '.tif']
-
-		ct = []
-		print('[CTFishPy] Reading uCT scan')
-		if r:
-			for i in tqdm(range(*r)):
-				slice_ = tiff.imread(images[i])     
-				ct.append(slice_)
-			ct = np.array(ct)
-
-		else:
-			for i in tqdm(images):
-				slice_ = tiff.imread(i)       
-				ct.append(slice_)
-			ct = np.array(ct)
-
-		if scale != 100:
-			ct = self.rescale(ct)
-
-		# read xtekct
-		path = Path(path) # change str path to pathlib format
-		files = path.iterdir()
-		xtekctpath = [str(f) for f in files if f.suffix == '.xtekct'][0]
-
-		# check if xtekct exists
-		if not Path(xtekctpath).is_file():
-			raise Exception("[CTFishPy] XtekCT file not found. ")
-		
-		xtekct = QSettings(xtekctpath, QSettings.IniFormat)
-		x_voxelsize = xtekct.value('XTekCT/VoxelSizeX')
-		y_voxelsize = xtekct.value('XTekCT/VoxelSizeY')
-		z_voxelsize = xtekct.value('XTekCT/VoxelSizeZ')
-
-		metadata = {'path': str(path), 
-					'scale' : scale,
-					'x_voxel_size' : x_voxelsize,
-					'y_voxel_size' : y_voxelsize,
-					'z_voxel_size' : z_voxelsize}
-
-		return ct , metadata # ct: (slice, x, y, 3)
 			
 	def crop(self, ct, circles, scale = [40, 40]):
 		'''
@@ -229,75 +137,6 @@ class Lumpfish():
 			del rectx
 			del recty
 		return cropped_CTs
-
-	@deprecated
-	def saveCrop(self, n, ordered_circles, metadata):
-		fishnums = np.arange(40,639)
-		number = fishnums[n]
-		order = self.fish_order_nums[n]
-		crop_data = {
-			'n'                 : f'{order[0]}-{order[len(order)-1]}',
-			'ordered_circles'   : ordered_circles.tolist(),
-			'scale'             : metadata['scale'],
-			'path'              : metadata['path']
-		}
-		jsonpath = metadata['path']+'/crop_data.json'
-		with open(jsonpath, 'w') as o:
-			json.dump(crop_data, o)
-		backuppath = f'./output/Crops/{order[0]}-{order[len(order)-1]}_crop_data.json'
-		with open(backuppath, 'w') as o:
-			json.dump(crop_data, o)
-
-	@deprecated
-	def readCrop(self, number):
-		files = pd.read_csv('../../Data/HDD/uCT/filenames_low_res.csv', header = None)
-		files = files.values.tolist()
-		crop_path = '../../Data/HDD/uCT/low_res/'+files[number][0]+'/crop_data.json'
-		with open(crop_path) as f:
-			crop_data = json.load(f)
-		return crop_data
-
-	@deprecated
-	def write_metadata(self, n, input):
-		'''
-		metadata = {
-			'N'    : None,
-			'Skip'     : None,
-			'Age'      : None,
-			'Genotype'   : None,
-			'Strain'     : None,
-			'Name'     : None,
-			'VoxelSizeX' : None,
-			'VoxelSizeY' : None,
-			'VoxelSizeZ' : None
-		}
-		'''
-		#n = self.fishnums[n]
-		fishpath = Path(f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/')
-		jsonpath = fishpath / 'metadata.json'
-		jsonpath.touch()
-
-		'''
-		# old stuff to dynamically add metadata to existing files
-		with open(jsonpath) as f:
-			metadata = json.load(f)
-
-		for key in list(input.keys()):
-			metadata[key] = input[key]
-		'''
-
-		# just dump input for now
-		with open(jsonpath, 'w') as o:
-			json.dump(input, o)
-
-	@deprecated
-	def append_metadata(self, n, inputDict):
-		metadataPath = f'../../Data/HDD/uCT/low_res_clean/{str(n).zfill(3)}/metadata.json'
-		with open(metadataPath) as f:
-			data = json.load(f)
-		data.update(inputDict)
-		with open(metadataPath, 'w') as f:
-			json.dump(data, f)
 
 	def write_tif(self, path, name, scan, metadata=None):
 		parent = Path(path)
@@ -396,6 +235,9 @@ class Lumpfish():
 			return new_array
 
 	def detectTubes(self, viewer, scan):
+
+		from .GUI import tubeDetector
+
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		m = {'og': scan}
@@ -412,6 +254,9 @@ class Lumpfish():
 		return metadata['circle_dict']
 
 	def labelOrder(self, viewer, circle_dict):
+
+		from .GUI import create_orderLabeller
+
 		scan = circle_dict['labelled_stack']
 		ordered_circles = []
 		m = {'og': scan, 'circles': circle_dict['circles'], 'ordered_circles' : ordered_circles}
@@ -428,6 +273,9 @@ class Lumpfish():
 		return ordered_circles
 
 	def spin(self, viewer, scan):
+
+		from .GUI import create_spinner
+
 		# create max projection
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
@@ -446,6 +294,9 @@ class Lumpfish():
 		return angle, center
 		
 	def measure_length(self, viewer, scan):
+
+		from .GUI import create_fishRuler
+
 		scan = self.to8bit(scan)
 		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
 		projection = np.max(scan, axis=1)

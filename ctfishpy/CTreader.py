@@ -25,38 +25,23 @@ import time
 class CTreader:
 	def __init__(self, data_path=None):
 		# print(Path().resolve())
-		# TODO resolve this issue with local dataset path instead of dotenv
-		self.local_dataset_path = Path('ctfishpy/Metadata/local_dataset_path.txt')
-		# if local_dataset_path.exists():
 
 		if data_path:
 			self.dataset_path = Path(data_path)			
+			
+			self.dicoms_path = self.dataset_path / "DICOMS/"
+			nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
+			nums.sort()
+			self.fish_nums = nums
+			self.master = pd.read_csv(self.dataset_path / "uCT_mastersheet.csv", index_col='n')
+			self.anglePath = Path("ctfishpy/Metadata/angles.json")
+			self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
+			with open(self.centres_path, "r") as fp:
+				self.manual_centers = json.load(fp)
+
+			self.dataset_initialised = True
 		else:
-			try:
-				with open(self.local_dataset_path) as f:
-					data_path = f.readlines()[0]
-				self.dataset_path = Path(data_path)
-			except:
-				self.local_dataset_path.touch()
-				print('[CTfishpy] local path file not found, please tell me the path to your dataset folder?')
-				new_path = input('Path:')
-
-				with open(self.local_dataset_path, "w") as f:
-					f.write(f"{new_path}")
-				data_path = new_path
-
-				self.dataset_path = Path(data_path)
-				# warnings.warn("Can't find local dataset path")
-		
-		self.dicoms_path = self.dataset_path / "DICOMS/"
-		nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
-		nums.sort()
-		self.fish_nums = nums
-		self.master = pd.read_csv("ctfishpy/Metadata/uCT_mastersheet.csv", index_col='n')
-		self.anglePath = Path("ctfishpy/Metadata/angles.json")
-		self.centres_path = Path("ctfishpy/Metadata/centres_Otoliths.json")
-		with open(self.centres_path, "r") as fp:
-			self.manual_centers = json.load(fp)
+			self.dataset_initialised = False
 		
 		self.bones = ["otoliths", "jaw"]
 
@@ -88,21 +73,27 @@ class CTreader:
 		return list(m.loc[:]["n"])
 
 	def read(self, fish:int):
-		start = time.time()
-		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
-		end = time.time()
-		# print(f"Reading dicom {fish} took {end-start} seconds") 
-		return scan
+		if self.dataset_initialised:
+			start = time.time()
+			scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+			end = time.time()
+			# print(f"Reading dicom {fish} took {end-start} seconds") 
+			return scan
+		else:
+			raise Exception("Dataset not initialised")
 
-	def read_roi(self, fish:int, roi, center):
-		start = time.time()
-		scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
+	def read_roi(self, fish:int, roi, center=None):
+		if self.dataset_initialised:
+			start = time.time()
+			scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
 
-		scan = self.crop3d(scan, roi, center)
+			scan = self.crop3d(scan, roi, center)
 
-		end = time.time()
-		# print(f"Reading dicom {fish} took {end-start} seconds") 
-		return scan
+			end = time.time()
+			# print(f"Reading dicom {fish} took {end-start} seconds") 
+			return scan
+		else:
+			raise Exception("Dataset not initialised")
 
 	def read_metadata(self, fish:int, old_n = False):
 		return self.master.loc[fish].to_dict()
@@ -117,7 +108,7 @@ class CTreader:
 				
 		return data
 
-	def write_dicom(self, path:str, name:str, array:np.ndarray):
+	def write_dicom(self, path:str, array:np.ndarray):
 		"""
 		save monochrome dicom 
 		this will auto determine 16 / 8 bit depth but will only accept np arrays in dtypes uint8 or uint16
@@ -135,7 +126,7 @@ class CTreader:
 		ds = FileDataset(path, {},
 				 file_meta={}, preamble=b"\0" * 128)
 
-		ds.PatientName = str(name)
+		ds.PatientName = "123456"
 		ds.PatientID = "123456"
 
 		# Set creation date/time and endianness
@@ -445,7 +436,7 @@ class CTreader:
 			raise Exception("image already 8 bit!")
 			return new_array
 
-	def rotate_array(self, array, angle, is_label, center=None):
+	def rotate_array(self, array, angle, is_label=False, center=None):
 		"""
 		Rotate using affine transformation
 		"""
