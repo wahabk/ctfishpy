@@ -15,9 +15,10 @@ from skimage.segmentation import flood
 	threshold={"widget_type": "Slider", "max":255, "min":0},
 	new_value={"widget_type": "SpinBox", "max":255, "min":0},
 	only_in={"widget_type": "CheckBox"},
+	seek={"widget_type": "CheckBox"},
 	# reset_center={"widget_type": "PushButton"},
 	layout='Horizontal',)
-def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1, only_in:bool=False) -> None: # reset_center:bool=False
+def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1, only_in:bool=False, seek=False) -> None: # reset_center:bool=False
 	if layer is not None:
 		if label_layer is not None:
 			assert isinstance(layer.data, np.ndarray)  # it will be!
@@ -40,7 +41,8 @@ def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1
 
 					label_layer.data[new_label==True] = new_value
 	
-	layer.metadata['point'] = None
+	if seek == False:
+		layer.metadata['point'] = None
 	return 
 
 def create_labeller(viewer, layer) -> None:
@@ -52,7 +54,7 @@ def create_labeller(viewer, layer) -> None:
 
 	@layer.mouse_drag_callbacks.append
 	def get_event(layer, event):
-		if event.button == 1: # if left click
+		if event.button == 2: # if left click
 			layer.metadata['point'] = event.position #flip because qt :(
 			widget.update()
 		return
@@ -80,8 +82,8 @@ def label(scan):
 
 
 if __name__ == "__main__":
-
-	ctreader = ctfishpy.CTreader()
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
+	ctreader = ctfishpy.CTreader(dataset_path)
 
 	scan = ctreader.read(1)
 
