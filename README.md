@@ -23,13 +23,19 @@ conda activate fish
 python3 -m pip install .
 ```
 
+Quickest 
+
+```
+pip install git+https://github.com/wahabk/ctfishpy
+```
+
 # Usage
 
-I will provide jupyter notebooks in `examples/` when the model is ready to use.
+Check the jupyter notebooks in `examples/`
 
-# Dependencies
+# Requirements
 
-Check `setup.py`
+Make sure you have anaconda installed, for python dependencies check `setup.py`
 
 # Dev
 
