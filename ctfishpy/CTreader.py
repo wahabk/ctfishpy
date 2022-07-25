@@ -234,6 +234,11 @@ class CTreader:
 
 		return ct, stack_metadata
 
+	def read_hdf5(self, path, index):
+		with h5py.File(path, "r") as f:
+			array = np.array(f[str(index)])
+		return array
+
 	def read_label(self, bone, n, is_amira=False, name=None):
 		"""
 		Read and return hdf5 label files
@@ -259,17 +264,11 @@ class CTreader:
 
 		return label
 
-	def get_label_keys(self, bone, name=None) -> list:
+	def get_h5_keys(self, path) -> list:
 
-		if name is None:
-			name = bone
-
-		label_path = str(self.dataset_path / f'LABELS/{bone}/{name}.h5')
-
-		with h5py.File(label_path, "r") as f:
+		with h5py.File(path, "r") as f:
 			keys = list(f.keys())
 			nums = keys
-		nums = [int(n) for n in list(keys)]
 		nums.sort()
 		return nums
 
