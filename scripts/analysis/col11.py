@@ -31,7 +31,6 @@ if __name__ == "__main__":
 
 	sixmonthold_wildtypes = ctreader.trim(wildtypes, 'age', [6,7,])
 	print(len(sixmonthold_wildtypes))
-	exit()
 
 	col11s = ctreader.trim(master, 'strain', ['col11a2'])
 	col11homs = ctreader.trim(col11s, 'genotype', ['hom'])
@@ -117,8 +116,6 @@ if __name__ == "__main__":
 	plt.ylim((0.4,3.0))
 	plt.legend(loc='lower left')
 	plt.savefig('output/yushipaper/all_densities.png')
-
-
 
 	grouped = densities.groupby(['genotype', 'Otoliths'])
 	means = grouped.mean()
