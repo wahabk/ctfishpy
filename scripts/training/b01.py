@@ -15,6 +15,7 @@ from neptune.new.types import File
 from tqdm import tqdm
 import gc
 import torch.nn.functional as F
+from pathlib2 import Path
 
 print(os.cpu_count())
 print ('Current cuda device ', torch.cuda.current_device())
@@ -42,12 +43,12 @@ def dice_loss(true, pred, eps=1e-7):
 	dice_loss = (2. * intersection / (cardinality + eps)).mean()
 	return (1 - dice_loss)
 
-def precache(indices, bone, roiSize, label_size=None):
+def precache(dataset_path, indices, bone, roiSize, label_size=None):
 
 	if label_size is None:
 		label_size = roiSize
 
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
 	dataset = []
 	labels = []
@@ -71,7 +72,8 @@ def precache(indices, bone, roiSize, label_size=None):
 		
 	return dataset, labels
 
-def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10):
+def train(dataset_path, config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+	os.chdir(work_dir)
 	'''
 	by default for ray tune
 	'''
@@ -83,6 +85,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	)
 
 	params = dict(
+		dataset_path=dataset_path,
 		bone=bone,
 		roiSize = (128,128,160),
 		train_data = train_data,
@@ -99,12 +102,11 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_workers = num_workers,
 		n_classes = 4, #including background
 		random_seed = 42,
+		dropout = config['dropout'],
 	)
 
 	run['Tags'] = name
-	run['parameters'] = params
-
-
+	
 	transforms_affine = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
 		tio.RandomAffine(),
@@ -126,14 +128,14 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	# if config['n_blocks'] == 3: label_size = (24,24,24)
 	label_size = params['roiSize']
 
-	train_dataset, train_labels = precache(params['train_data'], params['bone'], params['roiSize'])
+	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
 	print(train_dataset[0].shape, train_dataset[0].max())
 	# create a training data loader
-	train_ds = CTDatasetPrecached(params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
-	val_dataset, val_labels = precache(params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDatasetPrecached(params['bone'], val_dataset, val_labels, params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
+	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
+	val_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], val_dataset, val_labels, params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
 	# val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
@@ -157,6 +159,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		num_res_units=params["n_blocks"],
 		act=params['activation'], # TODO try PReLU
 		norm=params["norm"],
+		dropout=params["dropout"],
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -164,7 +167,10 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	# loss function
 	criterion = params['loss_function']
+	if isinstance(criterion, monai.losses.TverskyLoss):
+		params['alpha'] = criterion.alpha
 	params['loss_function'] = str(params['loss_function'])
+	run['parameters'] = params
 
 	# optimizer
 	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -200,20 +206,20 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
 if __name__ == "__main__":
 
-	# dataset_path = '/home/ak18001/Data/HDD/Colloids'
+	dataset_path = '/home/ak18001/Data/HDD/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
 
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader(dataset_path)
 
 	bone = 'Otoliths'
 
@@ -231,9 +237,9 @@ if __name__ == "__main__":
 	val_data = all_data[4:6]
 	test_data =	all_data[1:4]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'HP sauce'
+	name = 'fin train?'
 	save = False
-	# save = 'output/weights/unet.pt'
+	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	#TODO ADD label size
@@ -241,17 +247,19 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 4,
-		"n_blocks": 2,
+		"batch_size": 2,
+		"n_blocks": 3,
 		"norm": 'INSTANCE',
-		"epochs": 30,
+		"epochs": 150,
 		"start_filters": 32,
 		"activation": "PRELU",
-		"dropout": 0,
-		"loss_function": dice_loss,#k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"dropout": 0.1,
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.9), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
 
 	# TODO add model in train
 
-	train(config, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10)
+	work_dir = Path().parent.resolve()
+
+	train(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)

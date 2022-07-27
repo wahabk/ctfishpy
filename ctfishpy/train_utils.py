@@ -26,6 +26,7 @@ from ray import tune
 import torchio as tio
 from .CTreader import CTreader
 from .models.unet import UNet
+import monai
 
 from sklearn.metrics import roc_curve, auc
 
@@ -42,8 +43,9 @@ class CTDataset(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, bone:str, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
 		super().__init__()
+		self.dataset_path = dataset_path
 		self.bone = bone
 		self.indices = indices
 		self.roi_size = roi_size
@@ -57,7 +59,7 @@ class CTDataset(torch.utils.data.Dataset):
 		return len(self.indices)
 
 	def __getitem__(self, index):
-		ctreader = ctfishpy.CTreader()
+		ctreader = ctfishpy.CTreader(self.dataset_path)
 		master = ctreader.master
 		# Select sample
 		i = self.indices[index]
@@ -117,8 +119,9 @@ class CTDatasetPrecached(torch.utils.data.Dataset):
 
 	"""	
 
-	def __init__(self, bone:str, dataset:np.ndarray, labels:np.ndarray, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
+	def __init__(self, dataset_path:str, bone:str, dataset:np.ndarray, labels:np.ndarray, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
 		super().__init__()
+		self.dataset_path = dataset_path
 		self.bone = bone
 		self.dataset = dataset
 		self.labels = labels
@@ -135,7 +138,7 @@ class CTDatasetPrecached(torch.utils.data.Dataset):
 		return len(self.indices)
 
 	def __getitem__(self, index):
-		ctreader = ctfishpy.CTreader()
+		ctreader = ctfishpy.CTreader(self.dataset_path)
 		master = ctreader.master
 		# Select sample
 		i = self.indices[index]
@@ -216,11 +219,54 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 		label[r>threshold] = i
 	return label
 
-def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+def predict(array, model=None, weights_path=None, threshold=0.5):
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'predicting on {device}')
+
+	# model
+	if model is None:
+		model = monai.networks.nets.AttentionUnet(
+			spatial_dims=3,
+			in_channels=1,
+			out_channels=1,
+			channels=[32, 64, 128],
+			strides=[2,2],
+			# act=params['activation'],
+			# norm=params["norm"],
+			padding='valid',
+		)
+
+	model = torch.nn.DataParallel(model, device_ids=None) # parallelise model
+
+	if weights_path is not None:
+		model_weights = torch.load(weights_path, map_location=device) # read trained weights
+		model.load_state_dict(model_weights) # add weights to model
+
+	model = model.to(device)
+	array = np.array(array/array.max(), dtype=np.float32) # normalise input
+	array = np.expand_dims(array, 0) # add batch axis
+	input_tensor = torch.from_numpy(array)
+
+	model.eval()
+	with torch.no_grad():
+		input_tensor.to(device)
+		out = model(input_tensor)  # send through model/network
+		out_sigmoid = torch.sigmoid(out)  # perform sigmoid on output because logits
+
+	result = out_sigmoid.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+	result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
+
+	label = np.zeros_like(result)
+	label[result>threshold] = 1
+	label[result<threshold] = 0
+
+	return label
+
+def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 
-	ctreader = ctfishpy.CTreader()
+	ctreader = ctfishpy.CTreader(dataset_path)
 	print('Running test, this may take a while...')
 
 
@@ -228,7 +274,7 @@ def test(model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size
 		label_size = roiSize
 
 	# test on real data
-	test_ds = CTDataset(bone, test_set, roiSize, n_classes, transform=None, label_transform=None, label_size=label_size) 
+	test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_transform=None, label_size=label_size) 
 	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
 	losses = []

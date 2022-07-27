@@ -1,9 +1,10 @@
 import ctfishpy
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib2 import Path
+import pandas as pd
 import random
 import gc
-from pathlib2 import Path
 import json
 
 if __name__ == '__main__':

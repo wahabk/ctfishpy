@@ -30,7 +30,7 @@ class CTreader:
 			self.dataset_path = Path(data_path)			
 			
 			self.dicoms_path = self.dataset_path / "DICOMS/"
-			nums = [int(path.stem) for path in self.dicoms_path.iterdir() if path.is_dir()]
+			nums = [int(path.stem.split('_')[1]) for path in self.dicoms_path.iterdir()]
 			nums.sort()
 			self.fish_nums = nums
 			self.master = pd.read_csv(self.dataset_path / "uCT_mastersheet.csv", index_col='n')
@@ -351,7 +351,6 @@ class CTreader:
 
 		with h5py.File(path, "a") as f:
 			# print(f.keys())
-			# exit()
 			dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
 
 	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
