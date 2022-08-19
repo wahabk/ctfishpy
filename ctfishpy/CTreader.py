@@ -384,10 +384,10 @@ class CTreader:
 		"""
 		# import pdb; pdb.set_trace()
 		dpath = str(self.dataset_path)
-		z = cv2.imread(f"{dpath}/projections/z/z_{n}.png")
-		y = cv2.imread(f"{dpath}/projections/y/y_{n}.png")
-		x = cv2.imread(f"{dpath}/projections/x/x_{n}.png")
-		return np.array([z, y, x])
+		z = cv2.imread(f"{dpath}/PROJECTIONS/Z/z_{n}.png")
+		y = cv2.imread(f"{dpath}/PROJECTIONS/Y/y_{n}.png")
+		x = cv2.imread(f"{dpath}/PROJECTIONS/X/x_{n}.png")
+		return np.array([z, y, x], dtype=object)
 
 	def make_max_projections(self, stack):
 		"""

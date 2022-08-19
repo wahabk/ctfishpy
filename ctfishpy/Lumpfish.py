@@ -232,7 +232,7 @@ class Lumpfish():
 			return new_array
 		else:
 			print("image already 8 bit!")
-			return new_array
+			return array
 
 	def detectTubes(self, viewer, scan):
 
@@ -293,16 +293,12 @@ class Lumpfish():
 		center = metadata['center_rotation']
 		return angle, center
 		
-	def measure_length(self, viewer, scan):
+	def measure_length(self, viewer:napari.Viewer, projection:np.ndarray):
 
 		from .GUI import create_fishRuler
-
-		scan = self.to8bit(scan)
-		scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
-		projection = np.max(scan, axis=1)
+		
 		meta = {'og': projection, 'head' : 0, 'tail' : 0}
-		# layer=None
-		layer = viewer.add_image(projection, metadata=meta, name='projection2')
+		layer = viewer.add_image(projection, metadata=meta, name='projection')
 
 		create_fishRuler(viewer, layer)
 		viewer.show(block=True)
@@ -310,6 +306,8 @@ class Lumpfish():
 		metadata = layer.metadata
 		head = metadata['head']
 		tail = metadata['tail']
+
 		pixel_length = math.dist(head, tail)
+
 		return pixel_length
 
