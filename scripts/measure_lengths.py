@@ -18,10 +18,11 @@ if __name__ == '__main__':
 	for n in ctreader.fish_nums:
 		projections = ctreader.read_max_projections(n)
 		metadata = ctreader.read_metadata(n)
+		p = projections[2]
 
-		print("fish n shape", n, projections[2].shape)
+		print("fish n shape", n, p.shape)
 		viewer = napari.Viewer(show=False)
-		pixel_length = lump.measure_length(viewer, projections[2])
+		pixel_length = lump.measure_length(viewer, p)
 
 		length = pixel_length * metadata['VoxelSizeY']
 
