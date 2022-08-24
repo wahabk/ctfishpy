@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
 	df = pd.DataFrame(columns=['Length(cm)'])
 
-	for n in ctreader.fish_nums:
+	for n in ctreader.fish_nums[204:]:
 		projections = ctreader.read_max_projections(n)
 		metadata = ctreader.read_metadata(n)
 		p = projections[2]
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 		
 		df.loc[n] = [length]
 
-		df.to_csv('output/results/lengths.csv')
+		# df.to_csv('output/results/lengths.csv')
 
 
 
