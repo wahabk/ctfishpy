@@ -29,6 +29,7 @@ from .models.unet import UNet
 import monai
 
 from sklearn.metrics import roc_curve, auc
+import gc
 
 """
 Datasets
@@ -37,13 +38,15 @@ Datasets
 class CTDataset(torch.utils.data.Dataset):
 	"""
 	
-	Torch Dataset for otoliths
+	Torch Dataset for bones in 3D
 
 	transform is augmentation function
 
 	"""	
 
-	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
+				transform=None, label_transform=None, label_size:tuple=None,
+				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
 		super().__init__()
 		self.dataset_path = dataset_path
 		self.bone = bone
@@ -53,7 +56,11 @@ class CTDataset(torch.utils.data.Dataset):
 		self.transform = transform
 		self.label_transform = label_transform
 		self.label_size = label_size
-
+		self.precached = precached
+		if self.precached:
+			self.dataset = dataset
+			self.labels = labels
+			assert(len(dataset) == len(labels))
 
 	def __len__(self):
 		return len(self.indices)
@@ -62,36 +69,31 @@ class CTDataset(torch.utils.data.Dataset):
 		ctreader = ctfishpy.CTreader(self.dataset_path)
 		master = ctreader.master
 		# Select sample
-		i = self.indices[index]
+		i = self.indices[index] #index is order from precache, i is number from dataset
 		old_name = master.iloc[i-1]['old_n']
 		
-		X = ctreader.read(i)
-		y = ctreader.read_label(self.bone, i)
-		metadata = ctreader.read_metadata(i)
+		if self.precached:
+			X = self.dataset[index]
+			y = self.labels[index]
 
-		center = ctreader.manual_centers[str(old_name)]
-
-		X = ctreader.crop3d(X, self.roi_size, center=center)
-		# if label size is smaller for roi
-		if self.label_size is not None:
-			self.label_size == self.roi_size
-		y = ctreader.crop3d(y, self.label_size, center=center)
+		else:
+			X = ctreader.read(i)
+			y = ctreader.read_label(self.bone, i)
+			center = ctreader.manual_centers[str(old_name)]
+			X = ctreader.crop3d(X, self.roi_size, center=center)			
+			# if label size is smaller for roi
+			if self.label_size is not None:
+				self.label_size == self.roi_size
+			y = ctreader.crop3d(y, self.label_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
-		# y = np.array(y/y.max() , dtype=np.int64)
-
-		# print('x', np.min(X), np.max(X), X.shape)
-		# print('y', np.min(y), np.max(y), y.shape)
-
 		#for reshaping
 		X = np.expand_dims(X, 0)      # if numpy array
 		y = np.expand_dims(y, 0)
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
-
 		X = torch.from_numpy(X)
-		y = torch.from_numpy(y) #.to(torch.int64)
+		y = torch.from_numpy(y)
 		
-
 		# This weird code is for applying the same transforms to x and y
 		if self.transform:
 			if self.label_transform:
@@ -100,39 +102,65 @@ class CTDataset(torch.utils.data.Dataset):
 				X, y = torch.chunk(stacked, chunks=2, dim=0)
 			X = self.transform(X)
 
-
 		y = F.one_hot(y.to(torch.int64), self.n_classes)
-		y = y.permute([0,4,1,2,3])
+		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
 		y = y.squeeze().to(torch.float32)
-
-		# print('x', X.shape)
-		# print('y', y.shape)
 
 		return X, y,
 
-class CTDatasetPrecached(torch.utils.data.Dataset):
+
+class CTDataset2D(torch.utils.data.Dataset):
 	"""
 	
-	Torch Dataset for otoliths
+	Torch Dataset for bones in 2D
 
 	transform is augmentation function
 
 	"""	
 
-	def __init__(self, dataset_path:str, bone:str, dataset:np.ndarray, labels:np.ndarray, indices:list, roi_size:tuple, n_classes:int, transform=None, label_transform=None, label_size:tuple=None):	
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
+				transform=None, label_transform=None, label_size:tuple=None,
+				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
 		super().__init__()
 		self.dataset_path = dataset_path
 		self.bone = bone
-		self.dataset = dataset
-		self.labels = labels
-		assert(len(dataset) == len(labels))
 		self.indices = indices
 		self.roi_size = roi_size
 		self.n_classes = n_classes
 		self.transform = transform
 		self.label_transform = label_transform
 		self.label_size = label_size
+		self.precached = precached
+		if self.precached:
+			self.dataset = dataset
+			self.labels = labels
+			assert(len(dataset) == len(labels))
 
+class agingDataset(torch.utils.data.Dataset):
+	"""
+	
+	Torch Dataset for aging
+
+	of either the whole scan or roi (e.g.) otoliths
+
+	can be 2d or 3D
+
+	transform is augmentation function
+
+	"""	
+
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple,
+	n_dim:int=3, transform=None, label_transform=None, label_size:tuple=None):	
+		super().__init__()
+		self.dataset_path = dataset_path
+		self.bone = bone
+		self.indices = indices
+		self.roi_size = roi_size
+		self.transform = transform
+		self.label_transform = label_transform
+		self.label_size = label_size
+		self.n_classes = 1
+		self.n_dim = n_dim
 
 	def __len__(self):
 		return len(self.indices)
@@ -141,43 +169,60 @@ class CTDatasetPrecached(torch.utils.data.Dataset):
 		ctreader = ctfishpy.CTreader(self.dataset_path)
 		master = ctreader.master
 		# Select sample
-		i = self.indices[index]
+		i = self.indices[index] #index is order from precache, i is number from dataset
 		old_name = master.iloc[i-1]['old_n']
-		
-
-		X = self.dataset[index]
-		y = self.labels[index]
 		metadata = ctreader.read_metadata(i)
+		
+		if self.precached:
+			X = self.dataset[index]
+		else:
+			X = ctreader.read(i)
+			center = ctreader.manual_centers[str(old_name)]
+			X = ctreader.crop3d(X, self.roi_size, center=center)			
+
+		y = master.iloc[i]['age']
 
 		X = np.array(X/X.max(), dtype=np.float32)
-		# print('x', np.min(X), np.max(X), X.shape)
-		# print('y', np.min(y), np.max(y), y.shape)
-
 		#for reshaping
 		X = np.expand_dims(X, 0)      # if numpy array
-		y = np.expand_dims(y, 0)
-		# tensor = tensor.unsqueeze(1)  # if torch tensor
 		X = torch.from_numpy(X)
-		y = torch.from_numpy(y) #.to(torch.int64)
-		
 
-		# This weird code is for applying the same transforms to x and y
 		if self.transform:
-			if self.label_transform:
-				stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
-				stacked = self.label_transform(stacked)
-				X, y = torch.chunk(stacked, chunks=2, dim=0)
 			X = self.transform(X)
 
-
-		y = F.one_hot(y.to(torch.int64), self.n_classes)
-		y = y.permute([0,4,1,2,3]) #permute one_hot to channels first after batch
-		y = y.squeeze().to(torch.float32)
-
-		# print('x', X.shape)
-		# print('y', y.shape)
+		# TODO how to one hot age? use sigmoid or softmax?
 
 		return X, y,
+
+
+def precache(dataset_path, indices, bone, roiSize, label_size=None):
+
+	if label_size is None:
+		label_size = roiSize
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	master = ctreader.master
+	dataset = []
+	labels = []
+	print("caching...")
+	for i in tqdm(indices):
+		old_name = master.iloc[i-1]['old_n']
+		center = ctreader.manual_centers[str(old_name)]
+
+		# roi = ctreader.read_roi(i, roiSize, center)
+		scan = ctreader.read(i)
+		roi = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+		del scan
+		dataset.append(roi)
+
+		label = ctreader.read_label(bone, i)
+		roi_label = ctreader.crop3d(label, roiSize=label_size, center = center)
+		labels.append(roi_label)
+		del label
+		gc.collect()
+		# print(roi.shape, roi_label.shape, roi.max(), roi_label.max())
+		
+	return dataset, labels
 
 
 def compute_max_depth(shape=1920, max_depth=10, print_out=True):
