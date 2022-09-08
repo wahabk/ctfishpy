@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset, precache
+from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset
 from ctfishpy.models import UNet
 
 import matplotlib.pyplot as plt
@@ -22,38 +22,20 @@ print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def dice_loss(true, pred, eps=1e-7):
-	"""Computes the Sørensen-Dice loss.
-	Note that PyTorch optimizers minimize a loss. In this
-	case, we would like to maximize the dice loss so we
-	return the negated dice loss.
-	Args:
-		true: a tensor of shape [B, 1, H, W].
-		logits: a tensor of shape [B, C, H, W]. Corresponds to
-			the raw output or logits of the model.
-		eps: added to the denominator for numerical stability.
-	Returns:
-		dice_loss: the Sørensen–Dice loss.
-	"""
+from torchvision.models import resnet18, ResNet18_Weights
 
-	true = true.type(pred.type())
-	dims = (0,) + tuple(range(2, true.ndimension()))
-	intersection = torch.sum(pred * true, dims)
-	cardinality = torch.sum(pred + true, dims)
-	dice_loss = (2. * intersection / (cardinality + eps)).mean()
-	return (1 - dice_loss)
 
-def train(dataset_path, config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
-	os.chdir(work_dir)
-	'''
-	by default for ray tune
-	'''
+def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
+			test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+	
+	
+	os.chdir(work_dir) # change dir because ray tune changes it
 
-	# setup neptune
 	run = neptune.init(
-		project="wahabk/Fishnet",
+		project="wahabk/aging",
 		api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
-	)
+	)  # your credentials
+
 
 	params = dict(
 		dataset_path=dataset_path,
@@ -74,33 +56,28 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 		n_classes = 4, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
+		n_dims = n_dims
 	)
-
 	run['Tags'] = name
-	
+
 	transforms_affine = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
-		tio.RandomAffine(),
+		# tio.RandomAffine(),
 	])
 	transforms_img = tio.Compose([
-		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.3),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomBiasField(0.1): 0.1,
-			tio.RandomGamma((-0.3,0.3)): 0.1,
-			tio.RandomMotion(): 0.3,
-		}),
+		# tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
+		# tio.RandomBlur(p=0.3),
+		# tio.OneOf({
+		# 	tio.RandomNoise(0.1, 0.01): 0.1,
+		# 	tio.RandomBiasField(0.1): 0.1,
+		# 	tio.RandomGamma((-0.3,0.3)): 0.1,
+		# 	tio.RandomMotion(): 0.3,
+		# }),
 		tio.RescaleIntensity((0.05,0.95)),
 	])
 
-	#TODO find a way to precalculate this - should i only unpad the first block?
-	# if config['n_blocks'] == 2: label_size = (48,48,48)
-	# if config['n_blocks'] == 3: label_size = (24,24,24)
 	label_size = params['roiSize']
 
-	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
-	print(train_dataset[0].shape, train_dataset[0].max())
 	# create a training data loader
 	train_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
@@ -114,23 +91,9 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
 
-	start_filters = params['start_filters']
-	n_blocks = params['n_blocks']
-	start = int(math.sqrt(start_filters))
-	channels = [2**n for n in range(start, start + n_blocks)]
-	strides = [2 for n in range(1, n_blocks)]
-
-	# model
-	model = monai.networks.nets.UNet(
-		spatial_dims=3,
-		in_channels=1,
-		out_channels=params['n_classes'],
-		channels=channels,
-		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'], # TODO try PReLU
-		norm=params["norm"],
-		dropout=params["dropout"],
+	model = resnet18(
+		weights=ResNet18_Weights.IMAGENET1K_V2,
+		num_classes=params['n_classes'],
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -146,10 +109,8 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 	# optimizer
 	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 	optimizer = torch.optim.Adam(model.parameters(), params['lr'])
-	# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
-	# scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.0001, max_lr=0.01, cycle_momentum=False)
 
-	# trainer
+		# trainer
 	trainer = Trainer(model=model,
 					device=device,
 					criterion=criterion,
@@ -172,15 +133,13 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 		model_name = save
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
-
-	train_dataset, train_labels = None, None
-	val_dataset, val_labels = None, None
-
-	gc.collect()
+	
 	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
+
+
 
 if __name__ == "__main__":
 
@@ -191,30 +150,6 @@ if __name__ == "__main__":
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
 
 	ctreader = ctfishpy.CTreader(dataset_path)
-
-	bone = 'Otoliths'
-
-	old_ns = [78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464] 
-	all_data = [39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
-	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
-
-	print(f"All data: {len(all_keys)}")
-
-	random.shuffle(all_keys)
-	# train_data = all_keys[1:20]
-	# val_data = all_keys[20:22]
-	# test_data =	all_keys[22:]
-	train_data = all_keys[1:4]
-	val_data = all_keys[4:6]
-	test_data =	all_keys[1:4]
-	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'fin train?'
-	save = False
-	# save = 'output/weights/3dunet222707.pt'
-	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
-
-	#TODO ADD label size
-	#TODO use seg models pytorch
 
 	config = {
 		"lr": 3e-3,
@@ -227,10 +162,24 @@ if __name__ == "__main__":
 		"dropout": 0.1,
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.9), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
+	
+	all_data = ctreader.fish_nums
+	random.shuffle(all_data)
 
-	# TODO add model in train
+	train_data = all_data[1:4]
+	val_data = all_data[4:6]
+	test_data =	all_data[1:4]
+	print(f"train = {train_data} val = {val_data} test = {test_data}")
+	name = 'test aging'
+	save = False
+	n_dims = 2
+	# save = 'output/weights/aging_resnet.pt'
 
 	work_dir = Path().parent.resolve()
 
-	train(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, 
+	train_aging(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, n_dims=n_dims,
 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+
+
+
+
