@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset
+from ctfishpy.train_utils import Trainer, test, CTDataset, agingDataset, precache_age
 from ctfishpy.models import UNet
 
 import matplotlib.pyplot as plt
@@ -39,21 +39,21 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 
 	params = dict(
 		dataset_path=dataset_path,
-		bone=bone,
-		roiSize = (128,128,160),
+		roiSize = (512,2000),
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
 		batch_size = config['batch_size'],
-		n_blocks = config['n_blocks'],
-		norm = config['norm'],
+		bone = bone,
+		# n_blocks = config['n_blocks'],
+		# norm = config['norm'],
 		loss_function = config['loss_function'],
 		lr = config['lr'],
 		epochs = config['epochs'],
-		start_filters = config['start_filters'],
-		activation = config['activation'],
+		# start_filters = config['start_filters'],
+		# activation = config['activation'],
 		num_workers = num_workers,
-		n_classes = 4, #including background
+		n_classes = 33, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
 		n_dims = n_dims
@@ -79,12 +79,12 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 	label_size = params['roiSize']
 
 	# create a training data loader
-	train_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_dataset = precache_age(params['dataset_path'], params['n_dims'], params['train_data'], params['bone'], params['roiSize'])
+	train_ds = agingDataset(params['dataset_path'], params['bone'], train_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms_img)
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
-	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], val_dataset, val_labels, params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
-	# val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
+	val_dataset = precache_age(params['dataset_path'], params['n_dims'], params['val_data'], params['bone'], params['roiSize'])
+	val_ds = agingDataset(params['dataset_path'], params['bone'], val_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms_img)
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# device
@@ -110,7 +110,7 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 	# optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 	optimizer = torch.optim.Adam(model.parameters(), params['lr'])
 
-		# trainer
+	# trainer
 	trainer = Trainer(model=model,
 					device=device,
 					criterion=criterion,
@@ -134,8 +134,9 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
 	
-	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
-	run['test/df'].upload(File.as_html(losses))
+	# TODO write test function for aging
+	# losses = test(dataset_path, model, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	# run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
@@ -155,12 +156,12 @@ if __name__ == "__main__":
 		"lr": 3e-3,
 		"batch_size": 2,
 		"n_blocks": 3,
-		"norm": 'INSTANCE',
-		"epochs": 150,
+		"norm": 'BATCH',
+		"epochs": 10,
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.9), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"loss_function": torch.nn.CrossEntropyLoss(), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
 	
 	all_data = ctreader.fish_nums
@@ -177,7 +178,7 @@ if __name__ == "__main__":
 
 	work_dir = Path().parent.resolve()
 
-	train_aging(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, n_dims=n_dims,
+	train_aging(dataset_path, config, name, train_data=train_data, val_data=val_data, n_dims=n_dims,
 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
 
 

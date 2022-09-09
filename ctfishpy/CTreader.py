@@ -45,9 +45,6 @@ class CTreader:
 		
 		self.bones = ["otoliths", "jaw"]
 
-	def clear_data_path(self,):
-		os.remove(self.local_dataset_path)
-
 	def metadata_tester():
 		"""
 		Test fish_nums in local dataset vs mastersheet

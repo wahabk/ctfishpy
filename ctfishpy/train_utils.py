@@ -30,6 +30,7 @@ import monai
 
 from sklearn.metrics import roc_curve, auc
 import gc
+import cv2
 
 """
 Datasets
@@ -147,19 +148,19 @@ class agingDataset(torch.utils.data.Dataset):
 
 	transform is augmentation function
 
+	always from precache
+
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple,
-	n_dim:int=3, transform=None, label_transform=None, label_size:tuple=None):	
+	n_classes:int=1, n_dim:int=3, transform=None):	
 		super().__init__()
 		self.dataset_path = dataset_path
 		self.bone = bone
 		self.indices = indices
 		self.roi_size = roi_size
 		self.transform = transform
-		self.label_transform = label_transform
-		self.label_size = label_size
-		self.n_classes = 1
+		self.n_classes = n_classes
 		self.n_dim = n_dim
 
 	def __len__(self):
@@ -173,14 +174,11 @@ class agingDataset(torch.utils.data.Dataset):
 		old_name = master.iloc[i-1]['old_n']
 		metadata = ctreader.read_metadata(i)
 		
-		if self.precached:
-			X = self.dataset[index]
-		else:
-			X = ctreader.read(i)
-			center = ctreader.manual_centers[str(old_name)]
-			X = ctreader.crop3d(X, self.roi_size, center=center)			
+		X = self.dataset[index]		
 
-		y = master.iloc[i]['age']
+		age = master.iloc[i]['age']
+		print(f"X_shape {X.shape} age = {age}")
+		
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		#for reshaping
@@ -190,7 +188,8 @@ class agingDataset(torch.utils.data.Dataset):
 		if self.transform:
 			X = self.transform(X)
 
-		# TODO how to one hot age? use sigmoid or softmax?
+		y = torch.tensor(age, dtype=torch.int64)
+		y = F.one_hot(age, num_classes=self.n_classes)
 
 		return X, y,
 
@@ -224,6 +223,39 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None):
 		
 	return dataset, labels
 
+def precache_age(dataset_path, n_dims, indices, bone, roiSize):
+
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	master = ctreader.master
+	dataset = []
+	print("caching...")
+	for i in tqdm(indices):
+		old_name = master.iloc[i-1]['old_n']
+		if bone == 'Otoliths':
+			center = ctreader.manual_centers[str(old_name)]
+
+
+		# roi = ctreader.read_roi(i, roiSize, center)
+		if n_dims == 2:
+			projections = ctreader.read_max_projections(i)
+			array = projections[2]
+			array = cv2.resize(array, roiSize, interpolation=cv2.INTER_AREA)
+		elif n_dims == 3:
+			scan = ctreader.read(i)
+			if bone == 'Otoliths':
+				array = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+				del scan
+			elif bone is None:
+				array = scan
+		else:
+			raise ValueError(f"n_dims is incorrect value, must be either 2 or 3, you have given {n_dims}")
+
+		dataset.append(array)
+		gc.collect()
+		# print(roi.shape, roi_label.shape, roi.max(), roi_label.max())
+		
+	return dataset
 
 def compute_max_depth(shape=1920, max_depth=10, print_out=True):
     shapes = []
@@ -407,6 +439,7 @@ class Trainer:
 				 notebook: bool = False,
 				 logger=None,
 				 tuner=False,
+				 final_activation=None,
 				 ):
 
 		self.model = model
@@ -422,6 +455,7 @@ class Trainer:
 		self.notebook = notebook
 		self.logger = logger
 		self.tuner = tuner
+		self.final_activation = final_activation
 
 		self.training_loss = []
 		self.validation_loss = []
@@ -482,7 +516,7 @@ class Trainer:
 			out = self.model(input_)  # one forward pass
 
 			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
-				out = torch.softmax(out, 1)
+				out = torch.softmax(out, self.n_classes)
 			loss = self.criterion(out, target)  # calculate loss
 			loss_value = loss.item()
 			train_losses.append(loss_value)

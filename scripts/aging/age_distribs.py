@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 from pathlib2 import Path
 import napari
+import json
+import ast
 
 
 
@@ -22,12 +24,21 @@ if __name__ == "__main__":
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
+
+	all_shapes = master['shape'].to_list()
+	f = lambda a : ast.literal_eval(a)
+	all_shapes = np.array([f(shape) for shape in all_shapes])
+	print(all_shapes.max(axis=0), all_shapes.min(axis=0), all_shapes.mean(axis=0), all_shapes.std(axis=0))
+
+
+
+	# plot ages
 	trimmed = ctreader.trim(master, 'genotype', ['het', 'hom', 'wt'])
 	droppedgeno = master[~master.genotype.isin(['het', 'hom', 'wt'])]
 	df = trimmed[trimmed['age'].notna()]
 	dropped_age = trimmed[trimmed['age'].isna()]
-	print(len(dropped_age))
-	print(len(droppedgeno))
+	print("dropped because geno", len(droppedgeno))
+	print("dropped because age", len(dropped_age))
 
 	ages = df['age'].values
 	print(type(ages))
@@ -35,6 +46,7 @@ if __name__ == "__main__":
 	print(ages.dtype)
 	# print(np.argwhere(np.isnan(ages)))
 
+	print("len, max, min, mean, +/-")
 	print(len(ages), ages.max(), ages.min(), ages.mean(), ages.std())
 
 	

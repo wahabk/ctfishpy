@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset, precache
+from ctfishpy.train_utils import Trainer, test, CTDataset, precache
 from ctfishpy.models import UNet
 
 import matplotlib.pyplot as plt
@@ -102,6 +102,7 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
 	print(train_dataset[0].shape, train_dataset[0].max())
 	# create a training data loader
+	# TODO remove precached
 	train_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
