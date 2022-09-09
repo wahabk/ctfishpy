@@ -153,7 +153,7 @@ class agingDataset(torch.utils.data.Dataset):
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple,
-	n_classes:int=1, n_dim:int=3, transform=None):	
+	dataset:list=None, n_classes:int=1, n_dims:int=3, transform=None):	
 		super().__init__()
 		self.dataset_path = dataset_path
 		self.bone = bone
@@ -161,7 +161,8 @@ class agingDataset(torch.utils.data.Dataset):
 		self.roi_size = roi_size
 		self.transform = transform
 		self.n_classes = n_classes
-		self.n_dim = n_dim
+		self.n_dims = n_dims
+		self.dataset = dataset
 
 	def __len__(self):
 		return len(self.indices)
@@ -171,25 +172,27 @@ class agingDataset(torch.utils.data.Dataset):
 		master = ctreader.master
 		# Select sample
 		i = self.indices[index] #index is order from precache, i is number from dataset
-		old_name = master.iloc[i-1]['old_n']
-		metadata = ctreader.read_metadata(i)
+		print(f'reading index {index}, i is {i}')
 		
-		X = self.dataset[index]		
+		X = self.dataset[index]	
 
-		age = master.iloc[i]['age']
-		print(f"X_shape {X.shape} age = {age}")
+		minimum_age = 3
+		age = int(master.iloc[i]['age'])
+		# print(f"X_shape {X.shape} age = {age}")
 		
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		#for reshaping
-		X = np.expand_dims(X, 0)      # if numpy array
 		X = torch.from_numpy(X)
+		X = X.permute(2,0,1)
+		X = torch.unsqueeze(X, 3)      # if numpy array
+		print("before transforms x shape", X.shape)
 
 		if self.transform:
 			X = self.transform(X)
 
-		y = torch.tensor(age, dtype=torch.int64)
-		y = F.one_hot(age, num_classes=self.n_classes)
+		y = torch.tensor(age-minimum_age, dtype=torch.int64)
+		y = F.one_hot(y, num_classes=self.n_classes)
 
 		return X, y,
 
