@@ -166,7 +166,7 @@ if __name__ == "__main__":
 	master = ctreader.master
 
 	config = {
-		"lr": 3e-4,
+		"lr": 3e-3,
 		"batch_size": 8,
 		"n_blocks": 3,
 		"norm": 'BATCH',

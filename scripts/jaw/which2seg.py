@@ -172,3 +172,10 @@ if __name__ == "__main__":
 	master = ctreader.master
 
 	master = stratified_sample(master, ['age', 'genotype'], size=25, seed = 69)
+
+	print(master)
+	print(master.strain)
+
+	master.to_csv('output/results/jaw/training_sample.csv')
+
+
