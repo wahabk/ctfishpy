@@ -171,13 +171,16 @@ class agingDataset(torch.utils.data.Dataset):
 		ctreader = ctfishpy.CTreader(self.dataset_path)
 		master = ctreader.master
 		# Select sample
-		i = self.indices[index] #index is order from precache, i is number from dataset
-		print(f'reading index {index}, i is {i}')
+		i = self.indices[index]-1 #index is order from precache, i is number from dataset
+		# print(f'reading index {index}, i is {i}')
 		
 		X = self.dataset[index]	
 
 		minimum_age = 3
-		age = int(master.iloc[i]['age'])
+		try:
+			age = int(master.iloc[i]['age'])
+		except:
+			raise ValueError(f"fish {i} has age {master.iloc[i]['age']}")
 		# print(f"X_shape {X.shape} age = {age}")
 		
 
@@ -186,13 +189,15 @@ class agingDataset(torch.utils.data.Dataset):
 		X = torch.from_numpy(X)
 		X = X.permute(2,0,1)
 		X = torch.unsqueeze(X, 3)      # if numpy array
-		print("before transforms x shape", X.shape)
+		# print("before transforms x shape", X.shape)
 
 		if self.transform:
 			X = self.transform(X)
 
 		y = torch.tensor(age-minimum_age, dtype=torch.int64)
-		y = F.one_hot(y, num_classes=self.n_classes)
+		# y = F.one_hot(y, num_classes=self.n_classes)
+		# y = y.to(torch.int64)
+		X = torch.squeeze(X, 3)
 
 		return X, y,
 
@@ -519,7 +524,10 @@ class Trainer:
 			out = self.model(input_)  # one forward pass
 
 			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
-				out = torch.softmax(out, self.n_classes)
+				# print("testing final activation", self.n_classes, out.shape, target.shape)
+				# out = torch.softmax(out, 0)
+				# print(out, target)
+				pass
 			loss = self.criterion(out, target)  # calculate loss
 			loss_value = loss.item()
 			train_losses.append(loss_value)

@@ -60,19 +60,17 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 	)
 	run['Tags'] = name
 
-	transforms_affine = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
+	transforms = tio.Compose([
+		tio.RandomFlip(axes=(0,1), flip_probability=0.25),
 		# tio.RandomAffine(),
-	])
-	transforms_img = tio.Compose([
-		# tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
-		# tio.RandomBlur(p=0.3),
-		# tio.OneOf({
-		# 	tio.RandomNoise(0.1, 0.01): 0.1,
-		# 	tio.RandomBiasField(0.1): 0.1,
-		# 	tio.RandomGamma((-0.3,0.3)): 0.1,
-		# 	tio.RandomMotion(): 0.3,
-		# }),
+		tio.RandomAnisotropy(axes=(0,1),p=0.2),              # make images look anisotropic 25% of times
+		tio.RandomBlur(p=0.3),
+		tio.OneOf({
+			tio.RandomNoise(0.1, 0.01): 0.1,
+			tio.RandomBiasField(0.1): 0.1,
+			tio.RandomGamma((-0.3,0.3)): 0.1,
+			tio.RandomMotion(): 0.3,
+		}),
 		tio.RescaleIntensity((0.05,0.95)),
 	])
 
@@ -80,22 +78,22 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 
 	# create a training data loader
 	train_dataset = precache_age(params['dataset_path'], params['n_dims'], params['train_data'], params['bone'], params['roiSize'])
-	train_ds = agingDataset(params['dataset_path'], params['bone'], params['train_data'], dataset=train_dataset, roi_size=params['roiSize'], n_classes=params['n_classes'], n_dims=params['n_dims'], transform=transforms_img)
+	train_ds = agingDataset(params['dataset_path'], params['bone'], params['train_data'], dataset=train_dataset, roi_size=params['roiSize'], n_classes=params['n_classes'], n_dims=params['n_dims'], transform=transforms)
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
 	val_dataset = precache_age(params['dataset_path'], params['n_dims'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = agingDataset(params['dataset_path'], params['bone'], params['val_data'], dataset=val_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms_img)
+	val_ds = agingDataset(params['dataset_path'], params['bone'], params['val_data'], dataset=val_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms)
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	check_dataset = precache_age(params['dataset_path'], params['n_dims'], params['val_data'], params['bone'], params['roiSize'])
-	check_ds = agingDataset(params['dataset_path'], params['bone'], params['val_data'], dataset=check_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms_img)
+	check_ds = agingDataset(params['dataset_path'], params['bone'], params['val_data'], dataset=check_dataset, roi_size=params['roiSize'], n_dims=params['n_dims'], n_classes=params['n_classes'], transform=transforms)
 	check_loader = torch.utils.data.DataLoader(check_ds, batch_size=1, shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	print(np.array(check_dataset).shape)
 	print(np.array(check_dataset[0]).shape)
 	for x,y in check_loader:
 		print('checking dataset')
-		x = np.array(x)
+		x = np.array(x[0][0])
 		print(x.shape, y)
 		plt.imsave("output/tests/aging_dataset.png", x)
 		break
@@ -107,7 +105,7 @@ def train_aging(dataset_path, config, name, bone, train_data, val_data, n_dims,
 
 	model = resnet18(
 		# weights=ResNet18_Weights.IMAGENET1K_V1,
-		num_classes=params['n_classes'],
+		# num_classes=1#params['n_classes'],
 	)
 
 	# model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -168,23 +166,27 @@ if __name__ == "__main__":
 	master = ctreader.master
 
 	config = {
-		"lr": 3e-3,
-		"batch_size": 2,
+		"lr": 3e-4,
+		"batch_size": 8,
 		"n_blocks": 3,
 		"norm": 'BATCH',
-		"epochs": 10,
+		"epochs": 100,
 		"start_filters": 32,
-		"activation": "PRELU",
-		"dropout": 0.1,
+		"activation": "RELU",
+		"dropout": 0,
 		"loss_function": torch.nn.CrossEntropyLoss(), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
 	
-	all_data = master[master['age'].notna()].index.to_list()
-	random.shuffle(all_data)
+	all_data = master[master['age'].notna()]
+	# all_data = all_data.drop(index=260)
+	# all_data = all_data.drop(index=202)
+	print(all_data)
+	all_data = all_data.index.to_list()
+	# random.shuffle(all_data)
 
-	train_data = all_data[1:4]
-	val_data = all_data[4:6]
-	test_data =	all_data[1:4]
+	train_data = all_data[1:400]
+	val_data = all_data[401:420]
+	test_data =	all_data[420:430]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'test aging'
 	save = False
