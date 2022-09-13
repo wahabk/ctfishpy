@@ -33,11 +33,13 @@ class CTreader:
 			nums = [int(path.stem.split('_')[1]) for path in self.dicoms_path.iterdir()]
 			nums.sort()
 			self.fish_nums = nums
-			self.master = pd.read_csv(self.dataset_path / "METADATA/uCT_mastersheet.csv", index_col='n')
-			self.anglePath = Path(self.dataset_path / "METADATA/angles.json")
-			self.centres_path = Path(self.dataset_path / "METADATA/centres_Otoliths.json")
-			with open(self.centres_path, "r") as fp:
-				self.manual_centers = json.load(fp)
+			self.master_path = self.dataset_path / "METADATA/uCT_mastersheet.csv"
+			self.master = pd.read_csv(self.master_path, index_col='n')
+			 
+			# self.anglePath = Path(self.dataset_path / "METADATA/angles.json")
+			# self.centres_path = Path(self.dataset_path / "METADATA/centres_Otoliths.json")
+			# with open(self.centres_path, "r") as fp:
+			# 	self.manual_centers = json.load(fp)
 
 			self.dataset_initialised = True
 		else:
@@ -51,9 +53,6 @@ class CTreader:
 		test mastersheet NANs
 		"""
 		pass
-
-	def mastersheet(self):
-		return self.master
 
 	def trim(self, m, col, values):
 		"""
