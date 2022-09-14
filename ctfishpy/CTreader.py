@@ -499,7 +499,7 @@ class CTreader:
 		yl = int(roiY / 2)
 		xl = int(roiX / 2)
 
-		if center == None:
+		if center is None:
 			center = [int(array.shape[0]/2), int(array.shape[1]/2), int(array.shape[1]/2)]
 
 		z, y, x = center
