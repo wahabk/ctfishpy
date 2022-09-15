@@ -6,10 +6,10 @@ from pathlib2 import Path
 import napari
 import cv2
 import ast
-
+ 
 if __name__ == '__main__':
-	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
-	dataset_path = '/home/wahab/Data/HDD/uCT'
+	dataset_path = '/home/ak18001/Data/HDD/uCT/'
+	# dataset_path = '/home/wahab/Data/HDD/uCT'
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
 	master = ctreader.master
 	c = master.loc[fish_num, 'otolith_center']
 	print(c)
-	center = np.fromstring(c[1:-1], dtype='uint16', sep=' ')
+	center = np.fromstring(c[1:-1], dtype='uint16', sep=' ') # this is a fix to read a numpy array from a pandas df element
 	print(center)
 	print(center[0])
 
