@@ -14,10 +14,11 @@ if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 
-	fish_num = 1
-	scan = ctreader.read(fish_num)
 
 	master = ctreader.master
+	
+	fish_num = 1
+	scan = ctreader.read(fish_num)
 	c = master.loc[fish_num, 'otolith_center']
 	print(c)
 	center = np.fromstring(c[1:-1], dtype='uint16', sep=' ') # this is a fix to read a numpy array from a pandas df element

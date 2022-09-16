@@ -103,12 +103,15 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 	print(train_dataset[0].shape, train_dataset[0].max())
 	# create a training data loader
 	# TODO remove precached
-	train_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
+	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
+						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
+						transform=transforms_img, label_transform=None, label_size=label_size, precached=True) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDatasetPrecached(params['dataset_path'], params['bone'], val_dataset, val_labels, params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
-	# val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
+	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
+					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
+					transform=None, label_transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# device
@@ -129,7 +132,7 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 		channels=channels,
 		strides=strides,
 		num_res_units=params["n_blocks"],
-		act=params['activation'], # TODO try PReLU
+		act=params['activation'],
 		norm=params["norm"],
 		dropout=params["dropout"],
 	)
@@ -193,7 +196,7 @@ if __name__ == "__main__":
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-	bone = 'Otoliths'
+	bone = 'OTOLITHS'
 
 	old_ns = [78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464] 
 	all_data = [39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 

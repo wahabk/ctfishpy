@@ -71,7 +71,6 @@ class CTDataset(torch.utils.data.Dataset):
 		master = ctreader.master
 		# Select sample
 		i = self.indices[index] #index is order from precache, i is number from dataset
-		old_name = master.iloc[i-1]['old_n']
 		
 		if self.precached:
 			X = self.dataset[index]
@@ -80,7 +79,7 @@ class CTDataset(torch.utils.data.Dataset):
 		else:
 			X = ctreader.read(i)
 			y = ctreader.read_label(self.bone, i)
-			center = ctreader.manual_centers[str(old_name)]
+			center = ctreader.otolith_centers[i]
 			X = ctreader.crop3d(X, self.roi_size, center=center)			
 			# if label size is smaller for roi
 			if self.label_size is not None:
@@ -213,8 +212,7 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None):
 	labels = []
 	print("caching...")
 	for i in tqdm(indices):
-		old_name = master.iloc[i-1]['old_n']
-		center = ctreader.manual_centers[str(old_name)]
+		center = ctreader.otolith_centers[i]
 
 		# roi = ctreader.read_roi(i, roiSize, center)
 		scan = ctreader.read(i)
@@ -239,9 +237,8 @@ def precache_age(dataset_path, n_dims, indices, bone, roiSize):
 	dataset = []
 	print("caching...")
 	for i in tqdm(indices):
-		old_name = master.iloc[i-1]['old_n']
 		if bone == 'Otoliths':
-			center = ctreader.manual_centers[str(old_name)]
+			center = ctreader.otolith_centers[i]
 
 
 		# roi = ctreader.read_roi(i, roiSize, center)

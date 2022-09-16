@@ -36,6 +36,9 @@ class CTreader:
 			self.master_path = self.dataset_path / "METADATA/uCT_mastersheet.csv"
 			self.master = pd.read_csv(self.master_path, index_col='n')
 			 
+			otolith_centers = self.master.otolith_center.to_dict()
+			self.otolith_centers = {k: np.fromstring(c[1:-1], dtype='uint16', sep=' ') for k, c in otolith_centers.items() } # this is a fix to read a numpy array from a pandas df element
+
 			# self.anglePath = Path(self.dataset_path / "METADATA/angles.json")
 			# self.centres_path = Path(self.dataset_path / "METADATA/centres_Otoliths.json")
 			# with open(self.centres_path, "r") as fp:
@@ -45,7 +48,7 @@ class CTreader:
 		else:
 			self.dataset_initialised = False
 		
-		self.bones = ["otoliths", "jaw"]
+		self.bones = ["OTOLITHS", "JAW"]
 
 	def metadata_tester():
 		"""
