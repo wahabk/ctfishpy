@@ -99,8 +99,8 @@ def label(scan):
 
 if __name__ == "__main__":
 
-	# dataset_path = "/home/ak18001/Data/HDD/uCT"
-	dataset_path = "/home/wahab/Data/HDD/uCT"
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
+	# dataset_path = "/home/wahab/Data/HDD/uCT"
 	
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -120,8 +120,12 @@ if __name__ == "__main__":
 	print(scan.shape)
 	lab = label(scan)
 
+	# ctreader.write_label()
+
 	print(lab.min(), lab.max(), lab.shape)
 
+
+
 	#TODO rewrite this one first as qt widget
-	#TODO write only in
+	#TODO write only in class
 	#TODO write sweep thresh
