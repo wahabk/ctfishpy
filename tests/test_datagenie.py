@@ -28,7 +28,7 @@ if __name__ == "__main__":
 	])
 	transforms_img = tio.Compose([
 		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.3),
+		tio.RandomBlur(p=0.2),
 		tio.OneOf({
 			tio.RandomNoise(0.1, 0.01): 0.1,
 			tio.RandomBiasField(0.1): 0.1,

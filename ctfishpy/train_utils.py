@@ -28,7 +28,7 @@ from .CTreader import CTreader
 from .models.unet import UNet
 import monai
 
-from sklearn.metrics import roc_curve, auc
+from sklearn.metrics import roc_curve, auc, roc_auc_score
 import gc
 import cv2
 
@@ -109,6 +109,9 @@ class CTDataset(torch.utils.data.Dataset):
 		return X, y,
 
 
+
+
+
 class CTDataset2D(torch.utils.data.Dataset):
 	"""
 	
@@ -135,6 +138,13 @@ class CTDataset2D(torch.utils.data.Dataset):
 			self.dataset = dataset
 			self.labels = labels
 			assert(len(dataset) == len(labels))
+
+	def __len__(self):
+		return len(self.indices)*self.roiz
+
+	def __getitem__(self, index):
+		ctreader = ctfishpy.CTreader(self.dataset_path)
+
 
 class agingDataset(torch.utils.data.Dataset):
 	"""
@@ -376,23 +386,25 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 			loss = loss.cpu().numpy()
 
 			# post process to numpy array
-			result = out.cpu().numpy()  # send to cpu and transform to numpy.ndarray
-			result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
+			y_pred = out.cpu()  # send to cpu and transform to numpy.ndarray
+			y_pred_numpy = np.squeeze(y_pred.numpy())  # remove batch dim and channel dim -> [H, W]
 
-			array = x.cpu().numpy()[0,0]
+			array = x.cpu().numpy()[0,0] # 0 batch, 0 class?
 			# array = np.array(array, dtype='uint8')
-			true_label = y.cpu().numpy()[0]
-			pred_label = result
-			true_vector = np.array(true_label, dtype='uint8').flatten()
-			pred_vector = pred_label.flatten()
+			y = y.cpu()
+			y_numpy = y.numpy()[0] # zero is for batch
 
+			print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
+			# true_vector = np.array(true_label, dtype='uint8').flatten()
+			# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
+			# fig = plot_auc_roc(fpr, tpr, aucroc)
+			# run[f'AUC_{i}'].upload(fig)
 
-			fpr, tpr, _ = roc_curve(true_vector, pred_vector)
-			aucroc = auc(fpr, tpr)
-			fig = plot_auc_roc(fpr, tpr, aucroc)
-			run[f'AUC_{i}'].upload(fig)
+			aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted')
+			dice_score = monai.metrics.compute_generalized_dice(y_pred=y_pred, y=y, include_background=False)
+			iou = monai.metrics.compute_meaniou(y_pred=y_pred, y=y, include_background=False)
 
-			pred_label = undo_one_hot(pred_label, n_classes, threshold=threshold)
+			pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
 
 			# print(f"final pred shape {pred_label.shape}")
 			# test predict on sim
@@ -410,6 +422,8 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 				**metadata,
 				'loss'	 : float(loss),
 				'aucroc' : float(aucroc),
+				'g_dice' : dice_score,
+				'iou'	: iou,
 			}
 
 			losses.append(m)
