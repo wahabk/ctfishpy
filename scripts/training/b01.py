@@ -78,19 +78,17 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 
 	run['Tags'] = name
 	
-	transforms_affine = tio.Compose([
+	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
-		tio.RandomAffine(),
-	])
-	transforms_img = tio.Compose([
-		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
+		tio.RandomAffine(p=0.25),
+		tio.RandomAnisotropy(p=0.3),              # make images look anisotropic 25% of times
 		tio.RandomBlur(p=0.3),
+		tio.RandomBiasField(0.4),
 		tio.OneOf({
 			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomBiasField(0.1): 0.1,
 			tio.RandomGamma((-0.3,0.3)): 0.1,
-			tio.RandomMotion(): 0.3,
 		}),
+		tio.ZNormalization(),
 		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
 
@@ -100,18 +98,19 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 	label_size = params['roiSize']
 
 	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
+
 	print(train_dataset[0].shape, train_dataset[0].max())
 	# create a training data loader
 	# TODO remove precached
 	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
-						transform=transforms_img, label_transform=transforms_affine, label_size=label_size, precached=True) 
+						transform=transforms, label_size=label_size, precached=True) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	# create a validation data loader
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
 	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
-					transform=None, label_transform=None, label_size=label_size, precached=True) 
+					transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# device
@@ -199,19 +198,20 @@ if __name__ == "__main__":
 	bone = 'OTOLITHS'
 
 	old_ns = [40, 78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589] 
-	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427] # 371,374 ncoa3 420, 427 col11
-
+	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427] 
+	crazy_fish = [371, 374, 420, 427] # 371,374 ncoa3 420, 427 col11
+	[all_keys.remove(i) for i in crazy_fish]
 
 	print(f"All data: {len(all_keys)}")
 
 	random.seed(42)
 	random.shuffle(all_keys)
-	test_data = [311, 316, 420] # val on young, mid and old col11
+	test_data = [1, 311, 316] # val on young, mid and old col11
 	[all_keys.remove(i) for i in test_data]
-	# train_data = all_keys[0:20]
-	# val_data = all_keys[20:24]
-	train_data = all_keys[1:2]
-	val_data = all_keys[2:3]
+	train_data = all_keys[:18]
+	val_data = all_keys[18:]
+	# train_data = all_keys[1:2]
+	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'fin train?'
 	save = False
@@ -222,20 +222,19 @@ if __name__ == "__main__":
 	#TODO use seg models pytorch
 
 	config = {
-		"lr": 4e-3,
+		"lr": 3e-3,
 		"batch_size": 4,
-		"n_blocks": 2,
+		"n_blocks": 3,
 		"norm": 'INSTANCE',
-		"epochs": 1,
+		"epochs": 50,
 		"start_filters": 32,
-		"activation": "RELU",
-		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.3), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"activation": "PRELU",
+		"dropout": 0,
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.7), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
 
 	# TODO add model in train
 
 	work_dir = Path().parent.resolve()
-
 	train(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, 
 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)

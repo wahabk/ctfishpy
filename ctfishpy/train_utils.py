@@ -46,7 +46,7 @@ class CTDataset(torch.utils.data.Dataset):
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
-				transform=None, label_transform=None, label_size:tuple=None,
+				transform=None, label_size:tuple=None,
 				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
 		super().__init__()
 		self.dataset_path = dataset_path
@@ -55,7 +55,6 @@ class CTDataset(torch.utils.data.Dataset):
 		self.roi_size = roi_size
 		self.n_classes = n_classes
 		self.transform = transform
-		self.label_transform = label_transform
 		self.label_size = label_size
 		self.precached = precached
 		if self.precached:
@@ -377,7 +376,7 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		label_size = roiSize
 
 	# test on real data
-	test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_transform=None, label_size=label_size) 
+	test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
 	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
 	losses = []
@@ -411,8 +410,12 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 			# fig = plot_auc_roc(fpr, tpr, aucroc)
 			# run[f'AUC_{i}'].upload(fig)
 
-			aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted')
-			dice_score = monai.metrics.compute_generalized_dice(y_pred=y_pred, y=y, include_background=False)
+
+
+			aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted', multi_class='ovo')
+			dice_score = monai.metrics.compute_generalized_dice(y_pred=y_pred, y=y, include_background=False)[0].item()
+			threshed = y_pred[y_pred < threshold] = 0
+			threshed = y_pred[y_pred > threshold] = 1
 			iou = monai.metrics.compute_meaniou(y_pred=y_pred, y=y, include_background=False)
 
 			pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
@@ -547,9 +550,9 @@ class Trainer:
 
 			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
 				# print("testing final activation", self.n_classes, out.shape, target.shape)
-				# out = torch.softmax(out, 0)
+				out = torch.softmax(out, 1) # this breaks aging (classification) model!
 				# print(out, target)
-				pass
+
 			loss = self.criterion(out, target)  # calculate loss
 			loss_value = loss.item()
 			train_losses.append(loss_value)
