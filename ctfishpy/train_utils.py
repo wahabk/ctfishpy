@@ -93,15 +93,26 @@ class CTDataset(torch.utils.data.Dataset):
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
 		X = torch.from_numpy(X)
 		y = torch.from_numpy(y)
+
+		fish = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+			label=tio.LabelMap(tensor=y),
+		)
 		
 		# This weird code is for applying the same transforms to x and y
-		if self.transform:
-			if self.label_transform:
-				stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
-				stacked = self.label_transform(stacked)
-				X, y = torch.chunk(stacked, chunks=2, dim=0)
-			X = self.transform(X)
+		# if self.transform:
+		# 	if self.label_transform:
+		# 		stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
+		# 		stacked = self.label_transform(stacked)
+		# 		X, y = torch.chunk(stacked, chunks=2, dim=0)
+		# 	X = self.transform(X)
 
+		if self.transform:
+			fish = self.transform(fish)
+
+
+		X = fish.ct.tensor
+		y = fish.label.tensor
 		y = F.one_hot(y.to(torch.int64), self.n_classes)
 		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
 		y = y.squeeze().to(torch.float32)
