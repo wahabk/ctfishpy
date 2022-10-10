@@ -148,17 +148,19 @@ class CTDataset2D(torch.utils.data.Dataset):
 		ctreader = ctfishpy.CTreader(self.dataset_path)
 		fish_index, slice_ = self._get_fish(index)
 
+		i = self.indices[fish_index] #index is order from precache, i is number from dataset
+
 		if self.precached:
-			X = self.dataset[fish_index]
-			y = self.labels[index]
+			X = self.dataset[fish_index][slice_]
+			y = self.labels[fish_index][slice_]
 
 		else:
-			X = ctreader.read(fish_index)
-			y = ctreader.read_label(self.bone, fish_index)
-			center = ctreader.otolith_centers[fish_index]
+			X = ctreader.read(i)[slice_]
+			y = ctreader.read_label(self.bone, i)
+			center = ctreader.otolith_centers[i]
 			if self.label_size is not None:
 				self.label_size == self.roi_size
-			y = ctreader.crop3d(y, self.label_size, center=center)
+			y = ctreader.crop3d(y, self.label_size, center=center)[slice_]
 			
 		X = np.array(X/X.max(), dtype=np.float32)
 		#for reshaping
@@ -182,8 +184,8 @@ class CTDataset2D(torch.utils.data.Dataset):
 		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
 		y = y.squeeze().to(torch.float32)
 
-		X = X[:,:,slice_]
-		y = y[:,:,slice_]
+		# X = X[:,:,slice_]
+		# y = y[:,:,slice_]
 		
 		return X, y,
 
@@ -376,7 +378,7 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 		label[r>threshold] = i
 	return label
 
-def predict(array, model=None, weights_path=None, threshold=0.5):
+def predict3d(array, model=None, weights_path=None, threshold=0.5):
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'predicting on {device}')
 
@@ -393,33 +395,13 @@ def predict(array, model=None, weights_path=None, threshold=0.5):
 			padding='valid',
 		)
 
-	model = torch.nn.DataParallel(model, device_ids=None) # parallelise model
+	pass
 
-	if weights_path is not None:
-		model_weights = torch.load(weights_path, map_location=device) # read trained weights
-		model.load_state_dict(model_weights) # add weights to model
+def predict2d(array, model=None, weights_path=None, threshold=0.5):
 
-	model = model.to(device)
-	array = np.array(array/array.max(), dtype=np.float32) # normalise input
-	array = np.expand_dims(array, 0) # add batch axis
-	input_tensor = torch.from_numpy(array)
+	pass
 
-	model.eval()
-	with torch.no_grad():
-		input_tensor.to(device)
-		out = model(input_tensor)  # send through model/network
-		out_sigmoid = torch.sigmoid(out)  # perform sigmoid on output because logits
-
-	result = out_sigmoid.cpu().numpy()  # send to cpu and transform to numpy.ndarray
-	result = np.squeeze(result)  # remove batch dim and channel dim -> [H, W]
-
-	label = np.zeros_like(result)
-	label[result>threshold] = 1
-	label[result<threshold] = 0
-
-	return label
-
-def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+def test(dataset_path, spatial_dims, model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 
