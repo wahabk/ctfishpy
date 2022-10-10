@@ -8,6 +8,7 @@ This file contains:
 - training utilities
 """
 
+from symbol import sliceop
 import ctfishpy
 import numpy as np
 import pandas as pd
@@ -97,18 +98,9 @@ class CTDataset(torch.utils.data.Dataset):
 			ct=tio.ScalarImage(tensor=X),
 			label=tio.LabelMap(tensor=y),
 		)
-		
-		# This weird code is for applying the same transforms to x and y
-		# if self.transform:
-		# 	if self.label_transform:
-		# 		stacked = torch.cat([X, y], dim=0) # shape=(2xHxW)
-		# 		stacked = self.label_transform(stacked)
-		# 		X, y = torch.chunk(stacked, chunks=2, dim=0)
-		# 	X = self.transform(X)
 
 		if self.transform:
 			fish = self.transform(fish)
-
 
 		X = fish.ct.tensor
 		y = fish.label.tensor
@@ -132,7 +124,7 @@ class CTDataset2D(torch.utils.data.Dataset):
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
-				transform=None, label_transform=None, label_size:tuple=None,
+				transform=None, label_size:tuple=None,
 				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
 		super().__init__()
 		self.dataset_path = dataset_path
@@ -141,7 +133,6 @@ class CTDataset2D(torch.utils.data.Dataset):
 		self.roi_size = roi_size
 		self.n_classes = n_classes
 		self.transform = transform
-		self.label_transform = label_transform
 		self.label_size = label_size
 		self.precached = precached
 		if self.precached:
@@ -150,10 +141,74 @@ class CTDataset2D(torch.utils.data.Dataset):
 			assert(len(dataset) == len(labels))
 
 	def __len__(self):
-		return len(self.indices)*self.roiz
+		return len(self.indices)*self.roi_size[0]
 
 	def __getitem__(self, index):
+
 		ctreader = ctfishpy.CTreader(self.dataset_path)
+		fish_index, slice_ = self._get_fish(index)
+
+		if self.precached:
+			X = self.dataset[fish_index]
+			y = self.labels[index]
+
+		else:
+			X = ctreader.read(fish_index)
+			y = ctreader.read_label(self.bone, fish_index)
+			center = ctreader.otolith_centers[fish_index]
+			if self.label_size is not None:
+				self.label_size == self.roi_size
+			y = ctreader.crop3d(y, self.label_size, center=center)
+			
+		X = np.array(X/X.max(), dtype=np.float32)
+		#for reshaping
+		X = np.expand_dims(X, 0)      # if numpy array
+		y = np.expand_dims(y, 0)
+		# tensor = tensor.unsqueeze(1)  # if torch tensor
+		X = torch.from_numpy(X)
+		y = torch.from_numpy(y)
+
+		fish = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+			label=tio.LabelMap(tensor=y),
+		)
+
+		if self.transform:
+			fish = self.transform(fish)
+
+		X = fish.ct.tensor
+		y = fish.label.tensor
+		y = F.one_hot(y.to(torch.int64), self.n_classes)
+		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
+		y = y.squeeze().to(torch.float32)
+
+		X = X[:,:,slice_]
+		y = y[:,:,slice_]
+		
+		return X, y,
+
+	def _get_fish(self, index:int):
+		"""Get fish to read and slice from pytorch DataLoader index
+
+		Args:
+			index (int): Pytorch DataLoader index
+
+		Returns:
+			fish_num (int): number of fish from dataset indices
+			slice_ (int): slice from the fish to read
+		"""
+
+		roiZ = self.roi_size[0]
+		n_fish = len(self.indices)
+		total_dataset_length = self.__len__()
+
+		fish_num = math.floor(((index)/total_dataset_length)*n_fish)
+		slice_ = index - (fish_num * roiZ)
+
+		return fish_num, slice_
+
+
+
 
 
 class agingDataset(torch.utils.data.Dataset):
@@ -172,7 +227,7 @@ class agingDataset(torch.utils.data.Dataset):
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple,
-	dataset:list=None, n_classes:int=1, n_dims:int=3, transform=None):	
+	dataset:list=None, n_classes:int=1, n_dims:int=3, transform=None):
 		super().__init__()
 		self.dataset_path = dataset_path
 		self.bone = bone
@@ -417,6 +472,7 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 			threshed = y_pred[y_pred < threshold] = 0
 			threshed = y_pred[y_pred > threshold] = 1
 			iou = monai.metrics.compute_meaniou(y_pred=y_pred, y=y, include_background=False)
+			iou = torch.mean(torch.tensor(iou)).item()
 
 			pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
 
@@ -548,7 +604,7 @@ class Trainer:
 			self.optimizer.zero_grad()  # zerograd the parameters
 			out = self.model(input_)  # one forward pass
 
-			if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:
+			if isinstance(self.criterion, (torch.nn.BCEWithLogitsLoss, torch.nn.CrossEntropyLoss)) == False:
 				# print("testing final activation", self.n_classes, out.shape, target.shape)
 				out = torch.softmax(out, 1) # this breaks aging (classification) model!
 				# print(out, target)

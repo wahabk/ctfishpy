@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import CTDatasetPrecached, Trainer, test, CTDataset
+from ctfishpy.train_utils import Trainer, test, CTDataset, precache
 from ctfishpy.models import UNet
 import torchio as tio
 from neptune.new.types import File
@@ -14,10 +14,8 @@ from ray.tune.schedulers import ASHAScheduler
 from functools import partial
 from pathlib2 import Path
 
-import copy
 import monai
 import math
-from monai.networks.layers.factories import Act, Norm
 import gc
 from tqdm import tqdm
 
@@ -29,58 +27,7 @@ print('------------num available devices:', torch.cuda.device_count())
 import torch.nn as nn
 import torch.nn.functional as F 
 
-
-def dice_loss(true, pred, eps=1e-7):
-	"""Computes the Sørensen-Dice loss.
-	Note that PyTorch optimizers minimize a loss. In this
-	case, we would like to maximize the dice loss so we
-	return the negated dice loss.
-	Args:
-		true: a tensor of shape [B, 1, H, W].
-		logits: a tensor of shape [B, C, H, W]. Corresponds to
-			the raw output or logits of the model.
-		eps: added to the denominator for numerical stability.
-	Returns:
-		dice_loss: the Sørensen–Dice loss.
-	"""
-
-	true = true.type(pred.type())
-	dims = (0,) + tuple(range(2, true.ndimension()))
-	intersection = torch.sum(pred * true, dims)
-	cardinality = torch.sum(pred + true, dims)
-	dice_loss = (2. * intersection / (cardinality + eps)).mean()
-	return (1 - dice_loss)
-
-def precache(indices, bone, roiSize, label_size=None):
-
-	if label_size is None:
-		label_size = roiSize
-
-	ctreader = ctfishpy.CTreader()
-	master = ctreader.master
-	dataset = []
-	labels = []
-	print("caching...")
-	for i in tqdm(indices):
-		old_name = master.iloc[i-1]['old_n']
-		center = ctreader.manual_centers[str(old_name)]
-
-		# roi = ctreader.read_roi(i, roiSize, center)
-		scan = ctreader.read(i)
-		roi = ctreader.crop3d(scan, roiSize=roiSize, center=center)
-		del scan
-		dataset.append(roi)
-
-		label = ctreader.read_label(bone, i)
-		roi_label = ctreader.crop3d(label, roiSize=label_size, center = center)
-		labels.append(roi_label)
-		del label
-		gc.collect()
-		# print(roi.shape, roi_label.shape, roi.max(), roi_label.max())
-		
-	return dataset, labels
-
-def train(config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -93,6 +40,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	)
 
 	params = dict(
+		dataset_path=dataset_path,
 		bone=bone,
 		roiSize = (128,128,160),
 		train_data = train_data,
@@ -114,41 +62,39 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 
 	run['Tags'] = name
 	
-
-
-	transforms_affine = tio.Compose([
+	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
-		tio.RandomAffine(),
-	])
-	transforms_img = tio.Compose([
-		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
+		tio.RandomAffine(p=0.25),
+		tio.RandomAnisotropy(p=0.3),              # make images look anisotropic 25% of times
 		tio.RandomBlur(p=0.3),
+		tio.RandomBiasField(0.4),
 		tio.OneOf({
 			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomBiasField(0.1): 0.1,
 			tio.RandomGamma((-0.3,0.3)): 0.1,
-			tio.RandomMotion(): 0.3,
 		}),
-		tio.RescaleIntensity((0.05,0.95)),
+		tio.ZNormalization(),
+		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
 
-	#TODO find a way to precalculate this - should i only unpad the first block?
+	#TODO find a way to precalculate this for tiling
 	# if config['n_blocks'] == 2: label_size = (48,48,48)
 	# if config['n_blocks'] == 3: label_size = (24,24,24)
 	label_size = params['roiSize']
 
-	train_dataset, train_labels = precache(params['train_data'], params['bone'], params['roiSize'])
+	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
 	print(train_dataset[0].shape, train_dataset[0].max())
-	# create a training data loader
-	train_ds = CTDatasetPrecached(params['bone'], train_dataset, train_labels, params['train_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], transform=transforms_img, label_transform=None, label_size=label_size) 
+
+	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
+						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
+						transform=transforms, label_size=label_size, precached=True) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
-	# create a validation data loader
-	val_dataset, val_labels = precache(params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDatasetPrecached(params['bone'], val_dataset, val_labels, params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
-	# val_ds = CTDataset(params['bone'], params['val_data'], roi_size=params['roiSize'], n_classes=params['n_classes'], label_size=label_size) 
+
+	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
+	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
+					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
+					transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
-	# device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
 
@@ -166,7 +112,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 		channels=channels,
 		strides=strides,
 		num_res_units=params["n_blocks"],
-		act=params['activation'], # TODO try PReLU
+		act=params['activation'],
 		norm=params["norm"],
 		dropout=params["dropout"],
 	)
@@ -215,7 +161,7 @@ def train(config, name, bone, train_data, val_data, test_data, save=False, tuner
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
@@ -233,55 +179,60 @@ if __name__ == "__main__":
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-	bone = 'Otoliths'
+	bone = 'OTOLITHS'
 
-	old_ns = 	[40, 78, 200, 218, 240, 242, 256, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589]
-	all_data = 	[39, 64, 74, 96, 98, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316] 
-	all_keys = 	[1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427]
-	test_data = [1,64,374,427]
+	old_ns = [40, 78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589] 
+	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427] 
+	crazy_fish = [371, 374, 427] # 371,374 ncoa3 420, 427 col11
+	[all_keys.remove(i) for i in crazy_fish]
 
 	print(f"All data: {len(all_keys)}")
-	[all_keys.remove(i) for i in test_data]
 
+	random.seed(42)
 	random.shuffle(all_keys)
-	train_data = all_keys[1:20]
-	val_data = all_keys[20:]
-	# test_data =	all_keys[22:]
-	# train_data = all_data[1:4]
-	# val_data = all_data[4:6]
-	# test_data =	all_data[1:4]
+	test_data = [1, 311, 316, 420] # val on young, mid and old col11
+	[all_keys.remove(i) for i in test_data]
+	train_data = all_keys[:18]
+	val_data = all_keys[18:]
+	# train_data = all_keys[1:2]
+	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'HP SAUCE with FLAV'
+	name = '3D LF search w/ background'
 	save = False
 	# save = 'output/weights/unet.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	#TODO ADD label size
 
-	num_samples = 50
-	max_num_epochs = 400
+	num_samples = 1
+	max_num_epochs = 100
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
 
 	config = {
-		"lr": 3e-3,#tune.loguniform(0.01, 0.00001),
-		"batch_size": tune.choice([1,2,4]),
-		"n_blocks": tune.randint(2,4),
+		"lr": 3e-3,
+		"batch_size": tune.choice([4]),
+		"n_blocks": 3,
 		"norm": tune.choice(["INSTANCE"]),
-		"epochs": 150,
-		"start_filters": tune.choice([8,32]),
+		"epochs": 75,
+		"start_filters": tune.choice([32]),
 		"activation": tune.choice(["PRELU"]),
-		"dropout": tune.choice([0,0.1]),
-		"loss_function": tune.grid_search([monai.losses.TverskyLoss(include_background=True, alpha=0.1), 
-											monai.losses.TverskyLoss(include_background=True, alpha=0.2),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.3),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.4),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.5),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.6),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.7),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.8),
-											monai.losses.TverskyLoss(include_background=True, alpha=0.9),])#  ,monai.losses.DiceLoss(include_background=False,), , torch.nn.CrossEntropyLoss()]) #BinaryFocalLoss(alpha=1.5, gamma=0.5), 
+		"dropout": tune.choice([0.1]),
+		"loss_function": tune.grid_search([
+			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+			# monai.losses.GeneralizedDiceLoss(include_background=True),
+			# monai.losses.DiceLoss(include_background=True),
+			# torch.nn.CrossEntropyLoss(),
+			])
 	}
 
 	# the scheduler will terminate badly performing trials
@@ -295,7 +246,7 @@ if __name__ == "__main__":
 	work_dir = Path().parent.resolve()
 
 	result = tune.run(
-		partial(train, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
 			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
 		resources_per_trial={"cpu": 10, "gpu": 1},
 		config=config,

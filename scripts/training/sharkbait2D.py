@@ -1,8 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import Trainer, test, CTDataset, precache
-from ctfishpy.models import UNet
+from ctfishpy.train_utils import CTDataset2D, Trainer, test, precache
 
 import matplotlib.pyplot as plt
 import neptune.new as neptune
@@ -22,28 +21,7 @@ print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def dice_loss(true, pred, eps=1e-7):
-	"""Computes the Sørensen-Dice loss.
-	Note that PyTorch optimizers minimize a loss. In this
-	case, we would like to maximize the dice loss so we
-	return the negated dice loss.
-	Args:
-		true: a tensor of shape [B, 1, H, W].
-		logits: a tensor of shape [B, C, H, W]. Corresponds to
-			the raw output or logits of the model.
-		eps: added to the denominator for numerical stability.
-	Returns:
-		dice_loss: the Sørensen–Dice loss.
-	"""
-
-	true = true.type(pred.type())
-	dims = (0,) + tuple(range(2, true.ndimension()))
-	intersection = torch.sum(pred * true, dims)
-	cardinality = torch.sum(pred + true, dims)
-	dice_loss = (2. * intersection / (cardinality + eps)).mean()
-	return (1 - dice_loss)
-
-def train(dataset_path, config, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -92,28 +70,25 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
 
-	#TODO find a way to precalculate this - should i only unpad the first block?
+	#TODO find a way to precalculate this for tiling
 	# if config['n_blocks'] == 2: label_size = (48,48,48)
 	# if config['n_blocks'] == 3: label_size = (24,24,24)
 	label_size = params['roiSize']
 
 	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
-
 	print(train_dataset[0].shape, train_dataset[0].max())
-	# create a training data loader
-	# TODO remove precached
-	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
+
+	train_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 						transform=transforms, label_size=label_size, precached=True) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
-	# create a validation data loader
+
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
+	val_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 					transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
-	# device
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
 
@@ -125,7 +100,7 @@ def train(dataset_path, config, name, bone, train_data, val_data, test_data, sav
 
 	# model
 	model = monai.networks.nets.UNet(
-		spatial_dims=3,
+		spatial_dims=2,
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
@@ -223,18 +198,18 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 4,
+		"batch_size": 64,
 		"n_blocks": 3,
 		"norm": 'INSTANCE',
-		"epochs": 50,
+		"epochs": 75,
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.7), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.7), 
 	}
 
 	# TODO add model in train
 
 	work_dir = Path().parent.resolve()
-	train(dataset_path, config, name, bone=bone, train_data=train_data, val_data=val_data, 
+	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
