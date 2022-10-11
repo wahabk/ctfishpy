@@ -68,9 +68,9 @@ class CTDataset(torch.utils.data.Dataset):
 
 	def __getitem__(self, index):
 		ctreader = ctfishpy.CTreader(self.dataset_path)
-		master = ctreader.master
 		# Select sample
 		i = self.indices[index] #index is order from precache, i is number from dataset
+		# print(index, i)
 		
 		if self.precached:
 			X = self.dataset[index]
@@ -80,14 +80,14 @@ class CTDataset(torch.utils.data.Dataset):
 			X = ctreader.read(i)
 			y = ctreader.read_label(self.bone, i)
 			center = ctreader.otolith_centers[i]
-			X = ctreader.crop3d(X, self.roi_size, center=center)			
 			# if label size is smaller for roi
-			if self.label_size is not None:
-				self.label_size == self.roi_size
-			y = ctreader.crop3d(y, self.label_size, center=center)
+			# if self.label_size is not None:
+			# 	self.label_size == self.roi_size
+			X = ctreader.crop3d(X, self.roi_size, center=center)			
+			y = ctreader.crop3d(y, self.roi_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
-		#for reshaping
+		# for reshaping
 		X = np.expand_dims(X, 0)      # if numpy array
 		y = np.expand_dims(y, 0)
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
@@ -149,19 +149,26 @@ class CTDataset2D(torch.utils.data.Dataset):
 		fish_index, slice_ = self._get_fish(index)
 
 		i = self.indices[fish_index] #index is order from precache, i is number from dataset
+		# print(index, i, fish_index, slice_)
 
 		if self.precached:
-			X = self.dataset[fish_index][slice_]
-			y = self.labels[fish_index][slice_]
+			X = self.dataset[fish_index]
+			y = self.labels[fish_index]
 
 		else:
-			X = ctreader.read(i)[slice_]
+			X = ctreader.read(i)
 			y = ctreader.read_label(self.bone, i)
 			center = ctreader.otolith_centers[i]
-			if self.label_size is not None:
-				self.label_size == self.roi_size
-			y = ctreader.crop3d(y, self.label_size, center=center)[slice_]
+			# if self.label_size is not None:
+			# 	self.label_size == self.roi_size
+			X = ctreader.crop3d(X, self.roi_size, center=center)
+			y = ctreader.crop3d(y, self.roi_size, center=center)
 			
+		# X = X[slice_]
+		# y = y[slice_]
+		# X = np.expand_dims(X, 0)      # if numpy array
+		# y = np.expand_dims(y, 0)
+
 		X = np.array(X/X.max(), dtype=np.float32)
 		#for reshaping
 		X = np.expand_dims(X, 0)      # if numpy array
@@ -169,6 +176,7 @@ class CTDataset2D(torch.utils.data.Dataset):
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
 		X = torch.from_numpy(X)
 		y = torch.from_numpy(y)
+
 
 		fish = tio.Subject(
 			ct=tio.ScalarImage(tensor=X),
@@ -183,9 +191,11 @@ class CTDataset2D(torch.utils.data.Dataset):
 		y = F.one_hot(y.to(torch.int64), self.n_classes)
 		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
 		y = y.squeeze().to(torch.float32)
+		# X = X.unsqueeze(0)
+		# y = y.unsqueeze(0)
 
-		# X = X[:,:,slice_]
-		# y = y[:,:,slice_]
+		X = X[:,slice_]
+		y = y[:,slice_]
 		
 		return X, y,
 
@@ -374,7 +384,10 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 	label = np.zeros(result.shape[1:], dtype = 'uint8')
 	for i in range(n_classes):
 		# print(f'undoing class {i}')
-		r = result[i, :, :, :,]
+		if len(result.shape) == 4:
+			r = result[i, :, :, :,]
+		if len(result.shape) == 3:
+			r = result[i, :, :,]
 		label[r>threshold] = i
 	return label
 

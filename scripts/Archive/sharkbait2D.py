@@ -199,10 +199,10 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 2,
+		"batch_size": 64,
 		"n_blocks": 3,
 		"norm": 'INSTANCE',
-		"epochs": 75,
+		"epochs": 50,
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0,
