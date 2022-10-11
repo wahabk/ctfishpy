@@ -100,16 +100,28 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	strides = [2 for n in range(1, n_blocks)]
 
 	# model
-	model = monai.networks.nets.UNet(
+	# model = monai.networks.nets.UNet(
+	# 	spatial_dims=params['spatial_dims'],
+	# 	in_channels=1,
+	# 	out_channels=params['n_classes'],
+	# 	channels=channels,
+	# 	strides=strides,
+	# 	num_res_units=params["n_blocks"],
+	# 	act=params['activation'],
+	# 	norm=params["norm"],
+	# 	dropout=params["dropout"],
+	# )
+
+	model = monai.networks.nets.AttentionUnet(
 		spatial_dims=params['spatial_dims'],
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'],
-		norm=params["norm"],
+		# act=params['activation'],
+		# norm=params["norm"],
 		dropout=params["dropout"],
+		# padding='valid',
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -199,8 +211,8 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 4,
-		"n_blocks": 3,
+		"batch_size": 1,
+		"n_blocks": 2,
 		"norm": 'INSTANCE',
 		"epochs": 75,
 		"start_filters": 32,
