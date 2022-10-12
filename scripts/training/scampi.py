@@ -60,13 +60,10 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
 		tio.RandomAffine(p=0.25),
-		tio.RandomAnisotropy(p=0.3),              # make images look anisotropic 25% of times
 		tio.RandomBlur(p=0.3),
-		tio.RandomBiasField(0.4),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomGamma((-0.3,0.3)): 0.1,
-		}),
+		tio.RandomBiasField(0.4, p=0.5),
+		tio.RandomNoise(0.1, 0.01, p=0.25),
+		tio.RandomGamma((-0.3,0.3), p=0.25),
 		tio.ZNormalization(),
 		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
@@ -82,13 +79,13 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 						transform=transforms, label_size=label_size, precached=True) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
 	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 					transform=None, label_size=label_size, precached=True) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
@@ -201,22 +198,22 @@ if __name__ == "__main__":
 	# train_data = all_keys[1:2]
 	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'testing scampi'
+	name = 'scampi attention dice'
 	save = False
 	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 4,
-		"n_blocks": 4,
+		"batch_size": 6,
+		"n_blocks": 3,
 		"norm": 'INSTANCE',
-		"epochs": 75,
+		"epochs": 150,
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0.1,
-		# "loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
-		"loss_function": monai.losses.DiceLoss(include_background=True,)
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		# "loss_function": monai.losses.DiceLoss(include_background=True,)
 	}
 
 	# TODO add model in train?
