@@ -188,13 +188,12 @@ if __name__ == "__main__":
 	old_ns = [40, 78, 200, 218, 240, 242, 257, 259, 277, 330, 337, 341, 364, 385, 421, 423, 443, 459, 461, 462, 463, 464, 527, 530, 582, 589] 
 	all_keys = [1, 39, 64, 74, 96, 98, 112, 113, 115, 133, 186, 193, 197, 220, 241, 275, 276, 295, 311, 313, 314, 315, 316, 371, 374, 420, 427] 
 	crazy_fish = [371, 374, 420, 427] # 371,374 ncoa3 420, 427 col11
-	[all_keys.remove(i) for i in crazy_fish]
 
 	print(f"All data: {len(all_keys)}")
 
 	random.seed(42)
 	random.shuffle(all_keys)
-	test_data = [1, 311, 316] # val on young, mid and old col11
+	test_data = [1]+crazy_fish # val on young, mid and old col11
 	[all_keys.remove(i) for i in test_data]
 	train_data = all_keys[:18]
 	val_data = all_keys[18:]
@@ -206,9 +205,6 @@ if __name__ == "__main__":
 	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
-	#TODO ADD label size
-	#TODO use seg models pytorch
-
 	config = {
 		"lr": 3e-3,
 		"batch_size": 1,
@@ -218,10 +214,10 @@ if __name__ == "__main__":
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.7), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), # monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 	}
 
-	# TODO add model in train
+	# TODO add model in train?
 
 	work_dir = Path().parent.resolve()
 	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 

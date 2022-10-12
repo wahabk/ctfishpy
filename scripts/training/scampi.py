@@ -2,30 +2,24 @@ import torch
 import numpy as np
 import ctfishpy
 from ctfishpy.train_utils import Trainer, test, CTDataset, precache
-from ctfishpy.models import UNet
-import torchio as tio
-from neptune.new.types import File
+
 import matplotlib.pyplot as plt
 import neptune.new as neptune
 import os
-from ray import tune
 import random
-from ray.tune.schedulers import ASHAScheduler
-from functools import partial
-from pathlib2 import Path
-
 import monai
 import math
-import gc
+import torchio as tio
+from neptune.new.types import File
 from tqdm import tqdm
+import gc
+import torch.nn.functional as F
+from pathlib2 import Path
 
 print(os.cpu_count())
-print(torch.cuda.is_available())
 print ('Current cuda device ', torch.cuda.current_device())
+print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
-
-import torch.nn as nn
-import torch.nn.functional as F 
 
 def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
@@ -58,6 +52,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 		n_classes = 4, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
+		spatial_dims = 3,
 	)
 
 	run['Tags'] = name
@@ -105,16 +100,28 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	strides = [2 for n in range(1, n_blocks)]
 
 	# model
-	model = monai.networks.nets.UNet(
-		spatial_dims=3,
+	# model = monai.networks.nets.UNet(
+	# 	spatial_dims=params['spatial_dims'],
+	# 	in_channels=1,
+	# 	out_channels=params['n_classes'],
+	# 	channels=channels,
+	# 	strides=strides,
+	# 	num_res_units=params["n_blocks"],
+	# 	act=params['activation'],
+	# 	norm=params["norm"],
+	# 	dropout=params["dropout"],
+	# )
+
+	model = monai.networks.nets.AttentionUnet(
+		spatial_dims=params['spatial_dims'],
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'],
-		norm=params["norm"],
+		# act=params['activation'],
+		# norm=params["norm"],
 		dropout=params["dropout"],
+		# padding='valid',
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -161,21 +168,19 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(dataset_path, params['spatial_dims'], model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
-
-
 if __name__ == "__main__":
 
-	# dataset_path = '/home/ak18001/Data/HDD/Colloids'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT'
+	dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
-	dataset_path = "/home/ak18001/Data/HDD/uCT"
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -196,58 +201,26 @@ if __name__ == "__main__":
 	# train_data = all_keys[1:2]
 	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = '3D LF search w/ background'
+	name = 'testing scampi'
 	save = False
-	# save = 'output/weights/unet.pt'
+	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
-
-	num_samples = 1
-	max_num_epochs = 100
-	gpus_per_trial = 1
-	device_ids = [0,]
-	save = False
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": tune.choice([4]),
-		"n_blocks": 3,
-		"norm": tune.choice(["INSTANCE"]),
+		"batch_size": 4,
+		"n_blocks": 4,
+		"norm": 'INSTANCE',
 		"epochs": 75,
-		"start_filters": tune.choice([32]),
-		"activation": tune.choice(["PRELU"]),
-		"dropout": tune.choice([0.1]),
-		"loss_function": tune.grid_search([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.6),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.7),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
-			# monai.losses.GeneralizedDiceLoss(include_background=True),
-			# monai.losses.DiceLoss(include_background=True),
-			# torch.nn.CrossEntropyLoss(),
-			])
+		"start_filters": 32,
+		"activation": "PRELU",
+		"dropout": 0.1,
+		# "loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"loss_function": monai.losses.DiceLoss(include_background=True,)
 	}
 
-	# the scheduler will terminate badly performing trials
-	# scheduler = ASHAScheduler(
-	# 	metric="val_loss",
-	# 	mode="min",
-	# 	max_t=max_num_epochs,
-	# 	grace_period=1,
-	# 	reduction_factor=2)
+	# TODO add model in train?
 
 	work_dir = Path().parent.resolve()
-
-	result = tune.run(
-		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
-		resources_per_trial={"cpu": 10, "gpu": 1},
-		config=config,
-		num_samples=num_samples,
-		scheduler=None,
-		checkpoint_at_end=False,
-		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'
+	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
