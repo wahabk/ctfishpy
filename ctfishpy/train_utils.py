@@ -164,13 +164,19 @@ class CTDataset2D(torch.utils.data.Dataset):
 			X = ctreader.crop3d(X, self.roi_size, center=center)
 			y = ctreader.crop3d(y, self.roi_size, center=center)
 			
-		# X = X[slice_]
-		# y = y[slice_]
+		X = X[slice_]
+		y = y[slice_]
 		# X = np.expand_dims(X, 0)      # if numpy array
 		# y = np.expand_dims(y, 0)
 
 		X = np.array(X/X.max(), dtype=np.float32)
 		#for reshaping
+
+		if self.transform:
+			transformed = self.transform(image=X, mask=y)
+			X = transformed['image']
+			y = transformed['mask']
+
 		X = np.expand_dims(X, 0)      # if numpy array
 		y = np.expand_dims(y, 0)
 		# tensor = tensor.unsqueeze(1)  # if torch tensor
@@ -178,24 +184,12 @@ class CTDataset2D(torch.utils.data.Dataset):
 		y = torch.from_numpy(y)
 
 
-		fish = tio.Subject(
-			ct=tio.ScalarImage(tensor=X),
-			label=tio.LabelMap(tensor=y),
-		)
-
-		if self.transform:
-			fish = self.transform(fish)
-
-		X = fish.ct.tensor
-		y = fish.label.tensor
 		y = F.one_hot(y.to(torch.int64), self.n_classes)
-		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
+		y = y.permute([0,3,1,2]) # permute one_hot to channels first after batch
 		y = y.squeeze().to(torch.float32)
 		# X = X.unsqueeze(0)
 		# y = y.unsqueeze(0)
 
-		X = X[:,slice_]
-		y = y[:,slice_]
 		
 		return X, y,
 
@@ -391,54 +385,20 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 		label[r>threshold] = i
 	return label
 
-def predict3d(array, model=None, weights_path=None, threshold=0.5):
+def predict3d(test_loader, model, criterion, threshold=0.5):
+	"""
+	helper function for testing
+	"""
+
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'predicting on {device}')
 
-	# model
-	if model is None:
-		model = monai.networks.nets.AttentionUnet(
-			spatial_dims=3,
-			in_channels=1,
-			out_channels=1,
-			channels=[32, 64, 128],
-			strides=[2,2],
-			# act=params['activation'],
-			# norm=params["norm"],
-			padding='valid',
-		)
-
-	pass
-
-def predict2d(array, model=None, weights_path=None, threshold=0.5):
-
-	pass
-
-def test(dataset_path, spatial_dims, model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
-	roiSize = params['roiSize']
-	n_classes = params['n_classes']
-
-	ctreader = ctfishpy.CTreader(dataset_path)
-	print('Running test, this may take a while...')
-
-
-	if label_size is None:
-		label_size = roiSize
-
-	# test on real data
-	test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
-	test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
-
-	losses = []
+	predict_dict = {}
 	model.eval()
 	with torch.no_grad():
 		for idx, batch in enumerate(test_loader):
-			i = test_set[idx]
-			metadata = ctreader.read_metadata(i)
 			x, y = batch
 			x, y = x.to(device), y.to(device)
-			# print(x.shape, x.max(), x.min())
-			# print(y.shape, y.max(), y.min())
 
 			out = model(x)  # send through model/network
 			out = torch.softmax(out, 1)
@@ -446,52 +406,121 @@ def test(dataset_path, spatial_dims, model, bone, test_set, params, threshold=0.
 			loss = loss.cpu().numpy()
 
 			# post process to numpy array
-			y_pred = out.cpu()  # send to cpu and transform to numpy.ndarray
-			y_pred_numpy = np.squeeze(y_pred.numpy())  # remove batch dim and channel dim -> [H, W]
-
-			array = x.cpu().numpy()[0,0] # 0 batch, 0 class?
-			# array = np.array(array, dtype='uint8')
+			array = x.cpu().numpy()[0,0] # 0 batch, 0 class
 			y = y.cpu()
-			y_numpy = y.numpy()[0] # zero is for batch
+			y_pred = out.cpu()  # send to cpu and transform to numpy.ndarray
 
-			print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
-			# true_vector = np.array(true_label, dtype='uint8').flatten()
-			# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
-			# fig = plot_auc_roc(fpr, tpr, aucroc)
-			# run[f'AUC_{i}'].upload(fig)
-
-
-
-			aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted', multi_class='ovo')
-			dice_score = monai.metrics.compute_generalized_dice(y_pred=y_pred, y=y, include_background=False)[0].item()
-			threshed = y_pred[y_pred < threshold] = 0
-			threshed = y_pred[y_pred > threshold] = 1
-			iou = monai.metrics.compute_meaniou(y_pred=y_pred, y=y, include_background=False)
-			iou = torch.mean(torch.tensor(iou)).item()
-
-			pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
-
-			# print(f"final pred shape {pred_label.shape}")
-			# test predict on sim
-			array_projections = ctreader.make_max_projections(array)
-			label_projections = ctreader.make_max_projections(pred_label)
-			labelled_projections = ctreader.label_projections(array_projections, label_projections)
-			sidebyside = np.concatenate(labelled_projections[0:2], 0)
-			run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
-
-			# TODO threshold label for imaging and one hot encode
-
-			m = {
-				'bone': bone,
-				'idx'	 : i,
-				**metadata,
-				'loss'	 : float(loss),
-				'aucroc' : float(aucroc),
-				'g_dice' : dice_score,
-				'iou'	: iou,
+			predict_dict[idx] = {
+				'array': array,
+				'y': y,
+				'y_pred': y_pred,
+				'loss': loss, 
 			}
 
-			losses.append(m)
+	return predict_dict
+
+def predict2d(test_loader, model, criterion, threshold=0.5):
+	"""
+	helper function for testing
+
+	make sure this predicts on a whole fish and seperates them in the dict
+	"""
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'predicting on {device}')
+
+	predict_dict = {}
+	model.eval()
+	with torch.no_grad():
+		for idx, batch in enumerate(test_loader):
+			x, y = batch
+			x, y = x.to(device), y.to(device)
+
+			out = model(x)  # send through model/network
+			out = torch.softmax(out, 1)
+			loss = criterion(out, y)
+			loss = loss.cpu().numpy()
+
+			# post process to numpy array
+			array = x.cpu().numpy()[0,0] # 0 batch, 0 class
+			y = y.cpu()
+			y_pred = out.cpu()  # send to cpu and transform to numpy.ndarray
+
+			predict_dict[idx] = {
+				'array': array,
+				'y': y,
+				'y_pred': y_pred,
+				'loss': loss, 
+			}
+
+	return predict_dict
+
+def test(dataset_path, spatial_dims, model, bone, test_set, params, threshold=0.5, num_workers=4, batch_size=128, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+	roiSize = params['roiSize']
+	n_classes = params['n_classes']
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	print('Running test, this may take a while...')
+
+	if label_size is None:
+		label_size = roiSize
+
+	if spatial_dims == 3:
+		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
+		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+		predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
+	elif spatial_dims == 2:
+		test_ds = CTDataset2D(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
+		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+		predict_dict = predict2d(model, test_loader, criterion=criterion, threshold=threshold)
+
+	losses = []
+	for idx in predict_dict.keys():
+		array	= predict_dict[i]['array']
+		y		= predict_dict[i]['y']
+		y_pred	= predict_dict[i]['y_pred']
+		loss	= predict_dict[i]['loss']
+		y_numpy = y.numpy()[0] # zero is for batch
+		y_pred_numpy = np.squeeze(y_pred.numpy())  # remove batch dim and channel dim -> [H, W]
+
+		i = test_set[idx]
+		metadata = ctreader.read_metadata(i)
+
+		print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
+		# true_vector = np.array(true_label, dtype='uint8').flatten()
+		# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
+		# fig = plot_auc_roc(fpr, tpr, aucroc)
+		# run[f'AUC_{i}'].upload(fig)
+
+		aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted', multi_class='ovo')
+		dice_score = monai.metrics.compute_generalized_dice(y_pred=y_pred, y=y, include_background=False)[0].item()
+		threshed = y_pred[y_pred < threshold] = 0
+		threshed = y_pred[y_pred > threshold] = 1
+		iou = monai.metrics.compute_meaniou(y_pred=y_pred, y=y, include_background=False)
+		iou = torch.mean(torch.tensor(iou)).item()
+
+		pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
+
+		# print(f"final pred shape {pred_label.shape}")
+		# test predict on sim
+		array_projections = ctreader.make_max_projections(array)
+		label_projections = ctreader.make_max_projections(pred_label)
+		labelled_projections = ctreader.label_projections(array_projections, label_projections)
+		sidebyside = np.concatenate(labelled_projections[0:2], 0)
+		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
+
+		# TODO threshold label for imaging and one hot encode
+
+		m = {
+			'bone': bone,
+			'idx'	 : i,
+			**metadata,
+			'loss'	 : float(loss),
+			'aucroc' : float(aucroc),
+			'g_dice' : dice_score,
+			'iou'	: iou,
+		}
+
+		losses.append(m)
 
 	losses = pd.DataFrame(losses)
 	print(losses)
@@ -501,8 +530,6 @@ def test(dataset_path, spatial_dims, model, bone, test_set, params, threshold=0.
 	#plot label brightness distrib
 
 	return losses
-
-
 
 """
 Trainer

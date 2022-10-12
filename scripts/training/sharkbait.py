@@ -60,13 +60,10 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
 		tio.RandomAffine(p=0.25),
-		tio.RandomAnisotropy(p=0.3),              # make images look anisotropic 25% of times
 		tio.RandomBlur(p=0.3),
-		tio.RandomBiasField(0.4),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomGamma((-0.3,0.3)): 0.1,
-		}),
+		tio.RandomBiasField(0.4, p=0.5),
+		tio.RandomNoise(0.1, 0.01, p=0.25),
+		tio.RandomGamma((-0.3,0.3), p=0.25),
 		tio.ZNormalization(),
 		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
@@ -82,13 +79,13 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 						transform=transforms, label_size=label_size, precached=True) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
 	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 					transform=None, label_size=label_size, precached=True) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')

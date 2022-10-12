@@ -5,6 +5,7 @@ import torchio as tio
 import numpy as np
 import matplotlib.pyplot as plt
 import random
+import albumentations as A
 
 if __name__ == "__main__":
 	dataset_path = '/home/ak18001/Data/HDD/uCT'
@@ -20,22 +21,17 @@ if __name__ == "__main__":
 	check_set = all_keys[:1]
 	print(f"checking dataset {check_set}")
 
-	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1), flip_probability=0.5),
-		# tio.RandomAffine(p=0.5),
-		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.2),
-		tio.RandomBiasField(0.4),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.2,
-			tio.RandomGamma((-0.3,0.3)): 0.2,
-			tio.ZNormalization(): 0.2,
-		}),
-		tio.RescaleIntensity(percentiles=(0.5,99.5)),
+	transforms = A.Compose([
+		A.Flip(p=0.25),
+		A.Affine(p=0.25),
+		A.GaussianBlur(p=0.3),
+		A.RandomBrightnessContrast(p=0.4),
+		A.GaussNoise(var_limit=(0.001,0.01), p=0.25),
+		A.RandomGamma(p=0.5),
 	])
 
 	check_ds = CTDataset2D(dataset_path, bone, check_set, roiSize, n_classes=n_classes, transform=transforms) 
-	check_loader = torch.utils.data.DataLoader(check_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	check_loader = torch.utils.data.DataLoader(check_ds, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=torch.cuda.is_available(), persistent_workers=True)
 	
 
 

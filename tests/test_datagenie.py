@@ -21,17 +21,14 @@ if __name__ == "__main__":
 	print(f"checking dataset {check_set}")
 
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
-		tio.RandomAffine(p=0.5),
-		tio.RandomAnisotropy(p=0.2),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.2),
-		tio.RandomBiasField(0.4),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.2,
-			tio.RandomGamma((-0.3,0.3)): 0.2,
-			tio.ZNormalization(): 0.2,
-		}),
-		tio.RescaleIntensity(),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
+		tio.RandomAffine(p=0.25),
+		tio.RandomBlur(p=0.3),
+		tio.RandomBiasField(0.4, p=0.5),
+		tio.RandomNoise(0.1, 0.01, p=0.25),
+		tio.RandomGamma((-0.3,0.3), p=0.25),
+		tio.ZNormalization(),
+		tio.RescaleIntensity(percentiles=(0.5,99.5)),
 	])
 
 	check_ds = CTDataset(dataset_path, bone, check_set, roiSize, n_classes=n_classes, transform=transforms, label_size=roiSize) 
@@ -69,8 +66,6 @@ if __name__ == "__main__":
 		# plt.xlim([0.0, 1.0])  # <- named arguments do not work here
 		# plt.plot(bin_edges[0:-1], histogram)  # <- or here
 		# plt.show()
-
-		exit()
 
 		# array_projection = np.max(x, axis=0)
 		# label_projection = np.max(y, axis=0)
