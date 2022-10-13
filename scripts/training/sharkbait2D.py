@@ -23,7 +23,7 @@ print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+def train2d(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -149,12 +149,12 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 		torch.save(model.state_dict(), model_name)
 		# run['model/weights'].upload(model_name)
 
-	# train_dataset, train_labels = None, None
-	# val_dataset, val_labels = None, None
+	train_dataset, train_labels = None, None
+	val_dataset, val_labels = None, None
 
-	# gc.collect()
-	# losses = test(dataset_path, params["spatial_dims"], model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
-	# run['test/df'].upload(File.as_html(losses))
+	gc.collect()
+	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
@@ -180,10 +180,10 @@ if __name__ == "__main__":
 	random.shuffle(all_keys)
 	test_data = [1]+crazy_fish # val on young, mid and old col11
 	[all_keys.remove(i) for i in test_data]
-	train_data = all_keys[:18]
-	val_data = all_keys[18:]
-	# train_data = all_keys[1:2]
-	# val_data = all_keys[2:3]
+	# train_data = all_keys[:18]
+	# val_data = all_keys[18:]
+	train_data = all_keys[1:2]
+	val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'test 2d'
 	save = False
@@ -196,17 +196,18 @@ if __name__ == "__main__":
 	config = {
 		"lr": 3e-3,
 		"batch_size": 128,
-		"n_blocks": 4,
+		"n_blocks": 6,
 		"norm": 'INSTANCE',
-		"epochs": 50,
+		"epochs": 2,
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), 
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.3), 
+		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
 
 	# TODO add model in train
 
 	work_dir = Path().parent.resolve()
-	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
+	train2d(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)

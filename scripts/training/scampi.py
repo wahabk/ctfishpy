@@ -165,7 +165,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(dataset_path, params['spatial_dims'], model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()

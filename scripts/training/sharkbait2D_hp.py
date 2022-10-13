@@ -1,7 +1,8 @@
+from cv2 import GaussianBlur
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import Trainer, test, CTDataset, precache
+from ctfishpy.train_utils import CTDataset2D, Trainer, test, precache
 
 import matplotlib.pyplot as plt
 import neptune.new as neptune
@@ -10,18 +11,23 @@ import random
 import monai
 import math
 import torchio as tio
+import albumentations as A
 from neptune.new.types import File
 from tqdm import tqdm
 import gc
 import torch.nn.functional as F
 from pathlib2 import Path
+from ray import tune
+from functools import partial
+
+
 
 print(os.cpu_count())
 print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+def train2d(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -52,20 +58,18 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 		n_classes = 4, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
-		spatial_dims = 3,
+		spatial_dims = 2,
 	)
 
 	run['Tags'] = name
 	
-	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
-		tio.RandomAffine(p=0.25),
-		tio.RandomBlur(p=0.3),
-		tio.RandomBiasField(0.4, p=0.5),
-		tio.RandomNoise(0.1, 0.01, p=0.25),
-		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(0.5,99.5)),
+	transforms = A.Compose([
+		A.Flip(p=0.25),
+		A.Affine(p=0.25),
+		A.GaussianBlur(p=0.3),
+		A.RandomBrightnessContrast(p=0.4),
+		A.GaussNoise(var_limit=(0.001,0.01), p=0.25),
+		A.RandomGamma(p=0.5),
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -76,13 +80,13 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
 	print(train_dataset[0].shape, train_dataset[0].max())
 
-	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
+	train_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 						transform=transforms, label_size=label_size, precached=True) 
 	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
+	val_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 					transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
@@ -97,28 +101,16 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	strides = [2 for n in range(1, n_blocks)]
 
 	# model
-	# model = monai.networks.nets.UNet(
-	# 	spatial_dims=params['spatial_dims'],
-	# 	in_channels=1,
-	# 	out_channels=params['n_classes'],
-	# 	channels=channels,
-	# 	strides=strides,
-	# 	num_res_units=params["n_blocks"],
-	# 	act=params['activation'],
-	# 	norm=params["norm"],
-	# 	dropout=params["dropout"],
-	# )
-
-	model = monai.networks.nets.AttentionUnet(
-		spatial_dims=params['spatial_dims'],
+	model = monai.networks.nets.UNet(
+		spatial_dims=params["spatial_dims"],
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
-		# act=params['activation'],
-		# norm=params["norm"],
+		num_res_units=params["n_blocks"],
+		act=params['activation'],
+		norm=params["norm"],
 		dropout=params["dropout"],
-		# padding='valid',
 	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
@@ -192,30 +184,63 @@ if __name__ == "__main__":
 	random.shuffle(all_keys)
 	test_data = [1]+crazy_fish # val on young, mid and old col11
 	[all_keys.remove(i) for i in test_data]
-	# train_data = all_keys[:18]
-	# val_data = all_keys[18:]
-	train_data = all_keys[1:2]
-	val_data = all_keys[2:3]
+	train_data = all_keys[:18]
+	val_data = all_keys[18:]
+	# train_data = all_keys[1:2]
+	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'testing pred function'
+	name = 'LF search 2d'
 	save = False
 	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
+	num_samples = 1
+	max_num_epochs = 100
+	gpus_per_trial = 1
+	device_ids = [0,]
+	save = False
+
 	config = {
 		"lr": 3e-3,
-		"batch_size": 1,
-		"n_blocks": 2,
-		"norm": 'INSTANCE',
-		"epochs": 2,
-		"start_filters": 32,
-		"activation": "PRELU",
-		"dropout": 0,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), # monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		"batch_size": 128,
+		"n_blocks": 6,
+		"norm": "INSTANCE",
+		"epochs": 100,
+		"start_filters": tune.choice([32]),
+		"activation": tune.choice(["PRELU"]),
+		"dropout": tune.choice([0.1]),
+		"loss_function": tune.grid_search([
+			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+			monai.losses.GeneralizedDiceLoss(include_background=True),
+			monai.losses.DiceLoss(include_background=True),
+			torch.nn.CrossEntropyLoss(),
+			])
 	}
 
-	# TODO add model in train?
+	# the scheduler will terminate badly performing trials
+	# scheduler = ASHAScheduler(
+	# 	metric="val_loss",
+	# 	mode="min",
+	# 	max_t=max_num_epochs,
+	# 	grace_period=1,
+	# 	reduction_factor=2)
 
 	work_dir = Path().parent.resolve()
-	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+
+	result = tune.run(
+		partial(train2d, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
+		resources_per_trial={"cpu": 10, "gpu": 1},
+		config=config,
+		num_samples=num_samples,
+		scheduler=None,
+		checkpoint_at_end=False,
+		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'
