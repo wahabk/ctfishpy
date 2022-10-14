@@ -24,6 +24,7 @@ setup(
                 'torch',
                 'monai-weekly',
                 'torchio',
+                'albumentations',
                 'neptune-client',
                 'ray[tune]',
                 'tqdm',

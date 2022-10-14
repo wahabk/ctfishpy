@@ -1,33 +1,33 @@
+from cv2 import GaussianBlur
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import Trainer, test, CTDataset, precache
-from ctfishpy.models import UNet
-import torchio as tio
-from neptune.new.types import File
+from ctfishpy.train_utils import CTDataset2D, Trainer, test, precache
+
 import matplotlib.pyplot as plt
 import neptune.new as neptune
 import os
 import random
-from ray.tune.schedulers import ASHAScheduler
-from pathlib2 import Path
-from functools import partial
-from ray import tune
-
 import monai
 import math
-import gc
+import torchio as tio
+import albumentations as A
+from neptune.new.types import File
 from tqdm import tqdm
+import gc
+import torch.nn.functional as F
+from pathlib2 import Path
+from ray import tune
+from functools import partial
+
+
 
 print(os.cpu_count())
-print(torch.cuda.is_available())
 print ('Current cuda device ', torch.cuda.current_device())
+print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-import torch.nn as nn
-import torch.nn.functional as F 
-
-def train(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
+def train2d(config, dataset_path, name, bone, train_data, val_data, test_data, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir="."):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -58,22 +58,18 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 		n_classes = 4, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
+		spatial_dims = 2,
 	)
 
 	run['Tags'] = name
 	
-	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
-		tio.RandomAffine(p=0.25),
-		tio.RandomAnisotropy(p=0.3),              # make images look anisotropic 25% of times
-		tio.RandomBlur(p=0.3),
-		tio.RandomBiasField(0.4),
-		tio.OneOf({
-			tio.RandomNoise(0.1, 0.01): 0.1,
-			tio.RandomGamma((-0.3,0.3)): 0.1,
-		}),
-		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(0.5,99.5)),
+	transforms = A.Compose([
+		A.Flip(p=0.25),
+		A.Affine(p=0.25),
+		A.GaussianBlur(p=0.3),
+		A.RandomBrightnessContrast(p=0.4),
+		A.GaussNoise(var_limit=(0.001,0.01), p=0.25),
+		A.RandomGamma(p=0.5),
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -84,16 +80,16 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'])
 	print(train_dataset[0].shape, train_dataset[0].max())
 
-	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
+	train_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
 						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 						transform=transforms, label_size=label_size, precached=True) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'])
-	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
+	val_ds = CTDataset2D(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
 					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
 					transform=None, label_size=label_size, precached=True) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=False, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
+	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
@@ -106,7 +102,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 
 	# model
 	model = monai.networks.nets.UNet(
-		spatial_dims=3,
+		spatial_dims=params["spatial_dims"],
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
@@ -166,16 +162,14 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, sav
 
 	run.stop()
 
-
-
 if __name__ == "__main__":
 
-	# dataset_path = '/home/ak18001/Data/HDD/Colloids'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT'
+	dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
-	dataset_path = "/home/ak18001/Data/HDD/uCT"
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -196,39 +190,39 @@ if __name__ == "__main__":
 	# train_data = all_keys[1:2]
 	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = '3D LF search w/ background'
+	name = 'LF search 2d on scampi'
 	save = False
-	# save = 'output/weights/unet.pt'
+	# save = 'output/weights/3dunet222707.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	num_samples = 1
-	max_num_epochs = 100
+	max_num_epochs = 150
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": tune.choice([4]),
-		"n_blocks": 3,
-		"norm": tune.choice(["INSTANCE"]),
-		"epochs": 75,
+		"batch_size": 128,
+		"n_blocks": 6,
+		"norm": "INSTANCE",
+		"epochs": 150,
 		"start_filters": tune.choice([32]),
 		"activation": tune.choice(["PRELU"]),
 		"dropout": tune.choice([0.1]),
 		"loss_function": tune.grid_search([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.6),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.7),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.9),
 			# monai.losses.GeneralizedDiceLoss(include_background=True),
-			# monai.losses.DiceLoss(include_background=True),
-			# torch.nn.CrossEntropyLoss(),
+			monai.losses.DiceLoss(include_background=True),
+			torch.nn.CrossEntropyLoss(),
 			])
 	}
 
@@ -243,11 +237,11 @@ if __name__ == "__main__":
 	work_dir = Path().parent.resolve()
 
 	result = tune.run(
-		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+		partial(train2d, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
 			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir),
 		resources_per_trial={"cpu": 10, "gpu": 1},
 		config=config,
 		num_samples=num_samples,
 		scheduler=None,
 		checkpoint_at_end=False,
-		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'
+		local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'

@@ -165,6 +165,7 @@ def train2d(config, dataset_path, name, bone, train_data, val_data, test_data, s
 if __name__ == "__main__":
 
 	dataset_path = '/home/ak18001/Data/HDD/uCT'
+	# dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
@@ -243,4 +244,4 @@ if __name__ == "__main__":
 		num_samples=num_samples,
 		scheduler=None,
 		checkpoint_at_end=False,
-		local_dir='/home/ak18001/Data/HDD/uCT/RAY_RESULTS') # Path().parent.resolve()/'ray_results'
+		local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'

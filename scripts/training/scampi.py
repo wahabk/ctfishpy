@@ -212,12 +212,15 @@ if __name__ == "__main__":
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
+		# "loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), #k monai.losses.DiceLoss(include_background=False,) #monai.losses.TverskyLoss(include_background=True, alpha=0.7) # # #torch.nn.CrossEntropyLoss()  #  torch.nn.BCEWithLogitsLoss() #BinaryFocalLoss(alpha=1.5, gamma=0.5),
 		# "loss_function": monai.losses.DiceLoss(include_background=True,)
+		"loss_function": torch.nn.CrossEntropyLoss(),
 	}
 
 	# TODO add model in train?
-
 	work_dir = Path().parent.resolve()
-	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+
+	# for i in range(2,19,2):
+	# 	this_train = train_data[:i]
+	# 	train(config, dataset_path, name, bone=bone, train_data=this_train, val_data=val_data, 
+	# 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
