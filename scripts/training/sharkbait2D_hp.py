@@ -195,7 +195,7 @@ if __name__ == "__main__":
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	num_samples = 1
-	max_num_epochs = 100
+	max_num_epochs = 150
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
@@ -205,13 +205,13 @@ if __name__ == "__main__":
 		"batch_size": 128,
 		"n_blocks": 6,
 		"norm": "INSTANCE",
-		"epochs": 100,
+		"epochs": 150,
 		"start_filters": tune.choice([32]),
 		"activation": tune.choice(["PRELU"]),
 		"dropout": tune.choice([0.1]),
 		"loss_function": tune.grid_search([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			# monai.losses.TverskyLoss(include_background=True, alpha=0.2),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
