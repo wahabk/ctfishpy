@@ -552,6 +552,8 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		losses.append(m)
 
 	losses = pd.DataFrame(losses)
+	losses.loc['mean'] = losses.mean()
+	losses.loc['std'] = losses.std()
 	print(losses)
 
 	# TODO plot losses against class

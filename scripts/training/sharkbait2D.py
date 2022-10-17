@@ -202,12 +202,18 @@ if __name__ == "__main__":
 		"start_filters": 32,
 		"activation": "PRELU",
 		"dropout": 0,
-		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.3), 
-		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
+		# "loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.3), 
+		"loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
 
 	# TODO add model in train
 
-	work_dir = Path().parent.resolve()
-	train2d(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+	# work_dir = Path().parent.resolve()
+	# train2d(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
+	# 		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+
+	for i in range(2,19,2):
+		this_train = train_data[:i]
+		name = f"n_samples_2D[{i}]"
+		train2d(config, dataset_path, name, bone=bone, train_data=this_train, val_data=val_data, 
+				test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
