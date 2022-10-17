@@ -411,8 +411,8 @@ def predict3d(model, test_loader, criterion, threshold=0.5):
 
 			predict_dict[idx] = {
 				'array': array,
-				'y': y,
-				'y_pred': y_pred,
+				'y': y[0],
+				'y_pred': y_pred[0],
 				'loss': loss, 
 			}
 
@@ -506,8 +506,8 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		i = test_set[idx]
 		metadata = ctreader.read_metadata(i)
 
-		# print(f"NUM CLASSES FOR ROCAUC tensor: {y.shape} {y_pred.shape}")
-		# print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
+		print(f"NUM CLASSES FOR ROCAUC tensor: {y.shape} {y_pred.shape}")
+		print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
 		# true_vector = np.array(true_label, dtype='uint8').flatten()
 		# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
 		# fig = plot_auc_roc(fpr, tpr, aucroc)
@@ -517,10 +517,13 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		threshed = torch.zeros_like(y_pred)
 		threshed[y_pred > threshold] = 1
 		threshed[y_pred < threshold] = 0
-		dice_score = monai.metrics.compute_meandice(y_pred=threshed, y=y, include_background=False).numpy()[0]
+
+		dice_score = monai.metrics.compute_meandice(y_pred=threshed, y=y, include_background=False).numpy()
 		g_dice_score = monai.metrics.compute_generalized_dice(y_pred=threshed, y=y, include_background=False).numpy()[0]
 		iou = monai.metrics.compute_meaniou(y_pred=threshed, y=y, include_background=False).numpy()[0]
 		# iou = torch.mean(iou)
+		print(dice_score)
+		dice_score = dice_score[0]
 
 		pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
 
