@@ -377,8 +377,10 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 		# print(f'undoing class {i}')
 		if len(result.shape) == 4:
 			r = result[i, :, :, :,]
-		if len(result.shape) == 3:
+		elif len(result.shape) == 3:
 			r = result[i, :, :,]
+		else:
+			raise Warning(f"result shape unknown {result.shape}")
 		label[r>threshold] = i
 	return label
 
