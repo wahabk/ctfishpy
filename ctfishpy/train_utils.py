@@ -481,7 +481,7 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 
 	if spatial_dims == 3:
 		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
-		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 		predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
 	elif spatial_dims == 2:
 		predict_dict = {}
