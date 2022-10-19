@@ -8,8 +8,6 @@ This file contains:
 - training utilities
 """
 
-from msilib.schema import Error
-from symbol import sliceop
 import ctfishpy
 import numpy as np
 import pandas as pd
@@ -153,7 +151,7 @@ class CTDatasetPredict(torch.utils.data.Dataset):
 			if self.bone == "OTOLITH":
 				center = ctreader.otolith_centers[i]
 			elif self.bone == "JAW":
-				raise Error("JAW NOT READY")
+				raise ValueError("JAW NOT READY")
 			X = ctreader.crop3d(X, self.roi_size, center=center)			
 
 		X = np.array(X/X.max(), dtype=np.float32)
@@ -165,7 +163,7 @@ class CTDatasetPredict(torch.utils.data.Dataset):
 		)
 
 		if self.transform:
-			raise Error("TEST TIME AUG NOT READY")
+			raise ValueError("TEST TIME AUG NOT READY")
 			fish = self.transform(fish)
 
 		X = fish.ct.tensor
@@ -445,8 +443,11 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 
 def predict_oto(dataset_path, weights_path, nums, model=None):
 	"""
-	helper function for testing
+	helper function for prediction
 	"""
+
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'predicting on {device}')
 
 	bone = "OTOLITH"
 	n_blocks = 3
