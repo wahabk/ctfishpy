@@ -1,4 +1,6 @@
 import ctfishpy
+from ctfishpy.bones import Otolith
+from ctfishpy.train_utils import predict_oto, CTDatasetPredict
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib2 import Path
@@ -7,7 +9,7 @@ import monai
 import math
 import torch
 
-def predict(array, model=None, weights_path=None, threshold=0.5):
+def old_predict(array, model=None, weights_path=None, threshold=0.5):
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'predicting on {device}')
 
@@ -53,42 +55,20 @@ def predict(array, model=None, weights_path=None, threshold=0.5):
 
 	return label
 
+
 if __name__ == '__main__':
-	dataset_path = '/home/ak18001/Data/HDD/uCT/'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
+	dataset_path = '/mnt/scratch/ak18001/uCT'
+
+	weights_path = 'output/weights/3dunet221019.pt'
 
 	ctreader = ctfishpy.CTreader(dataset_path)
-	master = ctreader.master
-	centers = ctreader.manual_centers
 
-	roi = (128,128,160)
-	n_blocks = 3
-	weights_path = "output/weights/3dunet222707.pt"
-	start_filters = 32
+	nums = ctreader.fish_nums[:3]
 
-	start = int(math.sqrt(start_filters))
-	channels = [2**n for n in range(start, start + n_blocks)]
-	strides = [2 for n in range(1, n_blocks)]
+	all_preds = predict_oto(dataset_path=dataset_path, weights_path=weights_path, nums=nums)
 
-	model = monai.networks.nets.UNet(
-		spatial_dims=3,
-		in_channels=1,
-		out_channels=4,
-		channels=channels,
-		strides=strides,
-		num_res_units=3,
-		act="PRELU",
-		norm="INSTANCE",
-	)
+	for i, label in enumerate(all_preds):
+		num = nums[i]
 
-	for fish in ctreader.fish_nums:
-		array = ctreader.read(fish)
-		old_n = master.loc[fish]['old_n']
-		print(fish, old_n)
-		# continue
-		center = centers[str(old_n)]
-		array = ctreader.crop3d(array, roiSize=roi, center=center)
-		print(array.shape)
-
-		label = predict(array, model = model, weights_path=weights_path, threshold=0.7)
-		print(label.shape)
-		ctreader.view(array, label=label)
+		ctreader.write_label(bone="Otolith_unet", label = label, n = num, )

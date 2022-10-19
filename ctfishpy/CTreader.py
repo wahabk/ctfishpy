@@ -333,7 +333,7 @@ class CTreader:
 		return label
 
 	def write_label(self, bone, label, n, name=None, dtype='uint8'):
-		'''
+		''' 
 		Write label to bone hdf5
 
 		parameters

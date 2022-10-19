@@ -8,6 +8,7 @@ This file contains:
 - training utilities
 """
 
+from msilib.schema import Error
 from symbol import sliceop
 import ctfishpy
 import numpy as np
@@ -111,7 +112,65 @@ class CTDataset(torch.utils.data.Dataset):
 		return X, y,
 
 
+class CTDatasetPredict(torch.utils.data.Dataset):
+	"""
+	
+	Torch Dataset for bones in 3D
 
+	transform is augmentation function
+
+	WARNING test time augmentation is not available
+
+	"""	
+
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
+				transform=None, dataset:np.ndarray=None,  precached:bool=False):
+		super().__init__()
+		self.dataset_path = dataset_path
+		self.bone = bone
+		self.indices = indices
+		self.roi_size = roi_size
+		self.n_classes = n_classes
+		self.transform = transform
+		self.precached = precached
+		if self.precached:
+			self.dataset = dataset
+
+	def __len__(self):
+		return len(self.indices)
+
+	def __getitem__(self, index):
+		ctreader = ctfishpy.CTreader(self.dataset_path)
+		# Select sample
+		i = self.indices[index] #index is order from precache, i is number from dataset
+		# print(index, i)
+		
+		if self.precached:
+			X = self.dataset[index]
+
+		else:
+			X = ctreader.read(i)
+			if self.bone == "OTOLITH":
+				center = ctreader.otolith_centers[i]
+			elif self.bone == "JAW":
+				raise Error("JAW NOT READY")
+			X = ctreader.crop3d(X, self.roi_size, center=center)			
+
+		X = np.array(X/X.max(), dtype=np.float32)
+		X = np.expand_dims(X, 0)      # if numpy array
+		X = torch.from_numpy(X)
+
+		fish = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+		)
+
+		if self.transform:
+			raise Error("TEST TIME AUG NOT READY")
+			fish = self.transform(fish)
+
+		X = fish.ct.tensor
+
+		return X
 
 
 class CTDataset2D(torch.utils.data.Dataset):
@@ -383,6 +442,68 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 			raise Warning(f"result shape unknown {result.shape}")
 		label[r>threshold] = i
 	return label
+
+def predict_oto(dataset_path, weights_path, nums, model=None):
+	"""
+	helper function for testing
+	"""
+
+	bone = "OTOLITH"
+	n_blocks = 3
+	start_filters = 32
+	roi = (128,128,160)
+	n_classes = 4
+	batch_size = 6
+	num_workers = 10
+
+	start = int(math.sqrt(start_filters))
+	channels = [2**n for n in range(start, start + n_blocks)]
+	strides = [2 for n in range(1, n_blocks)]
+
+	# model
+	if model is None:
+		model = model = monai.networks.nets.UNet(
+			spatial_dims=3,
+			in_channels=1,
+			out_channels=4,
+			channels=channels,
+			strides=strides,
+			num_res_units=n_blocks,
+			act="PRELU",
+			norm="INSTANCE",
+		)
+
+	model = torch.nn.DataParallel(model, device_ids=None) # parallelise model
+
+	if weights_path is not None:
+		model_weights = torch.load(weights_path, map_location=device) # read trained weights
+		model.load_state_dict(model_weights) # add weights to model
+
+	pred_loader = CTDatasetPredict(dataset_path, bone=bone, indices=nums, roi_size=roi, n_classes=n_classes)
+	pred_loader = torch.utils.data.DataLoader(pred_loader, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'predicting on {device}')
+
+	predict_list = []
+	model.eval()
+	with torch.no_grad():
+		for idx, batch in enumerate(pred_loader):
+			x = batch
+			x = x.to(device)
+
+			out = model(x)  # send through model/network
+			out = torch.softmax(out, 1)
+
+			# post process to numpy array
+			# array = x.cpu().numpy()[0,0] # 0 batch, 0 class
+			y_pred = out.cpu().numpy()  # send to cpu and transform to numpy.ndarray
+
+			print(f"appending this pred index {idx} shape {y_pred.shape}")
+
+			predict_list.append(y_pred)
+
+	return predict_list
 
 def predict3d(model, test_loader, criterion, threshold=0.5):
 	"""
