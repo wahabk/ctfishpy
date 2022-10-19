@@ -198,9 +198,9 @@ if __name__ == "__main__":
 	# train_data = all_keys[1:2]
 	# val_data = all_keys[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'scampi n_samples'
-	save = False
-	# save = 'output/weights/3dunet222707.pt'
+	name = '3d deploy'
+	# save = False
+	save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 
 	config = {
@@ -220,8 +220,11 @@ if __name__ == "__main__":
 	# TODO add model in train?
 	work_dir = Path().parent.resolve()
 
-	for i in range(2,19,2):
-		this_train = train_data[:i]
-		name = f"n_samples[{i}]"
-		train(config, dataset_path, name, bone=bone, train_data=this_train, val_data=val_data, 
-				test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
+		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+
+	# for i in range(2,19,2):
+	# 	this_train = train_data[:i]
+	# 	name = f"n_samples[{i}]"
+	# 	train(config, dataset_path, name, bone=bone, train_data=this_train, val_data=val_data, 
+	# 			test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
