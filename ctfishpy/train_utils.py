@@ -483,9 +483,6 @@ def predict_oto(dataset_path, weights_path, nums, model=None):
 	pred_loader = CTDatasetPredict(dataset_path, bone=bone, indices=nums, roi_size=roi, n_classes=n_classes)
 	pred_loader = torch.utils.data.DataLoader(pred_loader, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	print(f'predicting on {device}')
-
 	predict_list = []
 	model.eval()
 	with torch.no_grad():
@@ -500,9 +497,14 @@ def predict_oto(dataset_path, weights_path, nums, model=None):
 			# array = x.cpu().numpy()[0,0] # 0 batch, 0 class
 			y_pred = out.cpu().numpy()  # send to cpu and transform to numpy.ndarray
 
+			y_pred = undo_one_hot(y_pred, n_classes=4)
+
+			#TODO CHECK THIS WORKS
+
 			print(f"appending this pred index {idx} shape {y_pred.shape}")
 
 			predict_list.append(y_pred)
+	predict_list = np.concatenate(predict_list, axis=0)
 
 	return predict_list
 

@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-	nums = ctreader.fish_nums[:3]
+	nums = ctreader.fish_nums
 
 	all_preds = predict_oto(dataset_path=dataset_path, weights_path=weights_path, nums=nums)
 
