@@ -524,6 +524,9 @@ class CTreader:
 		return array
 
 	def getVol(self, label, metadata, nclasses):
+		"""
+		This will not measure background
+		"""
 		counts = np.array([np.count_nonzero(label == i) for i in range(1, nclasses+1)])
 		voxel_size = float(metadata['VoxelSizeX']) * float(metadata['VoxelSizeY']) * float(metadata['VoxelSizeZ'])
 		volumes = counts * voxel_size
@@ -531,6 +534,17 @@ class CTreader:
 		return volumes
 
 	def getDens(self, scan, label, nclasses, dens_calib = 0.0000381475547417411):
+		"""This will not measure background
+
+		Args:
+			scan (_type_): _description_
+			label (_type_): _description_
+			nclasses (_type_): _description_
+			dens_calib (float, optional): _description_. Defaults to 0.0000381475547417411.
+
+		Returns:
+			_type_: _description_
+		"""
 		voxel_values = np.array([np.mean(scan[label == i]) for i in range(1, nclasses+1)])
 		densities = voxel_values * dens_calib
 
