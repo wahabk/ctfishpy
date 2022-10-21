@@ -3,6 +3,7 @@ CTreader is the main class you use to interact with ctfishpy
 """
 
 from copy import deepcopy
+from multiprocessing.sharedctypes import Value
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
@@ -550,3 +551,39 @@ class CTreader:
 		densities = voxel_values * dens_calib
 
 		return densities
+
+	def localise(self, projections:list=None, scan:np.ndarray=None):
+		from .GUI import create_localiser
+
+		if isinstance(projections, (list, np.ndarray)):
+			# projections = np.array([cv2.cvtColor(p, cv2.COLOR_GRAY2RGB) for p in projections])
+
+			viewer = napari.Viewer()
+			m = {'pos': 0, 'og':projections[0]}
+			layer = viewer.add_image(projections[0], metadata=m, name='scan')
+			create_localiser(viewer, layer)
+			viewer.show(block=True)
+			metadata = layer.metadata
+			pos1 = metadata['pos']
+
+			viewer = napari.Viewer()
+			m = {'pos': 0, 'og':projections[1]}
+			layer = viewer.add_image(projections[1], metadata=m, name='scan')
+			create_localiser(viewer, layer)
+			viewer.show(block=True)
+			metadata = layer.metadata
+			pos2 = metadata['pos']
+
+			center = [pos2[1], pos1[1], pos1[0]]
+
+			return center
+
+		elif isinstance(scan, np.ndarray):
+			scan = self.to8bit(scan)
+			scan = np.array([cv2.cvtColor(s, cv2.COLOR_GRAY2RGB) for s in scan])
+			projection = np.max(scan, axis=0)
+			raise ValueError("localise from array not ready")
+
+		else:
+			raise ValueError("please provide either list of projections or np array of scan")
+

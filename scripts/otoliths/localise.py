@@ -8,6 +8,7 @@ import pandas as pd
 import monai
 import math
 import torch
+import napari
 
 if __name__ == '__main__':
 	dataset_path = '/home/ak18001/Data/HDD/uCT/'
@@ -17,14 +18,17 @@ if __name__ == '__main__':
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-	missing = [276, 277, 278, 279, 280, 318, 319, 320]
+	n = 277
 
-	for n in missing:
-		print(n)
-		X = ctreader.read(n)
-		loc = ctreader.otolith_centers[n]
-		print(loc)
-		X = ctreader.crop3d(X, roiSize=(128,128,160), center=loc)
-		print(X.shape)
-		X = np.array(X/X.max(), dtype=np.float32)
+	projections = ctreader.read_max_projections(n)
+
+	# viewer = napari.Viewer()
+	center = ctreader.localise(projections=projections)
+
+	print(center)
+
+	scan = ctreader.read(n)
+	otos = ctreader.crop3d(scan, (128,128,160), center=center)
+
+	ctreader.view(otos)
 
