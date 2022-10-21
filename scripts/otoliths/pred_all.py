@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-
+	#TODO localise 
 
 	done = ctreader.get_hdf5_keys(f"{dataset_path}LABELS/Otolith_unet/Otolith_unet.h5")
 	nums = ctreader.fish_nums

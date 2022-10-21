@@ -1,3 +1,4 @@
+from cProfile import label
 import ctfishpy
 import numpy as np
 import json
@@ -18,7 +19,7 @@ if __name__ == "__main__":
 	df = pd.read_csv(data_path)
 	print(df)
 
-	x = np.arange(1,19,2)
+	x = np.arange(2,19,2)
 	y1 = np.array(df["Unet_2D[Dice]"])
 	e1 = np.array(df["Unet_2D[Dice]STD"])
 	y2 = np.array(df["Unet_3D[Dice]"])
@@ -32,11 +33,13 @@ if __name__ == "__main__":
 	print(x)
 	print(y1)
 
-	plt.errorbar(x, y1, yerr=e1, fmt="-b")
+	plt.errorbar(x, y1, yerr=e1, fmt="-b", label="2D Unet")
 	plt.fill_between(x, lower_bound1, upper_bound1, alpha=.3, color='b')
-	plt.errorbar(x, y2, yerr=e2, fmt="-r")
+	plt.errorbar(x, y2, yerr=e2, fmt="-r", label ="2D Unet")
 	plt.fill_between(x, lower_bound2, upper_bound2, alpha=.3, color='r')
 	plt.ylim((0,1))
-
+	plt.title("Test Dice accuracy on different data sizes")
+	plt.xlabel("N training set")
+	plt.ylabel("Mean DICE score on testing dataset")
 	
 	plt.show()
