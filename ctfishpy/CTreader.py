@@ -263,11 +263,12 @@ class CTreader:
 
 		return label
 
-	def get_h5_keys(self, path) -> list:
+	def get_hdf5_keys(self, path) -> list:
 
 		with h5py.File(path, "r") as f:
 			keys = list(f.keys())
 			nums = keys
+		nums = [int(n) for n in nums]
 		nums.sort()
 		return nums
 
