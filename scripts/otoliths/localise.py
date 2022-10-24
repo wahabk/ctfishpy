@@ -11,7 +11,8 @@ import torch
 import napari
 
 if __name__ == '__main__':
-	dataset_path = '/home/ak18001/Data/HDD/uCT/'
+	dataset_path = '/home/wahab/Data/HDD/uCT/'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
 	# dataset_path = '/mnt/scratch/ak18001/uCT/'
 
 	weights_path = 'output/weights/3dunet221019.pt'
@@ -19,13 +20,12 @@ if __name__ == '__main__':
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
 
-	broken = [276, 277, 278, 279, 280, 318, 319, 320]
-
-	metadata = master.iloc[broken]
-
+	broken = np.array([276, 277, 278, 279, 280, 318, 319, 320])
+	metadata = master.iloc[broken-1]
 	print(metadata)
+	broken = [277, 319]
 
-	# check rois
+	#check rois
 	roi = (128,128,160)
 	for n in broken:
 		print(n)
@@ -34,19 +34,19 @@ if __name__ == '__main__':
 		ctreader.view(otolith)
 
 
-	exit()
+	# for n in broken:
+	# 	projections = ctreader.read_max_projections(n)
+	# 	print(n)
+	# 	center = ctreader.otolith_centers[n]
+	# 	print(center)
+	# 	# viewer = napari.Viewer()
+	# 	center = ctreader.localise(projections=projections)
 
-	n = 277
+	# 	print(center)
 
-	projections = ctreader.read_max_projections(n)
 
-	# viewer = napari.Viewer()
-	center = ctreader.localise(projections=projections)
+	# 	scan = ctreader.read(n)
+	# 	otos = ctreader.crop3d(scan, (128,128,160), center=center)
 
-	print(center)
-
-	scan = ctreader.read(n)
-	otos = ctreader.crop3d(scan, (128,128,160), center=center)
-
-	ctreader.view(otos)
+	# 	ctreader.view(otos)
 

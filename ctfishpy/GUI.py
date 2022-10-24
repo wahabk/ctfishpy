@@ -326,16 +326,17 @@ def create_fishRuler(viewer, layer) -> None:
 	return
 
 
-@magicgui(
-	auto_call=True,
-	reset={"widget_type": "PushButton"},
-	layout='vertical',)
+# @magicgui(
+# 	auto_call=True,
+# 	reset={"widget_type": "PushButton"},
+# 	layout='vertical',)
+
 def localiser(layer:Layer, reset:bool=False) -> Layer:
 	if layer is not None:
 		assert isinstance(layer.data, np.ndarray)  # it will be!
 		new_img = deepcopy(layer.metadata['og'])
 		pos = layer.metadata['pos']
-		print(pos)
+		# print(pos)
 
 		# if isinstance(pos, list):
 		# 	new_img = cv2.circle(new_img, np.array(pos, dtype='uint16'), 5, color=(255,0,0), thickness=2)
@@ -344,23 +345,25 @@ def localiser(layer:Layer, reset:bool=False) -> Layer:
 	return 
 
 
-def create_localiser(viewer, layer) -> None:
-	widget = localiser
 
-	viewer.window.add_dock_widget(widget, name="Localiser")
-	viewer.layers.events.changed.connect(widget.reset_choices)
+def create_localiser(viewer, layer) -> None:
+	localiser_instance = magicgui(localiser, auto_call=True, reset={"widget_type": "PushButton"}, layout='vertical',)
+
+	viewer.window.add_dock_widget(localiser_instance, name="localiser",)
+	
+	# viewer.layers.events.changed.connect(localiser_instance.reset_choices)
 
 	@layer.mouse_drag_callbacks.append
 	def get_event(layer, event):
 		if event.button == 1: # if left click
 			layer.metadata['pos'] = event.position[::-1]
-			widget.update()
+			localiser_instance.update()
 		return
 
-	@localiser.reset.clicked.connect
+	@localiser_instance.reset.clicked.connect
 	def reset_ruler():
 		layer.metadata['pos'] = None
-		widget.update()
+		localiser_instance.update()
 		return
 
 	return

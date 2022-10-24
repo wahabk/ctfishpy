@@ -1,5 +1,4 @@
 import ctfishpy
-from ctfishpy.bones import Otolith
 from ctfishpy.train_utils import undo_one_hot, CTDatasetPredict
 import matplotlib.pyplot as plt
 import numpy as np
@@ -114,7 +113,7 @@ if __name__ == '__main__':
 	#[nums.remove(i) for i in broken]
 	missing.sort()
 	print(missing)
-	# exit()
+	exit()
 
 	all_preds, data_dict = predict_oto(dataset_path=dataset_path, weights_path=weights_path, nums=missing)
 

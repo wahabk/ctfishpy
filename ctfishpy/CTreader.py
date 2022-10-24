@@ -577,7 +577,7 @@ class CTreader:
 			metadata = layer.metadata
 			pos2 = metadata['pos']
 
-			center = [pos2[1], pos1[1], pos1[0]]
+			center = [int(pos2[1]), int(pos1[1]), int(pos1[0])]
 
 			return center
 
