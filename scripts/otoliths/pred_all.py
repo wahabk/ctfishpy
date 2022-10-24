@@ -113,7 +113,7 @@ if __name__ == '__main__':
 	#[nums.remove(i) for i in broken]
 	missing.sort()
 	print(missing)
-	exit()
+	#exit()
 
 	all_preds, data_dict = predict_oto(dataset_path=dataset_path, weights_path=weights_path, nums=missing)
 
