@@ -12,9 +12,9 @@ import torch
 
 
 if __name__ == '__main__':
-	dataset_path = '/home/wahab/Data/HDD/uCT/'
+	# dataset_path = '/home/wahab/Data/HDD/uCT/'
 	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
-	# dataset_path = '/mnt/scratch/ak18001/uCT/'
+	dataset_path = '/mnt/scratch/ak18001/uCT/'
 
 	weights_path = 'output/weights/3dunet221019.pt'
 
@@ -31,10 +31,11 @@ if __name__ == '__main__':
 
 	data_dict = {}
 	n_classes = 4
-	for n in missing[:2]:
+	for n in missing:
 		print(n)
 		metadata = ctreader.read_metadata(n)
 		scan = ctreader.read(n)
+		scan = ctreader.crop3d(scan, roiSize=(128,128,160), center=ctreader.otolith_centers[n])
 		label = ctreader.read_label("Otolith_unet", n)
 
 		dens = ctreader.getDens(scan, label, n_classes)
@@ -57,7 +58,7 @@ if __name__ == '__main__':
 	final = pd.concat([new_df, df])
 
 	print(final)
-	# final.to_csv(new_data_path)
+	final.to_csv(new_data_path)
 
 
 
