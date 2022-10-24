@@ -17,6 +17,24 @@ if __name__ == '__main__':
 	weights_path = 'output/weights/3dunet221019.pt'
 
 	ctreader = ctfishpy.CTreader(dataset_path)
+	master = ctreader.master
+
+	broken = [276, 277, 278, 279, 280, 318, 319, 320]
+
+	metadata = master.iloc[broken]
+
+	print(metadata)
+
+	# check rois
+	roi = (128,128,160)
+	for n in broken:
+		print(n)
+		center = ctreader.otolith_centers[n]
+		otolith = ctreader.read_roi(n, roi, center)
+		ctreader.view(otolith)
+
+
+	exit()
 
 	n = 277
 
