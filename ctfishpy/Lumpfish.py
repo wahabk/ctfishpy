@@ -8,6 +8,7 @@ You should not be using this unless you've spoken to the author. Please use CTre
 
 """
 
+from multiprocessing.sharedctypes import Value
 from cv2 import sort
 from deprecated import deprecated
 from qtpy.QtCore import QSettings
@@ -306,6 +307,9 @@ class Lumpfish():
 		metadata = layer.metadata
 		head = metadata['head']
 		tail = metadata['tail']
+
+		if head == 0 or tail == 0:
+			raise ValueError(f"No input recieved, pixel locations selected: (head={head}, tail={tail})")
 
 		pixel_length = math.dist(head, tail)
 
