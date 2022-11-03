@@ -16,21 +16,20 @@ from skimage.segmentation import flood
 	new_value={"widget_type": "SpinBox", "max":255, "min":0},
 	TwoD={"widget_type": "CheckBox"},
 	seek={"widget_type": "CheckBox"},
-	# reset_center={"widget_type": "PushButton"},
+	undo={"widget_type": "PushButton"},
 	layout='Horizontal',)
-def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1, TwoD:bool=False, seek=False) -> None: # reset_center:bool=False
+def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1, TwoD:bool=False, seek=False, undo=False) -> None: # reset_center:bool=False
 	if layer is not None:
 		if label_layer is not None:
 			assert isinstance(layer.data, np.ndarray)  # it will be!
 			assert isinstance(label_layer.data, np.ndarray)  # it will be!
-
-			print(layer.metadata)
 
 			label = deepcopy(label_layer.data)
 			image = layer.data
 
 			point = layer.metadata['point']
 			_slice = layer.metadata['slice']
+			history = layer.metadata['history']
 			if point is not None:
 				if len(point) == 3:
 					if TwoD == False:
@@ -42,44 +41,85 @@ def labeller(layer:Layer, label_layer:Labels, threshold:int=125, new_value:int=1
 						print(new_label.min(), new_label.max(), new_label.shape)
 
 						label_layer.data[new_label==True] = new_value
+						history = np.concatenate([history, np.expand_dims(label_layer.data, 0)], axis=0)
+						layer.metadata['history'] = history
 					else:
-						point = tuple([int(x) for x in point[1:]])
-						label = label[_slice]
-						new_label = None
-						new_label = flood(image[_slice], point, tolerance=threshold)
+						dims_order = layer._dims_order
+						pos = layer.position
+						slice_ = int(point[dims_order[0]]) #pos[dims_order[0]]
 
+
+						point = tuple([int(x) for x in point])
+						point = tuple([point[d] for d in dims_order[1:]])
+						# label = label[_slice]
+						image = get_from_index(dims_order[0], image, slice_)
+						label = get_from_index(dims_order[0], label, slice_)
+						# np.squeeze(np.take(label, dims_order, slice_))
+						print(layer.data.shape, dims_order, pos, slice_, point)
+						print(image.shape, label.shape)
+						new_label = None
+						new_label = flood(image, point, tolerance=threshold)
+
+						
 						print(label.min(), label.max(), label.shape)
 						print(new_label.min(), new_label.max(), new_label.shape)
 
-						label_layer.data[_slice, new_label==True] = new_value
+						zeros = np.zeros_like(label_layer.data)
+						zeros[zeros==0] = False
+						zeros = put_in_index(dims_order[0], zeros, slice_, new_label)
+
+						label_layer.data[zeros==True] = new_value
+						history = np.concatenate([history, np.expand_dims(label_layer.data, 0)], axis=0)
+						layer.metadata['history'] = history
 	
 	if seek == False:
 		layer.metadata['point'] = None
 	return 
 
-def create_labeller(viewer, layer) -> None:
+def get_from_index(order:int, arr:np.ndarray, index:int):
+	if order==0:
+		return arr[index,:,:]
+	if order==1:
+		return arr[:,index,:]
+	if order==2:
+		return arr[:,:,index]
+
+def put_in_index(order:int, arr:np.ndarray, index:int, b:np.ndarray):
+	if order==0:
+		arr[index,:,:] = b
+		return arr
+	if order==1:
+		arr[:,index,:] = b
+		return arr
+	if order==2:
+		arr[:,:,index] = b
+		return arr
+
+def create_labeller(viewer, layer, label_layer) -> None:
 	widget = labeller
 	layer.metadata['point'] = None
-	
 
 	viewer.window.add_dock_widget(widget, name="labeller", area='right')
 	viewer.layers.events.changed.connect(widget.reset_choices)
 
 	#TODO current slice?
+	#TODO add only in
 
 	@layer.mouse_drag_callbacks.append
 	def get_event(layer, event):
 		if event.button == 2: # if left click
 			layer.metadata['point'] = event.position #flip because qt :(
-			layer.metadata['slice'] = int(layer.position[0]) # get the slice youre looking at
+			# layer.metadata['slice'] = int(layer.position[0]) # get the slice youre looking at
 			widget.update()
 		return
 
-	# @spinner.reset_center.clicked.connect
-	# def reset_spinner():
-	# 	layer.metadata['center_rotation'] = None
-	# 	widget.update()
-	# 	return
+	@widget.undo.clicked.connect
+	def reset_spinner():
+		layer.metadata['center_rotation'] = None
+		layer.metadata['history'] = layer.metadata['history'][:-1]
+		label_layer.data = layer.metadata['history'][-1]
+		widget.update()
+		return
 
 	return
 
@@ -88,9 +128,10 @@ def label(scan):
 
 	viewer = napari.Viewer()
 	layer = viewer.add_image(scan)
+	layer.metadata = {'point':None, 'history':np.stack([l]), 'slice':0}
 	label_layer = viewer.add_labels(l)
 
-	create_labeller(viewer, layer)
+	create_labeller(viewer, layer, label_layer)
 
 	viewer.show(block=True)
 
@@ -99,10 +140,12 @@ def label(scan):
 
 if __name__ == "__main__":
 
-	dataset_path = "/home/ak18001/Data/HDD/uCT"
-	# dataset_path = "/home/wahab/Data/HDD/uCT"
+	# dataset_path = "/home/ak18001/Data/HDD/uCT"
+	dataset_path = "/home/wahab/Data/HDD/uCT"
 	
 	ctreader = ctfishpy.CTreader(dataset_path)
+
+	bone = "JAW"
 
 	scan = ctreader.read(1)
 
@@ -120,7 +163,7 @@ if __name__ == "__main__":
 	print(scan.shape)
 	lab = label(scan)
 
-	# ctreader.write_label()
+	ctreader.write_label(bone, lab, 1, )
 
 	print(lab.min(), lab.max(), lab.shape)
 
