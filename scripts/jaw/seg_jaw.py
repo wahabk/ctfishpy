@@ -9,6 +9,8 @@ from scipy.ndimage import zoom
 from copy import deepcopy
 import cv2
 
+import pandas as pd
+
 from skimage.segmentation import flood
 
 @magicgui(auto_call=True,
@@ -153,6 +155,8 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 	bone = "JAW"
+
+	sample = pd.read_csv('output/results/jaw/training_sample.csv')
 
 	scan = ctreader.read(1)
 	scan = ctreader.to8bit(scan)

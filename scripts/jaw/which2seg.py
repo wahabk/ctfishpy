@@ -1,4 +1,6 @@
 import ctfishpy
+from sklearn.model_selection import train_test_split
+
 
 # the functions:
 def stratified_sample(df, strata, size=None, seed=None, keep_index= True):
@@ -166,15 +168,19 @@ def __smpl_size(population, size):
 		n = size
 	return n
 
+
+
 if __name__ == "__main__":
-	dataset_path = "/home/ak18001/Data/HDD/uCT"
+	# dataset_path = "/home/ak18001/Data/HDD/uCT"
+	dataset_path = "/home/wahab/Data/HDD/uCT"
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
-
-	master = stratified_sample(master, ['age', 'genotype'], size=25, seed = 69)
-
+	master = ctreader.trim(master, 'Dataset', ['EK'])
 	print(master)
-	print(master.strain)
+
+	master = stratified_sample(master, ['age', 'genotype'], size=29, seed = 69, keep_index=True)
+	print(master)
+
 
 	master.to_csv('output/results/jaw/training_sample.csv')
 
