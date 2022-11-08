@@ -512,7 +512,52 @@ class CTreader:
 
 		z, y, x = center
 		z, y, x = int(z), int(y), int(x)
+
+		ctz, cty, ctx = array.shape
+
+		rectz = [z-zl, z+zl]
+		recty = [y-yl, y+yl]
+		rectx = [x-xl, x+xl]
+
+		# if statements to shift crop inside ct window
+		if rectz[0] < 0:
+			shiftz = -rectz[0]
+			rectz[0] = 0
+			rectz[1] = rectz[1] + shiftz
+			print("shifting z pos:", shiftz, rectz)
+
+		if rectz[1] > ctz:
+			shiftz = rectz[1] - ctz
+			rectz[1] = ctz
+			rectz[0] = rectz[0] - shiftz
+			print("shifting z neg:", shiftz, rectz)
+
+		if recty[0] < 0:
+			shifty = -recty[0]
+			recty[0] = 0
+			recty[1] = recty[1] + shifty
+			print("shifting y pos:", shifty, recty)
+
+		if recty[1] > cty:
+			shifty = recty[1] - cty
+			recty[1] = cty
+			recty[0] = recty[0] - shifty
+			print("shifting y neg:", shifty, recty)
+
+		if rectx[0] < 0:
+			shiftx = -rectx[0]
+			rectx[0] = 0
+			rectx[1] = rectx[1] + shiftx
+			print("shifting x pos:", shiftx, rectx)
+
+		if rectx[1] > ctx:
+			shiftx = rectx[1] - ctx
+			rectx[1] = ctx
+			rectx[0] = rectx[0] - shiftx
+			print("shifting x neg:", shiftx, rectx)
+		
 		new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
+		new_array = array[rectz[0] : rectz[1], recty[0] : recty[1], rectx[0] : rectx[1],]+0 # add 0 to create new copy and be able to delete old array if need be
 		return new_array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):
@@ -555,31 +600,48 @@ class CTreader:
 
 		return densities
 
-	def localise(self, projections:list=None, scan:np.ndarray=None):
+	def localise(self, projections:list=None, scan:np.ndarray=None, to_use:list=[0,1,2]):
+		"""
+		to_use is which projections to use, z, x, y
+		"""
 		from .GUI import create_localiser
 
+		if len(to_use) < 2: raise ValueError("must use at least 2 projections")
+
+		pos1, pos2, pos3 = [0,0], [0,0], [0,0]
 		if isinstance(projections, (list, np.ndarray)):
 			# projections = np.array([cv2.cvtColor(p, cv2.COLOR_GRAY2RGB) for p in projections])
 
-			viewer = napari.Viewer()
-			m = {'pos': 0, 'og':projections[0]}
-			layer = viewer.add_image(projections[0], metadata=m, name='scan')
-			create_localiser(viewer, layer)
-			viewer.show(block=True)
-			metadata = layer.metadata
-			pos1 = metadata['pos']
+			if 0 in to_use:
+				viewer = napari.Viewer()
+				m = {'pos': 0, 'og':projections[0]}
+				layer = viewer.add_image(projections[0], metadata=m, name='scan')
+				create_localiser(viewer, layer)
+				viewer.show(block=True)
+				metadata = layer.metadata
+				pos1 = metadata['pos']
+			
+			if 1 in to_use:
+				viewer = napari.Viewer()
+				m = {'pos': 0, 'og':projections[1]}
+				layer = viewer.add_image(projections[1], metadata=m, name='scan')
+				create_localiser(viewer, layer)
+				viewer.show(block=True)
+				metadata = layer.metadata
+				pos2 = metadata['pos']
 
-			viewer = napari.Viewer()
-			m = {'pos': 0, 'og':projections[1]}
-			layer = viewer.add_image(projections[1], metadata=m, name='scan')
-			create_localiser(viewer, layer)
-			viewer.show(block=True)
-			metadata = layer.metadata
-			pos2 = metadata['pos']
+			if 2 in to_use:
+				viewer = napari.Viewer()
+				m = {'pos': 0, 'og':projections[2]}
+				layer = viewer.add_image(projections[2], metadata=m, name='scan')
+				create_localiser(viewer, layer)
+				viewer.show(block=True)
+				metadata = layer.metadata
+				pos3 = metadata['pos']
 
-			center = [int(pos2[1]), int(pos1[1]), int(pos1[0])]
+			final_center = [self.int_mean(pos2[1], pos3[1]), self.int_mean(pos1[1], pos3[0]), self.int_mean(pos1[0], pos2[0]),]
 
-			return center
+			return final_center
 
 		elif isinstance(scan, np.ndarray):
 			scan = self.to8bit(scan)
@@ -590,3 +652,9 @@ class CTreader:
 		else:
 			raise ValueError("please provide either list of projections or np array of scan")
 
+	def int_mean(self, a,b,):
+		if a == 0 and b == 0: raise ValueError("both 0")
+		elif a == 0: a = b
+		elif b == 0: b = a
+		
+		return int((a+b)/2)
