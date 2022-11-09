@@ -148,38 +148,30 @@ def label(scan):
 
 
 if __name__ == "__main__":
-
-	dataset_path = "/home/ak18001/Data/HDD/uCT"
-	# dataset_path = "/home/wahab/Data/HDD/uCT"
+	# dataset_path = "/home/ak18001/Data/HDD/uCT"
+	dataset_path = "/home/wahab/Data/HDD/uCT"
 	
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 	bone = "JAW"
+	roiSize = (256,256,320)
 
 	sample = pd.read_csv('output/results/jaw/training_sample.csv')
 
-	scan = ctreader.read(1)
+	n = 257
+
+	scan = ctreader.read(n)
 	scan = ctreader.to8bit(scan)
-	scan = scan[1000:]
+	center = ctreader.jaw_centers[n]
+	scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
 	# scan = scan[1000:]
-	# scan = zoom(scan, 0.5)
 	# print(scan.shape)
-
-	# point = (1368, 328, 356)
-
-	# temp_label = flood_fill(scan, seed_point=point, new_value=1)
-
-	# ctreader.view(scan, temp_label)
-
 	# ctreader.view(scan)
+
 	lab = label(scan)
 
-	# mean_grayscale = scan[label==1]
-
 	print(lab.min(), lab.max(), lab.shape)
-	ctreader.write_label(bone, lab, 1, )
-
-
+	ctreader.write_label(bone, lab, n)
 
 	#TODO rewrite this one first as qt widget
 	#TODO write only in class

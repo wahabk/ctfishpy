@@ -40,6 +40,8 @@ class CTreader:
 			# TODO remake into ctreader.centers dict and select from bone first
 			otolith_centers = self.master.otolith_center.to_dict()
 			self.otolith_centers = {k: np.fromstring(c[1:-1], dtype='uint16', sep=' ') for k, c in otolith_centers.items() } # this is a fix to read a numpy array from a pandas df element
+			jaw_centers = self.master.jaw_center.to_dict()
+			self.jaw_centers = {k: np.fromstring(c[1:-1], dtype='uint16', sep=' ') for k, c in jaw_centers.items() } # this is a fix to read a numpy array from a pandas df element			
 
 			# self.anglePath = Path(self.dataset_path / "METADATA/angles.json")
 			# self.centres_path = Path(self.dataset_path / "METADATA/centres_Otoliths.json")
