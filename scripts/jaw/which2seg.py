@@ -178,7 +178,7 @@ if __name__ == "__main__":
 	master = ctreader.trim(master, 'Dataset', ['EK'])
 	print(master)
 
-	master = stratified_sample(master, ['age', 'genotype'], size=29, seed = 69, keep_index=True)
+	master = stratified_sample(master, ['age', 'genotype'], size=37, seed = 69, keep_index=True)
 	print(master)
 
 
