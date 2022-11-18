@@ -1,6 +1,6 @@
 import ctfishpy
 from sklearn.model_selection import train_test_split
-
+import random
 
 # the functions:
 def stratified_sample(df, strata, size=None, seed=None, keep_index= True):
@@ -171,17 +171,37 @@ def __smpl_size(population, size):
 
 
 if __name__ == "__main__":
-	# dataset_path = "/home/ak18001/Data/HDD/uCT"
-	dataset_path = "/home/wahab/Data/HDD/uCT"
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
+	# dataset_path = "/home/wahab/Data/HDD/uCT"
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
 	master = ctreader.trim(master, 'Dataset', ['EK'])
 	print(master)
+	seed=69
+	random.seed(seed)
 
-	master = stratified_sample(master, ['age', 'genotype'], size=37, seed = 69, keep_index=True)
-	print(master)
+	# master = stratified_sample(master, ['age', 'genotype'], size=37, seed = seed, keep_index=True)
+	# print(master)
 
 
-	master.to_csv('output/results/jaw/training_sample.csv')
+	# master.to_csv('output/results/jaw/training_sample.csv')
 
+	# curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,249,]
+	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
+	damiano = [131, 216, 351, 39, 139, 69, 133, 135, 420, 441, 220, 291, 401, 250, 193]
+	sophie = [96, 183, 337, 71, 72, 182, 274, 364, 301, 164, 116, 230, 50, 241, 340]
+	
+	me = [1,257,98,108,154]
+
+	clipped = [curated.remove(i) for i in me]
+	random.shuffle(curated)
+	damiano = curated[:15]
+	sophie = curated[15:]
+	print(damiano)
+	print(sophie)
+
+	print(len(me), len(sophie), len(damiano))
+
+
+	# import pdb; pdb.set_trace()
 
