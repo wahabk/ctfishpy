@@ -12,6 +12,7 @@ import cv2
 import pandas as pd
 
 from skimage.segmentation import flood
+from skimage import io
 
 @magicgui(auto_call=True,
 	threshold={"widget_type": "Slider", "max":255, "min":0},
@@ -146,6 +147,24 @@ def label(scan):
 
 	return label_layer.data
 
+def insert_a_in_b(a:np.ndarray, b:np.ndarray, center=None):
+
+	roiZ, roiY, roiX = a.shape
+	zl, yl, xl  = int(roiZ / 2), int(roiY / 2), int(roiX / 2)
+
+	if center  is  None:
+		b_center = [int(b.shape[2] / 2), int(b.shape[3] / 2), int(b.shape[4] / 2)]
+		z, y, x = b_center
+	else: z, y, x = center
+	z, y, x = int(z), int(y), int(x)
+
+	print(z,y,x,center,zl,yl,xl)
+	print(a.shape, b.shape)
+	print(z - zl , z + zl, y - yl , y + yl, x - xl , x + xl)
+
+	b[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl] = a
+
+	return b
 
 if __name__ == "__main__":
 	# dataset_path = "/home/ak18001/Data/HDD/uCT"
@@ -153,25 +172,36 @@ if __name__ == "__main__":
 	
 	ctreader = ctfishpy.CTreader(dataset_path)
 
-	bone = "JAW"
+	bone = "JAW_manual"
 	roiSize = (256,256,320)
 
-	sample = pd.read_csv('output/results/jaw/training_sample.csv')
+	sample = pd.read_csv('output/results/jaw/training_sample_curated.csv')
 
 	n = 257
 
 	scan = ctreader.read(n)
-	scan = ctreader.to8bit(scan)
+	# scan = ctreader.to8bit(scan)
 	center = ctreader.jaw_centers[n]
 	scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
 	# scan = scan[1000:]
 	# print(scan.shape)
 	# ctreader.view(scan)
 
-	lab = label(scan)
+	# label = label(scan)
 
-	print(lab.min(), lab.max(), lab.shape)
-	ctreader.write_label(bone, lab, n)
+	# print(lab.min(), lab.max(), lab.shape)
+	label = io.imread(dataset_path+"/LABELS/JAW/jaw_257.tif")  #  TODO  make ctreader write tif read tif
+	# print(scan.shape, label.shape)
+
+	# zeros =  np.zeros_like(scan)
+	# zeros  = insert_a_in_b(label, zeros, center=center)
+	# label=zeros
+	# print(scan.shape, label.shape)
+
+	ctreader.view(scan, label=label)
+	# ctreader.write_label(bone, label, n)
+
+	
 
 	#TODO rewrite this one first as qt widget
 	#TODO write only in class

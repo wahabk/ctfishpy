@@ -558,7 +558,8 @@ class CTreader:
 			rectx[0] = rectx[0] - shiftx
 			print("shifting x neg:", shiftx, rectx)
 		
-		new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
+		#TODO print new  rect  x  etc  and warn when  triggered
+		# new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
 		new_array = array[rectz[0] : rectz[1], recty[0] : recty[1], rectx[0] : rectx[1],]+0 # add 0 to create new copy and be able to delete old array if need be
 		return new_array
 
