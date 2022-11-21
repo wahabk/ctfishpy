@@ -14,9 +14,16 @@ if __name__ == "__main__":
 	sophie = [96,183,337,71,72,182,274,364,301,164,116,230,50,241,340]
 	me = [1,257,98,108,154]
 
-	for n  in  curated:
+	for n  in  damiano:
+		print(f"Reading {n} for d")
 		scan  = ctreader.read(n)
-		out_path = f"/home/ak18001/Data/HDD/uCT/MISC/TIFS/{n}.tif"
+		out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/DAMIANO/{n}.tif"
+		print(f"Saving {n} for d")
+		imsave(out_path, scan)
 
-		image = np.zeros((32, 256, 256), 'uint16')
-		imsave(out_path, image)
+	for n  in  sophie:
+		print(f"Reading {n} for s")
+		scan  = ctreader.read(n)
+		out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/SOPHIE/{n}.tif"
+		print(f"Saving {n} for for s")
+		imsave(out_path, scan)
