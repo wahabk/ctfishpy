@@ -200,6 +200,7 @@ if __name__ == "__main__":
 
     ctreader = ctfishpy.CTreader(dataset_path)
 
+    bone = "JAW"
     bone = "JAW_manual"
     roiSize = (256, 256, 320)
 
@@ -208,9 +209,14 @@ if __name__ == "__main__":
     n = 257
 
     scan = ctreader.read(n)
-    # scan = ctreader.to8bit(scan)
+    scan = ctreader.to8bit(scan)
+    label = ctreader.read_label(bone, n, )
     center = ctreader.jaw_centers[n]
+    print(ctreader.get_hdf5_keys("/home/wahab/Data/HDD/uCT/LABELS/JAW_manual/JAW_manual.h5"))
     scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+    label = ctreader.crop3d(label, roiSize=roiSize, center=center)
+    # label = ctreader.uncrop3d(scan, label, center)
+    print(scan.shape, label.shape)
     # scan = scan[1000:]
     # print(scan.shape)
     # ctreader.view(scan)
@@ -218,17 +224,24 @@ if __name__ == "__main__":
     # label = label(scan)
 
     # print(lab.min(), lab.max(), lab.shape)
-    label = io.imread(dataset_path + "/LABELS/JAW/jaw_257.tif")
-    # TODO make ctreader write tif read tif
+    # label = io.imread(dataset_path + "/LABELS/JAW/jaw_257.tif")
+    # # TODO make ctreader write tif read tif
+    # # print(scan.shape, label.shape)
     # print(scan.shape, label.shape)
+
+    # new_roi  =  [[1665, 1921], [0, 320], [233, 489]]
 
     # zeros =  np.zeros_like(scan)
-    # zeros  = insert_a_in_b(label, zeros, center=center)
+    # # zeros  = insert_a_in_b(label, zeros, center=center)
+    # zeros[
+    #     new_roi[0][0]:new_roi[0][1],
+    #     new_roi[2][0]:new_roi[2][1],
+    #     new_roi[1][0]:new_roi[1][1],
+    # ] = label
     # label=zeros
-    # print(scan.shape, label.shape)
 
     ctreader.view(scan, label=label)
-    # ctreader.write_label(bone, label, n)
+    ctreader.write_label(bone, label, n, rewrite=True)
 
     # TODO rewrite this one first as qt widget
     # TODO write only in class

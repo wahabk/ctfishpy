@@ -341,7 +341,7 @@ class CTreader:
 
 		return label
 
-	def write_label(self, bone, label, n, name=None, dtype='uint8'):
+	def write_label(self, bone, label, n, name=None, rewrite=False, dtype='uint8'):
 		''' 
 		Write label to bone hdf5
 
@@ -359,7 +359,10 @@ class CTreader:
 
 		with h5py.File(path, "a") as f:
 			# print(f.keys())
-			dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
+			if rewrite:
+				dset[str(n)] = label
+			else:
+				dset = f.create_dataset(str(n), shape=label.shape, dtype=dtype, data = label, compression=1)
 
 	def write_scan(self, dataset, scan, n, compression=1, dtype='uint16'):
 		'''
@@ -529,42 +532,110 @@ class CTreader:
 			shiftz = -rectz[0]
 			rectz[0] = 0
 			rectz[1] = rectz[1] + shiftz
-			print("shifting z pos:", shiftz, rectz)
+			shifted = True
 
 		if rectz[1] > ctz:
 			shiftz = rectz[1] - ctz
 			rectz[1] = ctz
 			rectz[0] = rectz[0] - shiftz
-			print("shifting z neg:", shiftz, rectz)
+			shifted = True
 
 		if recty[0] < 0:
 			shifty = -recty[0]
 			recty[0] = 0
 			recty[1] = recty[1] + shifty
-			print("shifting y pos:", shifty, recty)
+			shifted = True
 
 		if recty[1] > cty:
 			shifty = recty[1] - cty
 			recty[1] = cty
 			recty[0] = recty[0] - shifty
-			print("shifting y neg:", shifty, recty)
+			shifted = True
 
 		if rectx[0] < 0:
 			shiftx = -rectx[0]
 			rectx[0] = 0
 			rectx[1] = rectx[1] + shiftx
-			print("shifting x pos:", shiftx, rectx)
+			shifted = True
 
 		if rectx[1] > ctx:
 			shiftx = rectx[1] - ctx
 			rectx[1] = ctx
 			rectx[0] = rectx[0] - shiftx
-			print("shifting x neg:", shiftx, rectx)
-		
+			shifted = True
+		if shifted:
+			message = f"Warning, the requested crop indices are outside the target area so I have shifted them for you \n {rectz, rectx, recty}"
+			warnings.warn(message)
+			
 		#TODO print new  rect  x  etc  and warn when  triggered
 		# new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
 		new_array = array[rectz[0] : rectz[1], recty[0] : recty[1], rectx[0] : rectx[1],]+0 # add 0 to create new copy and be able to delete old array if need be
 		return new_array
+
+	def uncrop3d(self, array, roi, center=None):
+		array = np.zeros_like(array)
+		roiZ, roiY, roiX = roi.shape
+		zl = int(roiZ / 2)
+		yl = int(roiY / 2)
+		xl = int(roiX / 2)
+
+		if center is None:
+			center = [int(array.shape[0]/2), int(array.shape[1]/2), int(array.shape[1]/2)]
+
+		z, y, x = center
+		z, y, x = int(z), int(y), int(x)
+
+		ctz, cty, ctx = array.shape
+
+		rectz = [z-zl, z+zl]
+		recty = [y-yl, y+yl]
+		rectx = [x-xl, x+xl]
+
+		shifted = False
+		# if statements to shift crop inside ct window
+		if rectz[0] < 0:
+			shiftz = -rectz[0]
+			rectz[0] = 0
+			rectz[1] = rectz[1] + shiftz
+			shifted = True
+
+		if rectz[1] > ctz:
+			shiftz = rectz[1] - ctz
+			rectz[1] = ctz
+			rectz[0] = rectz[0] - shiftz
+			shifted = True
+
+		if recty[0] < 0:
+			shifty = -recty[0]
+			recty[0] = 0
+			recty[1] = recty[1] + shifty
+			shifted = True
+
+		if recty[1] > cty:
+			shifty = recty[1] - cty
+			recty[1] = cty
+			recty[0] = recty[0] - shifty
+			shifted = True
+
+		if rectx[0] < 0:
+			shiftx = -rectx[0]
+			rectx[0] = 0
+			rectx[1] = rectx[1] + shiftx
+			shifted = True
+
+		if rectx[1] > ctx:
+			shiftx = rectx[1] - ctx
+			rectx[1] = ctx
+			rectx[0] = rectx[0] - shiftx
+			shifted = True
+		if shifted:
+			message = f"Warning, the requested crop indices are outside the target area so I have shifted them for you \n {rectz, rectx, recty}"
+			warnings.warn(message)
+			
+		#TODO print new  rect  x  etc  and warn when  triggered
+		# new_array = array[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl]+0 # add 0 to create new copy and be able to delete old array if need be
+		array[rectz[0] : rectz[1], recty[0] : recty[1], rectx[0] : rectx[1],] = roi # add 0 to create new copy and be able to delete old array if need be
+		return array
 
 	def crop_around_center2d(self, array, center=None, roiSize=100):
 		"""
