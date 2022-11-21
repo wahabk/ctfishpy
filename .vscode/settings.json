@@ -1,3 +1,4 @@
 {
+	"python.linting.enabled": false
 	// "python.pythonPath": "/home/ak18001/.virtualenvs/fish/bin/python"
 }

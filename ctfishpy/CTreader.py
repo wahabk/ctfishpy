@@ -521,6 +521,7 @@ class CTreader:
 		recty = [y-yl, y+yl]
 		rectx = [x-xl, x+xl]
 
+		shifted = False
 		# if statements to shift crop inside ct window
 		if rectz[0] < 0:
 			shiftz = -rectz[0]
