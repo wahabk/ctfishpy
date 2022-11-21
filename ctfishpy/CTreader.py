@@ -23,8 +23,10 @@ import datetime
 import os
 import time
 
+from  typing import Union
+
 class CTreader:
-	def __init__(self, data_path=None):
+	def __init__(self, data_path:Union[str, Path, None]=None):
 		# print(Path().resolve())
 
 		if data_path:
