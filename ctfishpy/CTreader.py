@@ -355,7 +355,7 @@ class CTreader:
 
 		folderPath =  Path(f'{self.dataset_path}/LABELS/{bone}/')
 		folderPath.mkdir(parents=True, exist_ok=True)
-		path = Path(f'{self.dataset_path}/LABELS/{bone}/{bone}.h5')
+		path = Path(f'{self.dataset_path}/LABELS/{bone}/{name}.h5')
 
 		with h5py.File(path, "a") as f:
 			# print(f.keys())

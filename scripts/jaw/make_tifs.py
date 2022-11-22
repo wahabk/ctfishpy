@@ -13,6 +13,7 @@ if __name__ == "__main__":
 	damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
 	sophie = [96,183,337,71,72,182,274,364,301,164,116,230,50,241,340]
 	me = [1,257,98,108,154]
+	p = "/run/user/384315/gvfs/smb-share:server=rdsfcifs.acrc.bris.ac.uk,share=zebrafish_osteoarthritis/DATABASE/uCT/Wahab_clean_dataset/MISC/FOR_DAMIANO_&_SOPHIE/SOPHIE"
 
 	for n  in  damiano:
 		print(f"Reading {n} for d")
@@ -27,3 +28,10 @@ if __name__ == "__main__":
 		out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/SOPHIE/{n}.tif"
 		print(f"Saving {n} for for s")
 		imsave(out_path, scan)
+
+	# for n  in  me:
+	# 	print(f"Reading {n} for s")
+	# 	scan  = ctreader.read(n)
+	# 	out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/WAHAB/{n}.tif"
+	# 	print(f"Saving {n} for for s")
+	# 	imsave(out_path, scan)

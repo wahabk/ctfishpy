@@ -14,6 +14,9 @@ import pandas as pd
 from skimage.segmentation import flood
 from skimage import io
 
+from tifffile import imsave
+
+
 
 @magicgui(
     auto_call=True,
@@ -158,13 +161,14 @@ def create_labeller(viewer, layer, label_layer) -> None:
     return
 
 
-def label(scan):
-    l = np.zeros_like(scan)
+def label_array(scan, label=None):
+    if label is None:
+        label = np.zeros_like(scan)
 
     viewer = napari.Viewer()
     layer = viewer.add_image(scan)
-    layer.metadata = {"point": None, "history": np.stack([l]), "slice": 0}
-    label_layer = viewer.add_labels(l)
+    layer.metadata = {"point": None, "history": np.stack([label]), "slice": 0}
+    label_layer = viewer.add_labels(label)
 
     create_labeller(viewer, layer, label_layer)
 
@@ -195,33 +199,33 @@ def insert_a_in_b(a: np.ndarray, b: np.ndarray, center=None):
 
 
 if __name__ == "__main__":
-    # dataset_path = "/home/ak18001/Data/HDD/uCT"
-    dataset_path = "/home/wahab/Data/HDD/uCT"
+    dataset_path = "/home/ak18001/Data/HDD/uCT"
+    # dataset_path = "/home/wahab/Data/HDD/uCT"
 
     ctreader = ctfishpy.CTreader(dataset_path)
 
     bone = "JAW"
-    bone = "JAW_manual"
+    name = "JAW2"
     roiSize = (256, 256, 320)
 
     sample = pd.read_csv("output/results/jaw/training_sample_curated.csv")
 
-    n = 257
+    n = 1
 
     scan = ctreader.read(n)
+    zeros = np.zeros_like(scan)
     scan = ctreader.to8bit(scan)
-    label = ctreader.read_label(bone, n, )
+    label = ctreader.read_label(bone, n, name=name)
     center = ctreader.jaw_centers[n]
-    print(ctreader.get_hdf5_keys("/home/wahab/Data/HDD/uCT/LABELS/JAW_manual/JAW_manual.h5"))
-    scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
-    label = ctreader.crop3d(label, roiSize=roiSize, center=center)
-    # label = ctreader.uncrop3d(scan, label, center)
-    print(scan.shape, label.shape)
+    print(ctreader.get_hdf5_keys(f"/home/ak18001/Data/HDD/uCT/LABELS/{bone}/{name}.h5"))
+    # print(scan.shape, label.shape)
+    # scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+    # label = ctreader.crop3d(label, roiSize=roiSize, center=center)
+    # print(scan.shape, label.shape)
     # scan = scan[1000:]
     # print(scan.shape)
     # ctreader.view(scan)
 
-    # label = label(scan)
 
     # print(lab.min(), lab.max(), lab.shape)
     # label = io.imread(dataset_path + "/LABELS/JAW/jaw_257.tif")
@@ -240,8 +244,15 @@ if __name__ == "__main__":
     # ] = label
     # label=zeros
 
-    ctreader.view(scan, label=label)
-    ctreader.write_label(bone, label, n, rewrite=True)
+
+    name = "JAW3"
+    label = label_array(scan )#, label)
+    # ctreader.view(scan, label=label)
+    # label = ctreader.uncrop3d(zeros, label, center)
+    ctreader.write_label(bone, label, n, name=name)
+
+    # out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/WAHAB/{n}_labels.tif"
+    # imsave(out_path, label)
 
     # TODO rewrite this one first as qt widget
     # TODO write only in class
