@@ -2,38 +2,29 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
-from copy import deepcopy
-from sklearn.utils import deprecated
-from .read_amira import read_amira
 from pathlib2 import Path
-import tifffile as tiff
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
-import cv2
-import h5py
-import json
-import napari
+import torchio as tio
 import warnings
-import pydicom
-from pydicom.dataset import FileDataset, FileMetaDataset
-from pydicom.uid import UID
-import datetime
-import os
-import time
 
+subject = tio.Subject()
 
 class Bone():
     def __init__(self) -> None:
         self.name = "BONE"
+        self.n_classes = [None]
+        self.class_names = []
+        self.centers_path
         pass
 
     def localise(self):
+        # TODO bring master.bone_centers here
         pass
 
     def predict(self):
         pass
-
 
 class Otolith(Bone):
     def __init__(self) -> None:
@@ -46,6 +37,8 @@ class Otolith(Bone):
         # return super().predict()
 
         """
+        TODO bring scripts/otoliths/pred_all to here
+
         helper function for testing
         """
 

@@ -46,7 +46,7 @@ class CTDataset(torch.utils.data.Dataset):
 	"""	
 
 	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
-				transform=None, label_size:tuple=None,
+				transform=None, label_size:tuple=None, dataset_name=None,
 				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
 		super().__init__()
 		self.dataset_path = dataset_path
@@ -57,6 +57,7 @@ class CTDataset(torch.utils.data.Dataset):
 		self.transform = transform
 		self.label_size = label_size
 		self.precached = precached
+		self.dataset_name=dataset_name
 		if self.precached:
 			self.dataset = dataset
 			self.labels = labels
@@ -77,8 +78,9 @@ class CTDataset(torch.utils.data.Dataset):
 
 		else:
 			X = ctreader.read(i)
-			y = ctreader.read_label(self.bone, i)
-			center = ctreader.otolith_centers[i]
+			y = ctreader.read_label(self.bone, i, name=self.dataset_name)
+			if self.bone == ctreader.OTOLITHS: center = ctreader.otolith_centers[i]
+			if self.bone == ctreader.JAW: center = ctreader.jaw_centers[i]
 			# if label size is smaller for roi
 			# if self.label_size is not None:
 			# 	self.label_size == self.roi_size
@@ -336,18 +338,18 @@ class agingDataset(torch.utils.data.Dataset):
 		return X, y,
 
 
-def precache(dataset_path, indices, bone, roiSize, label_size=None):
+def precache(dataset_path, indices, bone, roiSize, label_size=None, dataset_name=None,):
 
 	if label_size is None:
 		label_size = roiSize
 
 	ctreader = ctfishpy.CTreader(dataset_path)
-	master = ctreader.master
 	dataset = []
 	labels = []
 	print("caching...")
 	for i in tqdm(indices):
-		center = ctreader.otolith_centers[i]
+		if bone == ctreader.OTOLITHS: center = ctreader.otolith_centers[i]
+		if bone == ctreader.JAW: center = ctreader.jaw_centers[i]
 
 		# roi = ctreader.read_roi(i, roiSize, center)
 		scan = ctreader.read(i)
@@ -355,7 +357,7 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None):
 		del scan
 		dataset.append(roi)
 
-		label = ctreader.read_label(bone, i)
+		label = ctreader.read_label(bone, i, name=dataset_name)
 		roi_label = ctreader.crop3d(label, roiSize=label_size, center = center)
 		labels.append(roi_label)
 		del label
