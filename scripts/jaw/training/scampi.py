@@ -172,8 +172,10 @@ if __name__ == "__main__":
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
 	ready = [1]
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_MANUAL"
+	dataset_name = "JAW_20221208"
 
+	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5"
+	print(f"all keys len {len(keys)} nums {keys}")
 	print(f"All data: {len(ready)}")
 
 	random.seed(42)

@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     sample = pd.read_csv("output/results/jaw/training_sample_curated.csv")
 
-    n = 1
+    n =257
 
     scan = ctreader.read(n)
     zeros = np.zeros_like(scan)
