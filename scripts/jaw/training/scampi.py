@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import Trainer, test, CTDataset, precache
+from ctfishpy.train_utils import Trainer, test_jaw, CTDataset, precache
 
 import matplotlib.pyplot as plt
 import neptune.new as neptune
@@ -28,7 +28,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	'''
 
 	# setup neptune
-	run = neptune.init(
+	run = neptune.init_run(
 		project="wahabk/Fishnet",
 		api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
 	)
@@ -37,7 +37,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (128,128,160),
+		roiSize = (256, 256, 320),
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -50,7 +50,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		start_filters = config['start_filters'],
 		activation = config['activation'],
 		num_workers = num_workers,
-		n_classes = 4, #including background
+		n_classes = 5, #including background
 		random_seed = 42,
 		dropout = config['dropout'],
 		spatial_dims = 3,
@@ -136,8 +136,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 					epochs=params['epochs'],
 					n_classes=params['n_classes'],
 					logger=run,
-					tuner=tuner,
-					)
+					tuner=tuner,)
 
 	# start training
 	training_losses, validation_losses, lr_rates = trainer.run_trainer()
@@ -153,15 +152,17 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_dataset, val_labels = None, None
 
 	gc.collect()
-	losses = test(dataset_path, model, bone, test_data, params, threshold=0.5, run=run, criterion=criterion, device=device, num_workers=num_workers, label_size=label_size)
+	losses = test_jaw(dataset_path, model, bone, test_data, params, threshold=0.5, 
+					run=run, criterion=criterion, device=device, num_workers=num_workers, 
+					label_size=label_size, dataset_name=dataset_name)
 	run['test/df'].upload(File.as_html(losses))
 
 	run.stop()
 
 if __name__ == "__main__":
 
-	dataset_path = '/home/ak18001/Data/HDD/uCT'
-	# dataset_path = '/mnt/scratch/ak18001/uCT'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT'
+	dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
@@ -170,11 +171,11 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
-	ready = [1]
+	ready = [1,257]
 	bone = ctfishpy.JAW
 	dataset_name = "JAW_20221208"
 
-	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5"
+	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
 	print(f"All data: {len(ready)}")
 
@@ -191,10 +192,10 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 6,
-		"n_blocks": 3,
+		"batch_size": 1,
+		"n_blocks": 2,
 		"norm": 'INSTANCE',
-		"epochs": 10,
+		"epochs": 50,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0.0,
@@ -205,5 +206,6 @@ if __name__ == "__main__":
 	work_dir = Path().parent.resolve()
 
 	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
-		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, work_dir=work_dir)
+		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, 
+		dataset_name=dataset_name ,work_dir=work_dir)
 

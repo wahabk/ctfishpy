@@ -526,7 +526,9 @@ def predict2d(model, test_loader, criterion, threshold=0.5):
 
 	return predict_dict
 
-def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
+		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
+		label_size:tuple=None, dataset_name=None):
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 	spatial_dims = params['spatial_dims']
@@ -539,7 +541,110 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		label_size = roiSize
 
 	if spatial_dims == 3:
-		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
+		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size, dataset_name=dataset_name) 
+		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+		predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
+	elif spatial_dims == 2:
+		predict_dict = {}
+		test_dataset, test_labels = precache(dataset_path, test_set, bone, roiSize, dataset_name=dataset_name)
+		for idx, j in enumerate(test_set):
+			test_ds = CTDataset2D(dataset_path, bone, [j], roiSize, n_classes, transform=None, label_size=label_size, dataset=[test_dataset[idx]], labels=[test_labels[idx]], precached=True) 
+			test_loader = torch.utils.data.DataLoader(test_ds, batch_size=32, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+			pred = predict2d(model, test_loader, criterion=criterion, threshold=threshold)
+			predict_dict[idx] = pred
+
+	losses = []
+	for idx in predict_dict.keys():
+		array	= predict_dict[idx]['array']
+		y		= predict_dict[idx]['y']
+		y_pred	= predict_dict[idx]['y_pred']
+		loss	= predict_dict[idx]['loss']
+		y_numpy = np.squeeze(y.numpy()) # zero is for batch
+		y_pred_numpy = np.squeeze(y_pred.numpy())  # remove batch dim and channel dim -> [H, W]
+		y = torch.unsqueeze(y, dim=0)
+		y_pred = torch.unsqueeze(y_pred, dim=0)
+
+		i = test_set[idx]
+		metadata = ctreader.read_metadata(i)
+
+		print(f"NUM CLASSES FOR ROCAUC tensor: {y.shape} {y_pred.shape}")
+		print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
+		# true_vector = np.array(true_label, dtype='uint8').flatten()
+		# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
+		# fig = plot_auc_roc(fpr, tpr, aucroc)
+		# run[f'AUC_{i}'].upload(fig)
+
+		aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted', multi_class='ovo')
+		threshed = torch.zeros_like(y_pred)
+		threshed[y_pred > threshold] = 1
+		threshed[y_pred < threshold] = 0
+
+		dice_score = monai.metrics.compute_meandice(y_pred=threshed, y=y, include_background=False).numpy()
+		g_dice_score = monai.metrics.compute_generalized_dice(y_pred=threshed, y=y, include_background=False).numpy()[0]
+		iou = monai.metrics.compute_meaniou(y_pred=threshed, y=y, include_background=False).numpy()[0]
+		# iou = torch.mean(iou)
+		print(dice_score)
+		dice_score = dice_score[0]
+
+		pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
+
+		# print(f"final pred shape {pred_label.shape}")
+		# test predict on sim
+		array_projections = ctreader.make_max_projections(array)
+		label_projections = ctreader.make_max_projections(pred_label)
+		labelled_projections = ctreader.label_projections(array_projections, label_projections)
+		sidebyside = np.concatenate(labelled_projections[0:2], 0)
+		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
+
+		# TODO threshold label for imaging and one hot encode
+
+		m = {
+			'bone': bone,
+			'idx'	 : i,
+			**metadata,
+			'loss'	 : float(loss),
+			'aucroc' : float(aucroc),
+			'dice'		: dice_score.mean(),
+			'dice[1]'	: dice_score[0],
+			'dice[2]'	: dice_score[1],
+			'dice[3]'	: dice_score[2],
+			'dice[4]'	: dice_score[3],
+			'g_dice' 	: g_dice_score,
+			'iou'		: iou.mean(),
+			'iou[1]'	: iou[0],
+			'iou[2]'	: iou[1],
+			'iou[3]'	: iou[2],
+			'iou[4]'	: iou[3],}
+
+		losses.append(m)
+
+	losses = pd.DataFrame(losses)
+	losses.loc['mean'] = losses.mean()
+	losses.loc['std'] = losses.std()
+	print(losses)
+
+	# TODO plot losses against class
+	# TODO plot data distrib 
+	#plot label brightness distrib
+
+	return losses
+
+def test_otoliths(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
+		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
+		label_size:tuple=None, dataset_name=None):
+	roiSize = params['roiSize']
+	n_classes = params['n_classes']
+	spatial_dims = params['spatial_dims']
+	batch_size = params['batch_size']
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	print('Running test, this may take a while...')
+
+	if label_size is None:
+		label_size = roiSize
+
+	if spatial_dims == 3:
+		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size, dataset_name=dataset_name) 
 		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 		predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
 	elif spatial_dims == 2:
