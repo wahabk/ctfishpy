@@ -167,6 +167,7 @@ if __name__ == "__main__":
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
+	# dataset_path = "/home/wahab/Data/HDD/uCT"
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 

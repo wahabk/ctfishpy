@@ -246,7 +246,7 @@ class CTreader:
 			array = np.array(f[str(index)])
 		return array
 
-	def read_label(self, bone, n, is_amira=False, name=None):
+	def read_label(self, bone, n, is_amira=False, is_tif=False, name=None):
 		"""
 		Read and return hdf5 label files
 
@@ -256,7 +256,7 @@ class CTreader:
 
 		"""
 
-		if is_amira==False:
+		if is_amira==False and is_tif == False:
 			if name is None:
 				name = bone
 			label_path = str(self.dataset_path / f'LABELS/{bone}/{name}.h5')
@@ -268,6 +268,10 @@ class CTreader:
 			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.am')
 			label_dict = read_amira(label_path)
 			label = label_dict['data'][-1]['data'].T
+			
+		elif is_tif==True:
+			label_path = str(self.dataset_path / f'LABELS/{bone}/{n}.tif')
+			label = tiff.imread(label_path)
 
 		return label
 
