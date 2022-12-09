@@ -88,6 +88,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 					transform=None, label_size=label_size, precached=True) 
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
+	# TODO Add label sampler
+
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
 
@@ -172,7 +174,7 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
-	ready = [1,257]
+	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]
 	bone = ctfishpy.JAW
 	dataset_name = "JAW_20221208"
 
@@ -182,9 +184,9 @@ if __name__ == "__main__":
 
 	random.seed(42)
 	random.shuffle(ready)
-	train_data = ready[:]
-	val_data = ready[:]
-	test_data = ready[:]
+	train_data = ready[:12]
+	val_data = ready[12:]
+	test_data = ready[12:]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'JAW start'
 	save = False

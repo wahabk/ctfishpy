@@ -111,7 +111,6 @@ class CTDataset(torch.utils.data.Dataset):
 
 		return X, y,
 
-
 class CTDatasetPredict(torch.utils.data.Dataset):
 	"""
 	
