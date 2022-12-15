@@ -38,6 +38,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (256, 256, 320),
+		patch_size = (64,64,64),
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -89,6 +90,9 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
 
 	# TODO Add label sampler
+
+
+
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	print(f'training on {device}')
