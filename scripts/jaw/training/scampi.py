@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import ctfishpy
-from ctfishpy.train_utils import Trainer, test_jaw, CTDataset, precache
+from ctfishpy.train_utils import Trainer, test_jaw, precacheSubjects, CTSubjectDataset
 
 import matplotlib.pyplot as plt
 import neptune.new as neptune
@@ -38,7 +38,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (256, 256, 320),
-		patch_size = (64,64,64),
+		patch_size = (64,64,100),
+		sampler_probs = {0:1, 1:3, 2:3, 3:4, 4:4},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -75,23 +76,29 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	# if config['n_blocks'] == 3: label_size = (24,24,24)
 	label_size = params['roiSize']
 
-	train_dataset, train_labels = precache(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
-	print(train_dataset[0].shape, train_dataset[0].max())
+	train_subjects = precacheSubjects(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
+	train_ds = tio.SubjectsDataset(train_subjects, transform=transforms) 
+	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
+	patches_queue = tio.Queue(
+		train_ds,
+		max_length=80,
+		samples_per_volume=8,
+		sampler=patch_sampler,
+		num_workers=params['num_workers'],
+	)
+	train_loader = torch.utils.data.DataLoader(patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
 
-	train_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['train_data'],
-						dataset=train_dataset, labels=train_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
-						dataset_name=dataset_name, transform=transforms, label_size=label_size, precached=True) 
-	train_loader = torch.utils.data.DataLoader(train_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
-
-	val_dataset, val_labels = precache(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
-	val_ds = CTDataset(dataset_path=params['dataset_path'], bone=params['bone'], indices=params['val_data'],
-					dataset=val_dataset, labels=val_labels, roi_size=params['roiSize'], n_classes=params['n_classes'], 
-					transform=None, label_size=label_size, precached=True) 
-	val_loader = torch.utils.data.DataLoader(val_ds, batch_size=params['batch_size'], shuffle=True, num_workers=params['num_workers'], pin_memory=torch.cuda.is_available(), persistent_workers=True)
-
-	# TODO Add label sampler
-
-
+	val_subjects = precacheSubjects(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
+	val_ds = tio.SubjectsDataset(val_subjects, transform=transforms)
+	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
+	val_patches_queue = tio.Queue(
+		val_ds,
+		max_length=80,
+		samples_per_volume=8,
+		sampler=val_sampler,
+		num_workers=params['num_workers'],
+	)
+	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
 
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -103,16 +110,27 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	channels = [2**n for n in range(start, start + n_blocks)]
 	strides = [2 for _ in range(1, n_blocks)]
 
-	if model is None:
-		model = monai.networks.nets.AttentionUnet(
-			spatial_dims=params['spatial_dims'],
-			in_channels=1,
-			out_channels=params['n_classes'],
-			channels=channels,
-			strides=strides,
-			dropout=params["dropout"],
-			# padding='valid',
-		)
+	# model = monai.networks.nets.AttentionUnet(
+	# 	spatial_dims=params['spatial_dims'],
+	# 	in_channels=1,
+	# 	out_channels=params['n_classes'],
+	# 	channels=channels,
+	# 	strides=strides,
+	# 	dropout=params["dropout"],
+	# 	# padding='valid',
+	# )
+
+	model = monai.networks.nets.UNet(
+		spatial_dims=params['spatial_dims'],
+		in_channels=1,
+		out_channels=params['n_classes'],
+		channels=channels,
+		strides=strides,
+		num_res_units=params["n_blocks"],
+		act=params['activation'],
+		norm=params["norm"],
+		dropout=params["dropout"],
+	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
 	model.to(device)
@@ -133,16 +151,18 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 
 	# trainer
 	trainer = Trainer(model=model,
-					device=device,
-					criterion=criterion,
-					optimizer=optimizer,
-					training_DataLoader=train_loader,
-					validation_DataLoader=val_loader,
-					# lr_scheduler=scheduler,
-					epochs=params['epochs'],
-					n_classes=params['n_classes'],
-					logger=run,
-					tuner=tuner,)
+		device=device,
+		criterion=criterion,
+		optimizer=optimizer,
+		training_DataLoader=train_loader,
+		validation_DataLoader=val_loader,
+		# lr_scheduler=scheduler,
+		epochs=params['epochs'],
+		n_classes=params['n_classes'],
+		logger=run,
+		tuner=tuner,
+		on_subject=True,
+	)
 
 	# start training
 	training_losses, validation_losses, lr_rates = trainer.run_trainer()
@@ -189,20 +209,24 @@ if __name__ == "__main__":
 	random.seed(42)
 	random.shuffle(ready)
 	train_data = ready[:12]
-	val_data = ready[12:]
+	val_data = ready[12:14]
 	test_data = ready[12:]
+	# train_data = ready[:2]
+	# val_data = ready[2:3]
+	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'JAW start'
+	name = 'JAW sampler'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
+	model=None
 
 	config = {
 		"lr": 3e-3,
-		"batch_size": 1,
+		"batch_size": 16,
 		"n_blocks": 2,
 		"norm": 'INSTANCE',
-		"epochs": 50,
+		"epochs": 150,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0.0,
@@ -212,7 +236,7 @@ if __name__ == "__main__":
 	# TODO add model in train?
 	work_dir = Path().parent.resolve()
 
-	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, 
+	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, model=model, 
 		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, 
 		dataset_name=dataset_name ,work_dir=work_dir)
 
