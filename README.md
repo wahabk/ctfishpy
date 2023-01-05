@@ -1,29 +1,10 @@
 # CTFishPy
 
-My project to segment zebrafish bone from uCT data using deep learning.
+<img src="examples/ctf_readme.gif" alt="readme_gif"/>
+
+Automatic segmentation of zebrafish bone from uCT data using deep learning.
 
 # Installation
-
-On windows:
-
-```
-# Download https://github.com/wahabk/ctfishpy from github
-conda env create -f fish.yml # this will create an env using python 3.8 named 'fish'
-conda activate fish
-python3 -m pip install .
-```
-
-On Linux / Mac:
-
-```
-cd <installation_dir>
-git clone https://github.com/wahabk/ctfishpy
-conda env create -f fish.yaml # this will create an env using python 3.8 named 'fish'
-conda activate fish
-python3 -m pip install .
-```
-
-Quickest 
 
 ```
 pip install git+https://github.com/wahabk/ctfishpy
@@ -35,7 +16,7 @@ Check the jupyter notebooks in `examples/`
 
 # Requirements
 
-Make sure you have anaconda installed, for python dependencies check `setup.py`
+For python dependencies check `setup.py`
 
 # Dev
 

@@ -36,6 +36,86 @@ import cv2
 Datasets
 """
 
+class CTSubjectDataset(torch.utils.data.Dataset):
+	"""
+	
+	Torch Dataset for bones in 3D
+
+	transform is augmentation function
+
+	"""	
+
+	def __init__(self, dataset_path, bone:str, indices:list, roi_size:tuple, n_classes:int, 
+				transform=None, label_size:tuple=None, dataset_name=None,
+				dataset:np.ndarray=None, labels:np.ndarray=None,  precached:bool=False):
+		super().__init__()
+		self.dataset_path = dataset_path
+		self.bone = bone
+		self.indices = indices
+		self.roi_size = roi_size
+		self.n_classes = n_classes
+		self.transform = transform
+		self.label_size = label_size
+		self.precached = precached
+		self.dataset_name=dataset_name
+		if self.precached:
+			self.dataset = dataset
+			self.labels = labels
+			assert(len(dataset) == len(labels))
+
+	def __len__(self):
+		return len(self.indices)
+
+	def __getitem__(self, index):
+		ctreader = ctfishpy.CTreader(self.dataset_path)
+		# Select sample
+		i = self.indices[index] #index is order from precache, i is number from dataset
+		# print(index, i)
+		
+		if self.precached:
+			X = self.dataset[index]
+			y = self.labels[index]
+
+		else:
+			X = ctreader.read(i)
+			y = ctreader.read_label(self.bone, i, name=self.dataset_name)
+			if self.bone == ctreader.OTOLITHS: center = ctreader.otolith_centers[i]
+			if self.bone == ctreader.JAW: center = ctreader.jaw_centers[i]
+			# if label size is smaller for roi
+			# if self.label_size is not None:
+			# 	self.label_size == self.roi_size
+			X = ctreader.crop3d(X, self.roi_size, center=center)			
+			y = ctreader.crop3d(y, self.roi_size, center=center)
+
+		X = np.array(X/X.max(), dtype=np.float32)
+		# for reshaping
+		X = np.expand_dims(X, 0)      # if numpy array
+		y = np.expand_dims(y, 0)
+		# tensor = tensor.unsqueeze(1)  # if torch tensor
+		X = torch.from_numpy(X)
+		y = torch.from_numpy(y)
+
+		fish = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+			label=tio.LabelMap(tensor=y),
+		)
+
+		if self.transform:
+			fish = self.transform(fish)
+
+		X = fish.ct.tensor
+		y = fish.label.tensor
+		y = F.one_hot(y.to(torch.int64), self.n_classes)
+		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
+		y = y.squeeze().to(torch.float32)
+
+		fish = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+			label=tio.LabelMap(tensor=y),
+		)
+
+		return fish
+
 class CTDataset(torch.utils.data.Dataset):
 	"""
 	
@@ -110,7 +190,6 @@ class CTDataset(torch.utils.data.Dataset):
 		y = y.squeeze().to(torch.float32)
 
 		return X, y,
-
 
 class CTDatasetPredict(torch.utils.data.Dataset):
 	"""
@@ -366,6 +445,49 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None, dataset_name
 		
 	return dataset, labels
 
+def precacheSubjects(dataset_path, indices, bone, roiSize, label_size=None, dataset_name=None,):
+
+	if label_size is None:
+		label_size = roiSize
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	subjects_list = []
+	print("caching...")
+	for i in tqdm(indices):
+		if bone == ctreader.OTOLITHS: center = ctreader.otolith_centers[i]
+		if bone == ctreader.JAW: center = ctreader.jaw_centers[i]
+
+		# roi = ctreader.read_roi(i, roiSize, center)
+		scan = ctreader.read(i)
+		X = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+		del scan
+
+
+		label = ctreader.read_label(bone, i, name=dataset_name)
+		y = ctreader.crop3d(label, roiSize=label_size, center = center)
+		del label
+
+		gc.collect()
+
+		X = np.array(X/X.max(), dtype="float32")
+		X = torch.from_numpy(X)
+		y = torch.from_numpy(y)
+		X = X.unsqueeze(0)
+		y = y.unsqueeze(0)
+
+		y = F.one_hot(y.to(torch.int64), y.max()+1)
+		y = y.permute([0,4,1,2,3]) # permute one_hot to channels first after batch
+		y = y.squeeze().to(torch.float32)
+
+		fish_subject = tio.Subject(
+			ct=tio.ScalarImage(tensor=X),
+			label=tio.LabelMap(tensor=y),
+		)
+
+		subjects_list.append(fish_subject)
+
+	return subjects_list
+
 def precache_age(dataset_path, n_dims, indices, bone, roiSize):
 
 
@@ -442,6 +564,55 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 			raise Warning(f"result shape unknown {result.shape}")
 		label[r>threshold] = i
 	return label
+
+def predictpatches(model, patch_size, subjects_list, criterion, threshold=0.5):
+	"""
+	helper function for testing
+	"""
+
+	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+	print(f'predicting on {device}')
+
+	predict_dict = {}
+	model.eval()
+	
+	for idx, subject in enumerate(subjects_list):
+
+		grid_sampler = tio.inference.GridSampler(subject, patch_size=patch_size, patch_overlap=(8,8,8), padding_mode='mean')
+		patch_loader = torch.utils.data.DataLoader(grid_sampler, batch_size=1)
+		aggregator = tio.inference.GridAggregator(grid_sampler, overlap_mode='average')
+
+		with torch.no_grad():
+			for i, patch_batch in tqdm(enumerate(patch_loader)):
+				input_ = patch_batch['ct'][tio.DATA]
+				target = patch_batch['label'][tio.DATA]
+				locations = patch_batch[tio.LOCATION]
+
+				input_, target = input_.to(device), target.to(device)
+
+				out = model(input_)  # send through model/network
+				out = torch.softmax(out, 1)
+				loss = criterion(out, target)
+				loss = loss.cpu().numpy()
+
+				# post process to numpy array
+
+
+				aggregator.add_batch(out, locations)
+		output_tensor = aggregator.get_output_tensor()
+
+		array = subject['ct'][tio.DATA].cpu().numpy()
+		array = np.squeeze(array)
+		y = subject['label'][tio.DATA].cpu()
+		y_pred = output_tensor.cpu()  # send to cpu and transform to numpy.ndarray
+		predict_dict[idx] = {
+			'array': array,
+			'y': y, # zero for batch
+			'y_pred': y_pred,
+			'loss': loss, 
+		}
+
+	return predict_dict
 
 def predict3d(model, test_loader, criterion, threshold=0.5):
 	"""
@@ -526,7 +697,9 @@ def predict2d(model, test_loader, criterion, threshold=0.5):
 
 	return predict_dict
 
-def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', label_size:tuple=None):
+def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
+		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
+		label_size:tuple=None, dataset_name=None):
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 	spatial_dims = params['spatial_dims']
@@ -539,7 +712,110 @@ def test(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers
 		label_size = roiSize
 
 	if spatial_dims == 3:
-		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size) 
+		# test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size, dataset_name=dataset_name) 
+		# test_loader = torch.utils.data.DataLoader(test_ds, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
+		# predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
+		subjects_list = precacheSubjects(dataset_path, test_set, bone, roiSize, label_size=label_size, dataset_name=dataset_name)
+		predict_dict = predictpatches(model, params['patch_size'], subjects_list, criterion=criterion, threshold=threshold)
+
+
+	losses = []
+	for idx in predict_dict.keys():
+		array	= predict_dict[idx]['array']
+		y		= predict_dict[idx]['y']
+		y_pred	= predict_dict[idx]['y_pred']
+		loss	= predict_dict[idx]['loss']
+		y_numpy = np.squeeze(y.numpy()) # zero is for batch
+		y_pred_numpy = np.squeeze(y_pred.numpy())  # remove batch dim and channel dim -> [H, W]
+		y = torch.unsqueeze(y, dim=0)
+		y_pred = torch.unsqueeze(y_pred, dim=0)
+
+		i = test_set[idx]
+		metadata = ctreader.read_metadata(i)
+
+		print(f"NUM CLASSES FOR ROCAUC tensor: {y.shape} {y_pred.shape}")
+		print(f"NUM CLASSES FOR ROCAUC VECTOR: {y_numpy.shape} {y_pred_numpy.shape}")
+		# true_vector = np.array(true_label, dtype='uint8').flatten()
+		# fpr, tpr, _ = roc_curve(true_vector, pred_vector)
+		# fig = plot_auc_roc(fpr, tpr, aucroc)
+		# run[f'AUC_{i}'].upload(fig)
+
+		aucroc = roc_auc_score(y_numpy.flatten(), y_pred_numpy.flatten(), average='weighted', multi_class='ovo')
+		threshed = torch.zeros_like(y_pred)
+		threshed[y_pred > threshold] = 1
+		threshed[y_pred < threshold] = 0
+
+		dice_score = monai.metrics.compute_meandice(y_pred=threshed, y=y, include_background=False).numpy()
+		g_dice_score = monai.metrics.compute_generalized_dice(y_pred=threshed, y=y, include_background=False).numpy()[0]
+		iou = monai.metrics.compute_meaniou(y_pred=threshed, y=y, include_background=False).numpy()[0]
+		# iou = torch.mean(iou)
+		print(dice_score)
+		dice_score = dice_score[0]
+
+		pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
+
+		# print(f"final pred shape {pred_label.shape}")
+		# test predict on sim
+		array_projections = ctreader.make_max_projections(array)
+		label_projections = ctreader.make_max_projections(pred_label)
+		labelled_projections = ctreader.label_projections(array_projections, label_projections)
+		sidebyside = np.concatenate(labelled_projections[0:2], 0)
+		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
+		label_projections = ctreader.make_max_projections(pred_label)
+		labelled_projections = ctreader.label_projections(array_projections, label_projections)
+		sidebyside = np.concatenate(labelled_projections[0:2], 0)
+		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
+
+
+		# TODO threshold label for imaging and one hot encode
+
+		m = {
+			'bone': bone,
+			'idx'	 : i,
+			**metadata,
+			'loss'	 : float(loss),
+			'aucroc' : float(aucroc),
+			'dice'		: dice_score.mean(),
+			'dice[1]'	: dice_score[0],
+			'dice[2]'	: dice_score[1],
+			'dice[3]'	: dice_score[2],
+			'dice[4]'	: dice_score[3],
+			'g_dice' 	: g_dice_score,
+			'iou'		: iou.mean(),
+			'iou[1]'	: iou[0],
+			'iou[2]'	: iou[1],
+			'iou[3]'	: iou[2],
+			'iou[4]'	: iou[3],}
+
+		losses.append(m)
+
+	losses = pd.DataFrame(losses)
+	losses.loc['mean'] = losses.mean()
+	losses.loc['std'] = losses.std()
+	print(losses)
+
+	# TODO plot losses against class
+	# TODO plot data distrib 
+	#plot label brightness distrib
+
+	return losses
+
+def test_otoliths(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
+		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
+		label_size:tuple=None, dataset_name=None):
+	roiSize = params['roiSize']
+	n_classes = params['n_classes']
+	spatial_dims = params['spatial_dims']
+	batch_size = params['batch_size']
+
+	ctreader = ctfishpy.CTreader(dataset_path)
+	print('Running test, this may take a while...')
+
+	if label_size is None:
+		label_size = roiSize
+
+	if spatial_dims == 3:
+		test_ds = CTDataset(dataset_path, bone, test_set, roiSize, n_classes, transform=None, label_size=label_size, dataset_name=dataset_name) 
 		test_loader = torch.utils.data.DataLoader(test_ds, batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=torch.cuda.is_available())
 		predict_dict = predict3d(model, test_loader, criterion=criterion, threshold=threshold)
 	elif spatial_dims == 2:
@@ -646,6 +922,7 @@ class Trainer:
 				 logger=None,
 				 tuner=False,
 				 final_activation=None,
+				 on_subject=False,
 				 ):
 
 		self.model = model
@@ -662,6 +939,7 @@ class Trainer:
 		self.logger = logger
 		self.tuner = tuner
 		self.final_activation = final_activation
+		self.on_subject=on_subject
 
 		self.training_loss = []
 		self.validation_loss = []
@@ -716,8 +994,14 @@ class Trainer:
 		batch_iter = tqdm(enumerate(self.training_DataLoader), 'Training', total=len(self.training_DataLoader),
 						  leave=False)
 
-		for i, (x, y) in batch_iter:
-			input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
+		for i, this_batch in batch_iter:
+			if self.on_subject:
+				x = this_batch['ct'][tio.DATA]
+				y = this_batch['label'][tio.DATA]
+				input_, target = x.to(self.device), y.to(self.device)
+			else:
+				x,y = this_batch
+				input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
 			self.optimizer.zero_grad()  # zerograd the parameters
 			out = self.model(input_)  # one forward pass
 
@@ -754,9 +1038,14 @@ class Trainer:
 		batch_iter = tqdm(enumerate(self.validation_DataLoader), 'Validation', total=len(self.validation_DataLoader),
 						  leave=False)
 
-		for i, (x, y) in batch_iter:
-			input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
-
+		for i, this_batch in batch_iter:
+			if self.on_subject:
+				x = this_batch['ct'][tio.DATA]
+				y = this_batch['label'][tio.DATA]
+				input_, target = x.to(self.device), y.to(self.device)
+			else:
+				x,y = this_batch
+				input_, target = x.to(self.device), y.to(self.device)  # send to device (GPU or CPU)
 			with torch.no_grad():
 				out = self.model(input_)
 				if isinstance(self.criterion, torch.nn.BCEWithLogitsLoss) == False:

@@ -199,28 +199,31 @@ def insert_a_in_b(a: np.ndarray, b: np.ndarray, center=None):
 
 
 if __name__ == "__main__":
-    dataset_path = "/home/ak18001/Data/HDD/uCT"
-    # dataset_path = "/home/wahab/Data/HDD/uCT"
+    # dataset_path = "/home/ak18001/Data/HDD/uCT"
+    dataset_path = "/home/wahab/Data/HDD/uCT"
 
     ctreader = ctfishpy.CTreader(dataset_path)
 
     bone = "JAW"
-    name = "JAW2"
+    name = "JAW_manual"
     roiSize = (256, 256, 320)
 
     sample = pd.read_csv("output/results/jaw/training_sample_curated.csv")
 
-    n = 1
+    n =257
 
     scan = ctreader.read(n)
     zeros = np.zeros_like(scan)
     scan = ctreader.to8bit(scan)
+
     label = ctreader.read_label(bone, n, name=name)
+    print(ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{name}.h5"))
+
+
     center = ctreader.jaw_centers[n]
-    print(ctreader.get_hdf5_keys(f"/home/ak18001/Data/HDD/uCT/LABELS/{bone}/{name}.h5"))
-    # print(scan.shape, label.shape)
-    # scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
-    # label = ctreader.crop3d(label, roiSize=roiSize, center=center)
+    print(scan.shape, label.shape, center)
+    scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
+    label = ctreader.crop3d(label, roiSize=roiSize, center=center)
     # print(scan.shape, label.shape)
     # scan = scan[1000:]
     # print(scan.shape)
@@ -233,8 +236,9 @@ if __name__ == "__main__":
     # # print(scan.shape, label.shape)
     # print(scan.shape, label.shape)
 
+    # fix for weird roi
+    # TODO USE UNCROP3D
     # new_roi  =  [[1665, 1921], [0, 320], [233, 489]]
-
     # zeros =  np.zeros_like(scan)
     # # zeros  = insert_a_in_b(label, zeros, center=center)
     # zeros[
@@ -245,10 +249,10 @@ if __name__ == "__main__":
     # label=zeros
 
 
-    name = "JAW3"
-    label = label_array(scan )#, label)
+    name = "JAW_20221208"
+    label = label_array(scan, label)
     # ctreader.view(scan, label=label)
-    # label = ctreader.uncrop3d(zeros, label, center)
+    label = ctreader.uncrop3d(zeros, label, center)
     ctreader.write_label(bone, label, n, name=name)
 
     # out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/WAHAB/{n}_labels.tif"
