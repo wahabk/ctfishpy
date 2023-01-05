@@ -192,15 +192,21 @@ if __name__ == "__main__":
 	sophie = [96,183,337,71,72,182,274,364,301,164,116,230,50,241,340]
 	me = [1,257,98,108,154]
 
-	clipped = [curated.remove(i) for i in me]
-	random.shuffle(curated)
-	damiano = curated[:15]
-	sophie = curated[15:]
-	print(damiano)
-	print(sophie)
+	# clipped = [curated.remove(i) for i in me]
+	# random.shuffle(curated)
+	# damiano = curated[:15]
+	# sophie = curated[15:]
+	# print(damiano)
+	# print(sophie)
 
-	print(len(me), len(sophie), len(damiano))
+	# print(len(me), len(sophie), len(damiano))
 
+	scan = ctreader.read(1)
+	label = ctreader.read_label(ctreader.JAW, 1, name='JAW_20221208')
+
+	scan = scan[1000:]
+	label = label[1000:]
+	ctreader.view(scan, label)
 
 	# import pdb; pdb.set_trace()
 
