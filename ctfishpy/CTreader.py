@@ -2,8 +2,6 @@
 CTreader is the main class you use to interact with ctfishpy
 """
 
-from copy import deepcopy
-from multiprocessing.sharedctypes import Value
 from sklearn.utils import deprecated
 from .read_amira import read_amira
 from pathlib2 import Path
@@ -20,7 +18,6 @@ import pydicom
 from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import datetime
-import os
 import time
 
 from  typing import Union
