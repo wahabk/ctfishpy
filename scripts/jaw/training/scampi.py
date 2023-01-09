@@ -37,9 +37,9 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (256, 256, 320),
-		patch_size = (64,64,100),
-		sampler_probs = {0:1, 1:3, 2:3, 3:4, 4:4},
+		roiSize = (200, 192, 256),
+		patch_size = (64,64,64),
+		sampler_probs = {0:4, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -61,14 +61,14 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	run['Tags'] = name
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.25),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.75),
 		tio.RandomAffine(p=0.25),
 		tio.RandomBlur(p=0.3),
-		tio.RandomBiasField(0.4, p=0.5),
+		tio.RandomBiasField(0.6, p=0.5),
 		tio.RandomNoise(0.1, 0.01, p=0.25),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
 		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(0.5,99.5)),
+		tio.RescaleIntensity(percentiles=(5,95)),
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -81,8 +81,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=80,
-		samples_per_volume=8,
+		max_length=2000,
+		samples_per_volume=100,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -93,8 +93,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=80,
-		samples_per_volume=8,
+		max_length=2000,
+		samples_per_volume=100,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -110,27 +110,27 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	channels = [2**n for n in range(start, start + n_blocks)]
 	strides = [2 for _ in range(1, n_blocks)]
 
-	# model = monai.networks.nets.AttentionUnet(
-	# 	spatial_dims=params['spatial_dims'],
-	# 	in_channels=1,
-	# 	out_channels=params['n_classes'],
-	# 	channels=channels,
-	# 	strides=strides,
-	# 	dropout=params["dropout"],
-	# 	# padding='valid',
-	# )
-
-	model = monai.networks.nets.UNet(
+	model = monai.networks.nets.AttentionUnet(
 		spatial_dims=params['spatial_dims'],
 		in_channels=1,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'],
-		norm=params["norm"],
 		dropout=params["dropout"],
+		# padding='valid',
 	)
+
+	# model = monai.networks.nets.UNet(
+	# 	spatial_dims=params['spatial_dims'],
+	# 	in_channels=1,
+	# 	out_channels=params['n_classes'],
+	# 	channels=channels,
+	# 	strides=strides,
+	# 	num_res_units=params["n_blocks"],
+	# 	act=params['activation'],
+	# 	norm=params["norm"],
+	# 	dropout=params["dropout"],
+	# )
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
 	model.to(device)
@@ -222,14 +222,14 @@ if __name__ == "__main__":
 	model=None
 
 	config = {
-		"lr": 3e-3,
-		"batch_size": 16,
-		"n_blocks": 2,
+		"lr": 3e-4,
+		"batch_size": 32,
+		"n_blocks":3,
 		"norm": 'INSTANCE',
-		"epochs": 150,
+		"epochs": 200,
 		"start_filters": 32,
-		"activation": "RELU",
-		"dropout": 0.0,
+		"activation": "PRELU",
+		"dropout": 0.1,
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), 
 	}
 
@@ -237,6 +237,6 @@ if __name__ == "__main__":
 	work_dir = Path().parent.resolve()
 
 	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, model=model, 
-		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=10, 
+		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=16, 
 		dataset_name=dataset_name ,work_dir=work_dir)
 
