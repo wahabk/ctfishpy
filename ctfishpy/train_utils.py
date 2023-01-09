@@ -752,6 +752,7 @@ def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_wor
 		print(dice_score)
 		dice_score = dice_score[0]
 
+		true_label = undo_one_hot(y_numpy, n_classes, threshold=threshold)
 		pred_label = undo_one_hot(y_pred_numpy, n_classes, threshold=threshold)
 
 		# print(f"final pred shape {pred_label.shape}")
@@ -761,10 +762,10 @@ def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_wor
 		labelled_projections = ctreader.label_projections(array_projections, label_projections)
 		sidebyside = np.concatenate(labelled_projections[0:2], 0)
 		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
-		label_projections = ctreader.make_max_projections(pred_label)
-		labelled_projections = ctreader.label_projections(array_projections, label_projections)
+		true_label_projections = ctreader.make_max_projections(true_label)
+		labelled_projections = ctreader.label_projections(array_projections, true_label_projections)
 		sidebyside = np.concatenate(labelled_projections[0:2], 0)
-		run[f'prediction_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
+		run[f'true_{idx}'].upload(File.as_image(sidebyside/sidebyside.max()))
 
 
 		# TODO threshold label for imaging and one hot encode

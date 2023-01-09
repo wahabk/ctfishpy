@@ -199,8 +199,8 @@ def insert_a_in_b(a: np.ndarray, b: np.ndarray, center=None):
 
 
 if __name__ == "__main__":
-    # dataset_path = "/home/ak18001/Data/HDD/uCT"
-    dataset_path = "/home/wahab/Data/HDD/uCT"
+    dataset_path = "/home/ak18001/Data/HDD/uCT"
+    # dataset_path = "/home/wahab/Data/HDD/uCT"
 
     ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     sample = pd.read_csv("output/results/jaw/training_sample_curated.csv")
 
-    n =257
+    n = 1
 
     scan = ctreader.read(n)
     zeros = np.zeros_like(scan)
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     print(scan.shape, label.shape, center)
     scan = ctreader.crop3d(scan, roiSize=roiSize, center=center)
     label = ctreader.crop3d(label, roiSize=roiSize, center=center)
+    new_label = label_array(scan)
     # print(scan.shape, label.shape)
     # scan = scan[1000:]
     # print(scan.shape)
@@ -249,11 +250,11 @@ if __name__ == "__main__":
     # label=zeros
 
 
-    name = "JAW_20221208"
-    label = label_array(scan, label)
-    # ctreader.view(scan, label=label)
-    label = ctreader.uncrop3d(zeros, label, center)
-    ctreader.write_label(bone, label, n, name=name)
+    # name = "JAW_20221208"
+    # label = label_array(scan, label)
+    # # ctreader.view(scan, label=label)
+    # label = ctreader.uncrop3d(zeros, label, center)
+    # ctreader.write_label(bone, label, n, name=name)
 
     # out_path = f"/home/ak18001/Data/HDD/uCT/MISC/DS_SEGS/WAHAB/{n}_labels.tif"
     # imsave(out_path, label)
