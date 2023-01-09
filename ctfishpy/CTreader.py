@@ -102,7 +102,7 @@ class CTreader:
 		else:
 			raise Exception("Dataset not initialised")
 
-	def read_metadata(self, fish:int, old_n = False):
+	def read_metadata(self, fish:int, old_n = False) -> dict:
 		return self.master.loc[fish].to_dict()
 
 	def read_dicom(self, path, bits=16, dtype='uint16'):

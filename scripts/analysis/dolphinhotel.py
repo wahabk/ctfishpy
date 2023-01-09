@@ -30,11 +30,15 @@ if __name__ == "__main__":
 	oneyrold_wildtypes = list(oneyrold_wildtypes['n'])
 
 	sixmonthold_wildtypes = ctreader.trim(wildtypes, 'age', [6,7,])
-	print(len(sixmonthold_wildtypes))
 
 	col11s = ctreader.trim(master, 'strain', ['col11a2'])
 	col11homs = ctreader.trim(col11s, 'genotype', ['hom'])
 	col11homs = list(col11homs['n'])
+	
+	print(len(oneyrold_wildtypes))
+	print(len(sixmonthold_wildtypes))
+	print(len(col11homs))
+	print(len(sixmonthold_wildtypes))
 
 	homs = [421, 443, 582, 583, 584, 585, 586, 587, 588, 589]
 	het7month = [459, 460, 461]

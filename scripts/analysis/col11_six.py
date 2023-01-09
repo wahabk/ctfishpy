@@ -10,10 +10,13 @@ from sklearn import preprocessing
 import random
 
 if __name__ == "__main__":
-	ctreader = ctfishpy.CTreader()
-	master = ctreader.mastersheet()
-	datapath = 'output/otolith_data.csv'
-	datapath_col11 = 'output/col11_new_data.json'
+
+	# dataset_path = "/home/ak18001/Data/HDD/uCT"
+	dataset_path = "/home/wahab/Data/HDD/uCT"
+	ctreader = ctfishpy.CTreader(dataset_path)
+	master = ctreader.master
+	datapath = 'output/old/otolith_data.csv'
+	datapath_col11 = 'output/old/col11_new_data.json'
 
 	# strains = ['col11a2']
 	# master = master[master['strain'].isin(strains)]
@@ -29,6 +32,8 @@ if __name__ == "__main__":
 	wildtypes = ctreader.trim(master, 'genotype', ['wt'])
 	sixmonth_wildtypes = ctreader.trim(wildtypes, 'age', [6,7,])
 	sixmonth_wildtypes = list(sixmonth_wildtypes['n'])
+
+	print()
 
 	# col11s = ctreader.trim(master, 'strain', ['col11a2'])
 	# col11homs = ctreader.trim(col11s, 'genotype', ['hom'])
