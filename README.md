@@ -14,7 +14,7 @@ pip install git+https://github.com/wahabk/ctfishpy
 
 Check the jupyter notebooks in `examples/`
 
-# Requirements
+# Dependencies
 
 For python dependencies check `setup.py`
 
