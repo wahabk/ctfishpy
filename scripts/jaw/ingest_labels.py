@@ -39,12 +39,12 @@ if __name__ == "__main__":
 		new_label[label == 4] = 4
 
 		# if index == 131:
-		# center = ctreader.jaw_centers[index]
-		# scan_roi = ctreader.crop3d(scan, roiSize, center)
-		# label_roi = ctreader.crop3d(new_label, roiSize, center)
-		# ctreader.view(scan_roi, label_roi)
+		center = ctreader.jaw_centers[index]
+		scan_roi = ctreader.crop3d(scan, roiSize, center)
+		label_roi = ctreader.crop3d(new_label, roiSize, center)
+		ctreader.view(scan_roi, label_roi)
 
-		ctreader.write_label(bone, new_label, index, name=new_name)
+		# ctreader.write_label(bone, new_label, index, name=new_name)
 
 
 
