@@ -19,8 +19,7 @@ from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import datetime
 import time
-
-from  typing import Union
+from typing import Union
 
 class CTreader:
 	def __init__(self, data_path:Union[str, Path, None]=None):
