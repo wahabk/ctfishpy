@@ -9,11 +9,11 @@ import pandas as pd
 import math
 import seaborn as sns
 
-sns.set(font_scale=1.05)
+sns.set(font_scale=1.07)
 
 if __name__ == '__main__':
-	# dataset_path = "/home/ak18001/Data/HDD/uCT"
-	dataset_path = "/home/wahab/Data/HDD/uCT"
+	dataset_path = "/home/ak18001/Data/HDD/uCT"
+	# dataset_path = "/home/wahab/Data/HDD/uCT"
 	
 	ctreader = ctfishpy.CTreader(dataset_path)
 	centers = ctreader.otolith_centers
@@ -23,8 +23,8 @@ if __name__ == '__main__':
 	mid_wt = [200,330,364,277]
 	col_hom = [421,443,582,589]
 	
-	keys = ctreader.get_hdf5_keys("/home/wahab/Data/HDD/uCT/LABELS/OTOLITHS/OTOLITHS.h5")
-	print(keys)
+	# keys = ctreader.get_hdf5_keys("/home/wahab/Data/HDD/uCT/LABELS/OTOLITHS/OTOLITHS.h5")
+	# print(keys)
 
 	data = []
 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
 		stack_metadata = ctreader.read_metadata(n)
 		label = ctreader.read_label(organ, n, is_amira=False)
 		# label = ctreader.read_label(organ, old_n, is_amira=True)
-		if old_n == 200: label  = ctreader.rotate_array(label, 94, is_label=True)
+		# if old_n == 200: label  = ctreader.rotate_array(label, 94, is_label=True)
 		label = ctreader.crop3d(label, roiSize, center=center)
 
 		# ctreader.view(ct, label = label)
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 		this_df = df.where(df.Otolith == oto_name).dropna()
 		sns.histplot(this_df, x='Distance [$\mu$m]', y='Density [$g.cm^{3}HA$]', hue='Genotype', bins=30, ax=ax, cbar=True)
 		# ax.
-	plt.tight_layout()
+	plt.tight_layout(pad=0.05)
 
 
 
