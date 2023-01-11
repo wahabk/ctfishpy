@@ -19,8 +19,7 @@ from pydicom.dataset import FileDataset, FileMetaDataset
 from pydicom.uid import UID
 import datetime
 import time
-
-from  typing import Union
+from typing import Union
 
 class CTreader:
 	def __init__(self, data_path:Union[str, Path, None]=None):
@@ -99,7 +98,7 @@ class CTreader:
 		else:
 			raise Exception("Dataset not initialised")
 
-	def read_metadata(self, fish:int, old_n = False):
+	def read_metadata(self, fish:int, old_n = False) -> dict:
 		return self.master.loc[fish].to_dict()
 
 	def read_dicom(self, path, bits=16, dtype='uint16'):
