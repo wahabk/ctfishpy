@@ -38,8 +38,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (64,64,64),
-		sampler_probs = {0:4, 1:5, 2:5, 3:6, 4:6},
+		patch_size = (100,100,100),
+		sampler_probs = {0:2, 1:5, 2:5, 3:5, 4:5},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -81,8 +81,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=2000,
-		samples_per_volume=100,
+		max_length=1000,
+		samples_per_volume=80,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -93,8 +93,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=2000,
-		samples_per_volume=100,
+		max_length=500,
+		samples_per_volume=30,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -198,9 +198,10 @@ if __name__ == "__main__":
 	ctreader = ctfishpy.CTreader(dataset_path)
 
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
-	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]
+	damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
+	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]+damiano
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_20221208"
+	dataset_name = "JAW_20230101"
 
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
@@ -208,31 +209,31 @@ if __name__ == "__main__":
 
 	random.seed(42)
 	random.shuffle(ready)
-	train_data = ready[:12]
-	val_data = ready[12:14]
-	test_data = ready[12:]
+	train_data = ready[:25]
+	val_data = ready[25:28]
+	test_data = ready[25:]
 	# train_data = ready[:2]
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'JAW sampler'
+	name = 'JAW hundy cubed'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
-		"lr": 3e-4,
-		"batch_size": 32,
+		"lr": 3e-2,
+		"batch_size": 16,
 		"n_blocks":3,
-		"norm": 'INSTANCE',
+		"norm": 'BATCH',
 		"epochs": 200,
 		"start_filters": 32,
-		"activation": "PRELU",
-		"dropout": 0.1,
+		"activation": "RELU",
+		"dropout": 0,
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.5), 
 	}
-
+    
 	# TODO add model in train?
 	work_dir = Path().parent.resolve()
 
