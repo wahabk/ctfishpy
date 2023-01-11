@@ -38,8 +38,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (100,100,100),
-		sampler_probs = {0:2, 1:5, 2:5, 3:5, 4:5},
+		patch_size = (160,160,160),
+		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -63,7 +63,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.75),
 		tio.RandomAffine(p=0.25),
-		tio.RandomBlur(p=0.3),
+		tio.RandomBlur(p=0.2),
 		tio.RandomBiasField(0.6, p=0.5),
 		tio.RandomNoise(0.1, 0.01, p=0.25),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
@@ -81,8 +81,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=1000,
-		samples_per_volume=80,
+		max_length=800,
+		samples_per_volume=20,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -93,12 +93,12 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=500,
-		samples_per_volume=30,
+		max_length=400,
+		samples_per_volume=20,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)
-	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
+	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=False, num_workers=0, pin_memory=torch.cuda.is_available())
 
 
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -110,27 +110,27 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	channels = [2**n for n in range(start, start + n_blocks)]
 	strides = [2 for _ in range(1, n_blocks)]
 
-	model = monai.networks.nets.AttentionUnet(
-		spatial_dims=params['spatial_dims'],
-		in_channels=1,
-		out_channels=params['n_classes'],
-		channels=channels,
-		strides=strides,
-		dropout=params["dropout"],
-		# padding='valid',
-	)
-
-	# model = monai.networks.nets.UNet(
+	# model = monai.networks.nets.AttentionUnet(
 	# 	spatial_dims=params['spatial_dims'],
 	# 	in_channels=1,
 	# 	out_channels=params['n_classes'],
 	# 	channels=channels,
 	# 	strides=strides,
-	# 	num_res_units=params["n_blocks"],
-	# 	act=params['activation'],
-	# 	norm=params["norm"],
 	# 	dropout=params["dropout"],
+	# 	# padding='valid',
 	# )
+
+	model = monai.networks.nets.UNet(
+		spatial_dims=params['spatial_dims'],
+		in_channels=1,
+		out_channels=params['n_classes'],
+		channels=channels,
+		strides=strides,
+		num_res_units=params["n_blocks"],
+		act=params['activation'],
+		norm=params["norm"],
+		dropout=params["dropout"],
+	)
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
 	model.to(device)
@@ -205,7 +205,10 @@ if __name__ == "__main__":
 
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
-	print(f"All data: {len(ready)}")
+
+	remove = [216,257,274] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
+	ready = [x for x in ready if x not in remove]
+	print(f"All data: {len(ready)}, nums  {ready}")
 
 	random.seed(42)
 	random.shuffle(ready)
@@ -216,18 +219,18 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'JAW hundy cubed'
+	name = 'norm unet 160^3 no bad'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
-		"lr": 3e-2,
-		"batch_size": 16,
+		"lr": 5e-3,
+		"batch_size": 8,
 		"n_blocks":3,
 		"norm": 'BATCH',
-		"epochs": 200,
+		"epochs": 50,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0,
