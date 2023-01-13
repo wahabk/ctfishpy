@@ -15,14 +15,18 @@ from tqdm import tqdm
 import gc
 import torch.nn.functional as F
 from pathlib2 import Path
+
 from ray import tune
+from ray.tune.schedulers import ASHAScheduler
+from functools import partial
 
 print(os.cpu_count())
 print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def train(config, dataset_path, name, bone, train_data, val_data, test_data, model=None, save=False, tuner=True, device_ids=[0,1], num_workers=10, work_dir=".", dataset_name=None):
+def train(config, dataset_path, name, bone, train_data, val_data, test_data, model=None, 
+			save=False, tuner=True, device_ids=[0,], num_workers=10, work_dir=".", dataset_name=None):
 	os.chdir(work_dir)
 	'''
 	by default for ray tune
@@ -82,7 +86,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=800,
+		max_length=500,
 		samples_per_volume=40,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
@@ -94,7 +98,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=400,
+		max_length=500,
 		samples_per_volume=40,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
@@ -220,28 +224,53 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'norm unet alpha 0.2'
+	name = 'jaw grid search'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
+	num_samples = 12
+	max_num_epochs = 100
+	gpus_per_trial = 1
+	device_ids = [0,]
+	save = False
+
 	config = {
-		"lr": 9e-3,
-		"batch_size": 16,
-		"n_blocks":4,
-		"norm": 'BATCH',
-		"epochs": 200,
-		"start_filters": 32,
-		"activation": "RELU",
-		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.5), 
+		"lr": tune.loguniform(1e-5,1e-1),
+		"batch_size": tune.choice([4,8,12]),
+		"n_blocks": tune.choice([2,3,4,5]),
+		"norm": tune.choice(["BATCH"]),
+		"epochs": 100,
+		"start_filters": tune.choice([32]),
+		"activation": tune.choice(["RELU"]),
+		"dropout": tune.choice([0,0.1]),
+		"loss_function": tune.grid_search([
+			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+			monai.losses.GeneralizedDiceLoss(include_background=True),
+			monai.losses.DiceLoss(include_background=True),
+			torch.nn.CrossEntropyLoss(),
+			])
 	}
-    
-	# TODO add model in train?
+
+	# the scheduler will terminate badly performing trials
+	scheduler = ASHAScheduler(
+		metric="val_loss",
+		mode="min",
+		max_t=max_num_epochs,
+		grace_period=25,
+		reduction_factor=2)
+
 	work_dir = Path().parent.resolve()
 
-	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, model=model, 
-		test_data=test_data, save=save, tuner=False, device_ids=[0,], num_workers=16, 
-		dataset_name=dataset_name ,work_dir=work_dir)
-
+	result = tune.run(
+		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
+		resources_per_trial={"cpu": 16, "gpu": 1},
+		config=config,
+		num_samples=num_samples,
+		scheduler=scheduler,
+		checkpoint_at_end=False,
+		local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'
