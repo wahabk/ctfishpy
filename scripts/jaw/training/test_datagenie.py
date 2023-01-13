@@ -36,8 +36,8 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 
 if __name__ == "__main__":
 
-	# dataset_path = '/home/ak18001/Data/HDD/uCT'
-	dataset_path = '/mnt/scratch/ak18001/uCT'
+	dataset_path = '/home/ak18001/Data/HDD/uCT'
+	# dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
@@ -89,8 +89,8 @@ if __name__ == "__main__":
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (160,160,160),
-		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
+		patch_size = (100,100,100),
+		sampler_probs = {0:3, 1:4, 2:4, 3:5, 4:5},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -110,14 +110,14 @@ if __name__ == "__main__":
 	)
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.75),
-		tio.RandomAffine(p=0.25),
+		tio.RandomFlip(axes=(0), flip_probability=0.5),
+		tio.RandomAffine(p=0.5),
 		tio.RandomBlur(p=0.2),
-		tio.RandomBiasField(0.6, p=0.5),
-		tio.RandomNoise(0.1, 0.01, p=0.25),
+		tio.RandomBiasField(0.75, order=4, p=0.5),
+		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(5,95)),
+		tio.ZNormalization(p=0.5),
+		tio.RescaleIntensity(percentiles=(0.5,99.5), p=0.25),
 	])
 
 	#TODO find a way to precalculate this for tiling
