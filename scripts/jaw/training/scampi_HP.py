@@ -25,170 +25,7 @@ print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
 print('------------num available devices:', torch.cuda.device_count())
 
-def train(config, dataset_path, name, bone, train_data, val_data, test_data, model=None, 
-			save=False, tuner=True, device_ids=[0,], num_workers=10, work_dir=".", dataset_name=None):
-	os.chdir(work_dir)
-	'''
-	by default for ray tune
-	'''
-
-	# setup neptune
-	run = neptune.init_run(
-		project="wahabk/Fishnet",
-		api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIzMzZlNGZhMi1iMGVkLTQzZDEtYTI0MC04Njk1YmJmMThlYTQifQ==",
-	)
-
-	params = dict(
-		dataset_path=dataset_path,
-		bone=bone,
-		dataset_name=dataset_name,
-		roiSize = (200, 192, 256),
-		patch_size = (160,160,160),
-		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
-		train_data = train_data,
-		val_data = val_data,
-		test_data = test_data,
-		batch_size = config['batch_size'],
-		n_blocks = config['n_blocks'],
-		norm = config['norm'],
-		loss_function = config['loss_function'],
-		lr = config['lr'],
-		epochs = config['epochs'],
-		start_filters = config['start_filters'],
-		activation = config['activation'],
-		num_workers = num_workers,
-		n_classes = 5, #including background
-		random_seed = 42,
-		dropout = config['dropout'],
-		spatial_dims = 3,
-	)
-
-	run['Tags'] = name
-	
-	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.75),
-		tio.RandomAffine(p=0.25),
-		tio.RandomBlur(p=0.2),
-		tio.RandomBiasField(0.6, p=0.5),
-		tio.RandomNoise(0.1, 0.01, p=0.25),
-		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(5,95)),
-	])
-
-	#TODO find a way to precalculate this for tiling
-	# if config['n_blocks'] == 2: label_size = (48,48,48)
-	# if config['n_blocks'] == 3: label_size = (24,24,24)
-	label_size = params['roiSize']
-
-	train_subjects = precacheSubjects(params['dataset_path'], params['train_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
-	train_ds = tio.SubjectsDataset(train_subjects, transform=transforms) 
-	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
-	patches_queue = tio.Queue(
-		train_ds,
-		max_length=500,
-		samples_per_volume=40,
-		sampler=patch_sampler,
-		num_workers=params['num_workers'],
-	)
-	train_loader = torch.utils.data.DataLoader(patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
-
-	val_subjects = precacheSubjects(params['dataset_path'], params['val_data'], params['bone'], params['roiSize'], dataset_name=params['dataset_name'])
-	val_ds = tio.SubjectsDataset(val_subjects, transform=transforms)
-	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
-	val_patches_queue = tio.Queue(
-		val_ds,
-		max_length=500,
-		samples_per_volume=40,
-		sampler=val_sampler,
-		num_workers=params['num_workers'],
-	)
-	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=False, num_workers=0, pin_memory=torch.cuda.is_available())
-
-
-	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-	print(f'training on {device}')
-
-	start_filters = params['start_filters']
-	n_blocks = params['n_blocks']
-	start = int(math.sqrt(start_filters))
-	channels = [2**n for n in range(start, start + n_blocks)]
-	strides = [2 for _ in range(1, n_blocks)]
-
-	# model = monai.networks.nets.AttentionUnet(
-	# 	spatial_dims=params['spatial_dims'],
-	# 	in_channels=1,
-	# 	out_channels=params['n_classes'],
-	# 	channels=channels,
-	# 	strides=strides,
-	# 	dropout=params["dropout"],
-	# 	# padding='valid',
-	# )
-
-	model = monai.networks.nets.UNet(
-		spatial_dims=params['spatial_dims'],
-		in_channels=1,
-		out_channels=params['n_classes'],
-		channels=channels,
-		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'],
-		norm=params["norm"],
-		dropout=params["dropout"],
-	)
-
-	model = torch.nn.DataParallel(model, device_ids=device_ids)
-	model.to(device)
-
-	# loss function
-	criterion = params['loss_function']
-	if isinstance(criterion, monai.losses.TverskyLoss):
-		params['alpha'] = criterion.alpha
-	params['loss_function'] = str(params['loss_function'])
-	run['parameters'] = params
-
-	# optimizer
-	# optimizer = torch.optim.RMSprop(model.parameters(), params['lr'])
-	# optimizer = torch.optim.SGD(model.parameters(), params['lr'])
-	optimizer = torch.optim.Adam(model.parameters(), params['lr'])
-	# scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=2, factor=0.5)
-	# scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=0.0001, max_lr=0.01, cycle_momentum=False)
-
-	# trainer
-	trainer = Trainer(model=model,
-		device=device,
-		criterion=criterion,
-		optimizer=optimizer,
-		training_DataLoader=train_loader,
-		validation_DataLoader=val_loader,
-		# lr_scheduler=scheduler,
-		epochs=params['epochs'],
-		n_classes=params['n_classes'],
-		logger=run,
-		tuner=tuner,
-		on_subject=True,
-	)
-
-	# start training
-	training_losses, validation_losses, lr_rates = trainer.run_trainer()
-
-	run['learning_rates'].log(lr_rates)
-	
-	if save:
-		model_name = save
-		torch.save(model.state_dict(), model_name)
-		# run['model/weights'].upload(model_name)
-
-	train_dataset, train_labels = None, None
-	val_dataset, val_labels = None, None
-
-	gc.collect()
-	losses = test_jaw(dataset_path, model, bone, test_data, params, threshold=0.5, 
-					run=run, criterion=criterion, device=device, num_workers=num_workers, 
-					label_size=label_size, dataset_name=dataset_name)
-	run['test/df'].upload(File.as_html(losses))
-
-	run.stop()
+from scampi import train
 
 if __name__ == "__main__":
 
@@ -231,27 +68,27 @@ if __name__ == "__main__":
 	model=None
 
 	num_samples = 12
-	max_num_epochs = 100
+	max_num_epochs = 150
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
 
 	config = {
 		"lr": tune.loguniform(1e-5,1e-1),
-		"batch_size": tune.choice([4,8,12]),
-		"n_blocks": tune.choice([2,3,4,5]),
+		"batch_size": tune.choice([4,16,32]),
+		"n_blocks": tune.choice([2,3]),
 		"norm": tune.choice(["BATCH"]),
 		"epochs": 100,
 		"start_filters": tune.choice([32]),
 		"activation": tune.choice(["RELU"]),
 		"dropout": tune.choice([0,0.1]),
 		"loss_function": tune.grid_search([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
-			monai.losses.GeneralizedDiceLoss(include_background=True),
-			monai.losses.DiceLoss(include_background=True),
-			torch.nn.CrossEntropyLoss(),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+			# monai.losses.GeneralizedDiceLoss(include_background=True),
+			# monai.losses.DiceLoss(include_background=True),
+			# torch.nn.CrossEntropyLoss(),
 			])
 	}
 
@@ -262,6 +99,7 @@ if __name__ == "__main__":
 		max_t=max_num_epochs,
 		grace_period=25,
 		reduction_factor=2)
+	scheduler = None
 
 	work_dir = Path().parent.resolve()
 

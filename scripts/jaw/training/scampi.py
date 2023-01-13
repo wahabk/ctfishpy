@@ -39,7 +39,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (160,160,160),
+		patch_size = (100,100,100),
 		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
@@ -62,14 +62,14 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	run['Tags'] = name
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.75),
-		tio.RandomAffine(p=0.25),
+		tio.RandomFlip(axes=(0), flip_probability=0.5),
+		tio.RandomAffine(p=0.5),
 		tio.RandomBlur(p=0.2),
-		tio.RandomBiasField(0.6, p=0.5),
-		tio.RandomNoise(0.1, 0.01, p=0.25),
+		tio.RandomBiasField(0.75, order=4, p=0.5),
+		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(),
-		tio.RescaleIntensity(percentiles=(5,95)),
+		tio.ZNormalization(p=0.5),
+		tio.RescaleIntensity(percentiles=(0.5,99.5), p=0.25),
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -82,8 +82,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=800,
-		samples_per_volume=40,
+		max_length=1000,
+		samples_per_volume=10,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -94,8 +94,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=400,
-		samples_per_volume=40,
+		max_length=1000,
+		samples_per_volume=10,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -124,6 +124,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	model = monai.networks.nets.UNet(
 		spatial_dims=params['spatial_dims'],
 		in_channels=1,
+		kernel_size=7,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
@@ -220,22 +221,22 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'norm unet alpha 0.2'
+	name = 'unet tv0.3'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
-		"lr": 9e-3,
+		"lr": 0.000201306,
 		"batch_size": 16,
-		"n_blocks":4,
+		"n_blocks":3,
 		"norm": 'BATCH',
-		"epochs": 200,
+		"epochs": 100,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.5), 
+		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.3), 
 	}
     
 	# TODO add model in train?
