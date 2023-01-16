@@ -132,7 +132,7 @@ if __name__ == "__main__":
 	search_space = {
 		# "scaling_config": air.ScalingConfig(use_gpu=True,resources_per_worker={"CPU": 16, "GPU": 1}),
 		"lr": tune.loguniform(1e-4,1e-1), #0.0000465794,
-		"batch_size": tune.choice([2,4,8,16,32,64]),
+		"batch_size": tune.choice([2,4,8,16,32]),
 		"n_blocks": 3,
 		"norm": tune.choice(["BATCH"]),
 		"epochs": 150,
