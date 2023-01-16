@@ -20,6 +20,10 @@ from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from functools import partial
 
+from ray.tune.search.optuna import OptunaSearch
+from ray import tune, air
+from ray.air import session
+
 print(os.cpu_count())
 print ('Current cuda device ', torch.cuda.current_device())
 print(torch.cuda.is_available())
@@ -48,7 +52,7 @@ if __name__ == "__main__":
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
 
-	remove = [216,257,274] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
+	remove = [216,] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
 	ready = [x for x in ready if x not in remove]
 	print(f"All data: {len(ready)}, nums  {ready}")
 
@@ -61,54 +65,117 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'jaw grid search'
+	name = 'jaw_attention_optuna'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
-	num_samples = 12
+	num_samples = 20
 	max_num_epochs = 150
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
+	work_dir = Path().parent.resolve()
 
-	config = {
-		"lr": tune.loguniform(1e-5,1e-1),
-		"batch_size": tune.choice([4,16,32]),
-		"n_blocks": tune.choice([2,3]),
+	# the scheduler will terminate badly performing trials
+	# scheduler = ASHAScheduler(
+	# 	metric="val_loss",
+	# 	mode="min",
+	# 	max_t=max_num_epochs,
+	# 	grace_period=50,
+	# 	reduction_factor=2)
+	# scheduler = None
+
+
+	# search_space = {
+	# 	"lr": 0.0000465794,#tune.loguniform(1e-5,1e-1),
+	# 	"batch_size": tune.choice([32,64]),
+	# 	"n_blocks": 3,
+	# 	"norm": tune.choice(["BATCH","INSTANCE"]),
+	# 	"epochs": 100,
+	# 	"start_filters": tune.choice([32]),
+	# 	"activation": tune.choice(["RELU","PRELU"]),
+	# 	"dropout": tune.choice([0,0.1,0.2,0.3,0.4]),
+	# 	"loss_function": tune.grid_search([
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.4),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.7),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.8),
+	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+	# 		monai.losses.GeneralizedDiceLoss(include_background=True),
+	# 		monai.losses.DiceLoss(include_background=True),
+	# 		# torch.nn.CrossEntropyLoss(),
+	# 		])
+	# }
+
+	# result = tune.run(
+	# 	partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+	# 		test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
+	# 	resources_per_trial={"cpu": 16, "gpu": 1},
+	# 	config=search_space,
+	# 	num_samples=num_samples,
+	# 	scheduler=scheduler,
+	# 	checkpoint_at_end=False,
+	# 	local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'
+
+
+	scheduler = ASHAScheduler(
+		max_t=max_num_epochs,
+		grace_period=50,
+		reduction_factor=2)
+
+	search_space = {
+		# "scaling_config": air.ScalingConfig(use_gpu=True,resources_per_worker={"CPU": 16, "GPU": 1}),
+		"lr": tune.loguniform(1e-4,1e-1), #0.0000465794,
+		"batch_size": tune.choice([2,4,8,16,32,64]),
+		"n_blocks": 3,
 		"norm": tune.choice(["BATCH"]),
-		"epochs": 100,
+		"epochs": 150,
 		"start_filters": tune.choice([32]),
 		"activation": tune.choice(["RELU"]),
-		"dropout": tune.choice([0,0.1]),
-		"loss_function": tune.grid_search([
+		"dropout": tune.choice([0,0.1,0.2,0.3,0.4,0.5]),
+		"loss_function": tune.choice([
+			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.3),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.4),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.5),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.6),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.7),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.8),
-			# monai.losses.GeneralizedDiceLoss(include_background=True),
-			# monai.losses.DiceLoss(include_background=True),
+			monai.losses.TverskyLoss(include_background=True, alpha=0.9),
+			monai.losses.GeneralizedDiceLoss(include_background=True),
+			monai.losses.DiceLoss(include_background=True),
 			# torch.nn.CrossEntropyLoss(),
 			])
 	}
 
-	# the scheduler will terminate badly performing trials
-	scheduler = ASHAScheduler(
-		metric="val_loss",
-		mode="min",
-		max_t=max_num_epochs,
-		grace_period=25,
-		reduction_factor=2)
-	scheduler = None
+	algo = OptunaSearch()
 
-	work_dir = Path().parent.resolve()
+	tuner = tune.Tuner(
+		tune.with_resources(
+            partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+				test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
+            resources={"cpu": 16, "gpu": gpus_per_trial}
+        ),
+		tune_config=tune.TuneConfig(
+			num_samples=num_samples,
+			search_alg=algo,
+			scheduler=scheduler,
+			metric="val_loss",
+			mode="min",
+		),
+		run_config=air.RunConfig(
+			local_dir=dataset_path+'/RAY_RESULTS/', 
+			# name=name,
+		),
+		param_space=search_space,
+	)
+	results = tuner.fit()
 
-	result = tune.run(
-		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
-			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
-		resources_per_trial={"cpu": 16, "gpu": 1},
-		config=config,
-		num_samples=num_samples,
-		scheduler=scheduler,
-		checkpoint_at_end=False,
-		local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'
+	print(results)

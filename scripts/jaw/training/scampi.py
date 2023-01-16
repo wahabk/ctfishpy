@@ -38,7 +38,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (200, 192, 256),
+		roiSize = (192, 192, 256),
 		patch_size = (100,100,100),
 		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
@@ -82,8 +82,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=1000,
-		samples_per_volume=10,
+		max_length=4000,
+		samples_per_volume=16,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -94,8 +94,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=1000,
-		samples_per_volume=10,
+		max_length=4000,
+		samples_per_volume=16,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -111,28 +111,28 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	channels = [2**n for n in range(start, start + n_blocks)]
 	strides = [2 for _ in range(1, n_blocks)]
 
-	# model = monai.networks.nets.AttentionUnet(
-	# 	spatial_dims=params['spatial_dims'],
-	# 	in_channels=1,
-	# 	out_channels=params['n_classes'],
-	# 	channels=channels,
-	# 	strides=strides,
-	# 	dropout=params["dropout"],
-	# 	# padding='valid',
-	# )
-
-	model = monai.networks.nets.UNet(
+	model = monai.networks.nets.AttentionUnet(
 		spatial_dims=params['spatial_dims'],
 		in_channels=1,
-		kernel_size=7,
 		out_channels=params['n_classes'],
 		channels=channels,
 		strides=strides,
-		num_res_units=params["n_blocks"],
-		act=params['activation'],
-		norm=params["norm"],
 		dropout=params["dropout"],
+		# padding='valid',
 	)
+
+	# model = monai.networks.nets.UNet(
+	# 	spatial_dims=params['spatial_dims'],
+	# 	in_channels=1,
+	# 	# kernel_size=7,
+	# 	out_channels=params['n_classes'],
+	# 	channels=channels,
+	# 	strides=strides,
+	# 	num_res_units=params["n_blocks"],
+	# 	act=params['activation'],
+	# 	norm=params["norm"],
+	# 	dropout=params["dropout"],
+	# )
 
 	model = torch.nn.DataParallel(model, device_ids=device_ids)
 	model.to(device)
