@@ -39,8 +39,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (192, 192, 256),
-		patch_size = (100,100,100),
-		sampler_probs = {0:3, 1:5, 2:5, 3:6, 4:6},
+		patch_size = config['patch_size'], #(100,100,100),
+		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -69,7 +69,10 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
 		tio.ZNormalization(p=0.5),
-		tio.RescaleIntensity(percentiles=(0.5,99.5), p=0.25),
+		tio.OneOf({
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+		}),
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -208,7 +211,7 @@ if __name__ == "__main__":
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
 
-	remove = [216,257,274] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
+	remove = [216,] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
 	ready = [x for x in ready if x not in remove]
 	print(f"All data: {len(ready)}, nums  {ready}")
 
@@ -221,22 +224,24 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'unet tv0.3'
+	name = 'unet gdice'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
-		"lr": 0.000201306,
-		"batch_size": 16,
+		"lr": 0.00263078,
+		"batch_size": 4,
 		"n_blocks":3,
 		"norm": 'BATCH',
-		"epochs": 100,
+		"epochs": 150,
 		"start_filters": 32,
 		"activation": "RELU",
-		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.3), 
+		"dropout": 0.2,
+		"patch_size": (100,100,100),
+		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.1), 
+		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
     
 	# TODO add model in train?

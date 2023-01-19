@@ -89,7 +89,7 @@ if __name__ == "__main__":
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (100,100,100),
+		patch_size = (64,64,64),
 		sampler_probs = {0:3, 1:4, 2:4, 3:5, 4:5},
 		train_data = train_data,
 		val_data = val_data,
@@ -117,7 +117,7 @@ if __name__ == "__main__":
 		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
 		tio.ZNormalization(p=0.5),
-		tio.RescaleIntensity(percentiles=(0.5,99.5), p=0.25),
+		tio.RescaleIntensity(percentiles=(1,99), p=1),
 	])
 
 	#TODO find a way to precalculate this for tiling
