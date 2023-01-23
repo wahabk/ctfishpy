@@ -446,6 +446,7 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None, dataset_name
 	return dataset, labels
 
 def precacheSubjects(dataset_path, indices, bone, roiSize, label_size=None, dataset_name=None,):
+	#TODO add transforms
 
 	if label_size is None:
 		label_size = roiSize
