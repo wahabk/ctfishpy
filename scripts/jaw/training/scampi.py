@@ -38,7 +38,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (192, 192, 256),
+		roiSize = (192, 192, 192),
 		patch_size = config['patch_size'], #(100,100,100),
 		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
@@ -205,9 +205,9 @@ if __name__ == "__main__":
 
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
 	damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
-	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]+damiano
+	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364, 230]+damiano
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_20230101"
+	dataset_name = "JAW_20230124"
 
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
@@ -218,30 +218,30 @@ if __name__ == "__main__":
 
 	random.seed(42)
 	random.shuffle(ready)
-	train_data = ready[:25]
-	val_data = ready[25:28]
-	test_data = ready[25:]
+	train_data = ready[:26]
+	val_data = ready[26:29]
+	test_data = ready[26:]
 	# train_data = ready[:2]
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'unet gdice'
+	name = 'scampi ready'
 	save = False
-	# save = 'output/weights/3dunet221019.pt'
+	save = 'output/weights/jaw_unet_230124.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 4,
-		"n_blocks":3,
+		"batch_size": 8,
+		"n_blocks":5,
 		"norm": 'BATCH',
-		"epochs": 150,
+		"epochs": 100,
 		"start_filters": 32,
 		"activation": "RELU",
 		"dropout": 0.2,
-		"patch_size": (100,100,100),
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.1), 
+		"patch_size": (160,160,160),
+		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
 		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
     
