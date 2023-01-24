@@ -84,7 +84,7 @@ class CTSubjectDataset(torch.utils.data.Dataset):
 			# if label size is smaller for roi
 			# if self.label_size is not None:
 			# 	self.label_size == self.roi_size
-			X = ctreader.crop3d(X, self.roi_size, center=center)			
+			X = ctreader.crop3d(X, self.roi_size, center=center)
 			y = ctreader.crop3d(y, self.roi_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
@@ -489,7 +489,6 @@ def precacheSubjects(dataset_path, indices, bone, roiSize, label_size=None, data
 	return subjects_list
 
 def precache_age(dataset_path, n_dims, indices, bone, roiSize):
-
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master

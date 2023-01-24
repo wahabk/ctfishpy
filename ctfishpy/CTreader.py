@@ -572,8 +572,8 @@ class CTreader:
 		new_array = array[rectz[0] : rectz[1], recty[0] : recty[1], rectx[0] : rectx[1],]+0 # add 0 to create new copy and be able to delete old array if need be
 		return new_array
 
-	def uncrop3d(self, array, roi, center=None):
-		array = np.zeros_like(array)
+	def uncrop3d(self, old_array, roi, center=None):
+		array = np.zeros_like(old_array)
 		roiZ, roiY, roiX = roi.shape
 		zl = int(roiZ / 2)
 		yl = int(roiY / 2)
@@ -735,3 +735,44 @@ class CTreader:
 		elif b == 0: b = a
 		
 		return int((a+b)/2)
+
+
+	def label_array(self, scan, label=None):
+
+		from .GUI import create_labeller
+
+		if label is None:
+			label = np.zeros_like(scan)
+
+		assert(scan.shape == label.shape)
+
+		viewer = napari.Viewer()
+		layer = viewer.add_image(scan)
+		layer.metadata = {"point": None, "history": np.stack([label]), "slice": 0}
+		label_layer = viewer.add_labels(label)
+
+		create_labeller(viewer, layer, label_layer)
+
+		viewer.show(block=True)
+
+		return label_layer.data
+
+	def insert_a_in_b(self, a: np.ndarray, b: np.ndarray, center=None):
+
+		roiZ, roiY, roiX = a.shape
+		zl, yl, xl = int(roiZ / 2), int(roiY / 2), int(roiX / 2)
+ 
+		if center is None:
+			b_center = [int(b.shape[2] / 2), int(b.shape[3] / 2), int(b.shape[4] / 2)]
+			z, y, x = b_center
+		else:
+			z, y, x = center
+		z, y, x = int(z), int(y), int(x)
+
+		print(z, y, x, center, zl, yl, xl)
+		print(a.shape, b.shape)
+		print(z - zl, z + zl, y - yl, y + yl, x - xl, x + xl)
+
+		b[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl] = a
+
+		return b
