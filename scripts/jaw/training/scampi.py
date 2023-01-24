@@ -226,14 +226,14 @@ if __name__ == "__main__":
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
 	name = 'scampi ready'
-	save = False
+	# save = False
 	save = 'output/weights/jaw_unet_230124.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 8,
+		"batch_size": 4,
 		"n_blocks":5,
 		"norm": 'BATCH',
 		"epochs": 100,
