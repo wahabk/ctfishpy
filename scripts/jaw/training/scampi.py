@@ -63,16 +63,17 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0), flip_probability=0.5),
-		tio.RandomAffine(p=0.5),
-		tio.RandomBlur(p=0.2),
+		tio.RandomAffine(p=1),
+		tio.RandomBlur(p=0.4),
 		tio.RandomBiasField(0.75, order=4, p=0.5),
 		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(p=0.5),
+		tio.ZNormalization(masking_method='label', p=1),
 		tio.OneOf({
+			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
+			tio.RescaleIntensity(percentiles=(2,100)): 0.25,
 			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
-			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
-		}),
+		})
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -85,8 +86,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=8000,
-		samples_per_volume=20,
+		max_length=2000,
+		samples_per_volume=6,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -97,8 +98,8 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=8000,
-		samples_per_volume=20,
+		max_length=2000,
+		samples_per_volume=6,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
 	)

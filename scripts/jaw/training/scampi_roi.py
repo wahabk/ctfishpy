@@ -65,14 +65,14 @@ if __name__ == "__main__":
 	# val_data = ready[2:3]
 	# test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
-	name = 'jaw_atn160_optuna'
+	name = 'jaw search roi'
 	save = False
 	# save = 'output/weights/3dunet221019.pt'
 	# save = '/user/home/ak18001/scratch/Colloids/unet.pt'
 	model=None
 
-	num_samples = 50
-	max_num_epochs = 150
+	num_samples = 12
+	max_num_epochs = 200
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
@@ -85,19 +85,56 @@ if __name__ == "__main__":
 	# 	max_t=max_num_epochs,
 	# 	grace_period=50,
 	# 	reduction_factor=2)
-	# scheduler = None
+	scheduler = None
 
+
+	search_space = {
+		"lr": 0.00263078,#tune.loguniform(1e-5,1e-1),
+		"batch_size": tune.grid_search([4,8]),
+		"n_blocks": 3,
+		"norm": tune.choice(["BATCH"]),
+		"epochs": 150,
+		"start_filters": tune.choice([32]),
+		"activation": tune.choice(["RELU"]),
+		"dropout": tune.choice([0.2]),
+		"patch_size": tune.grid_search([
+			(32,32,32),
+			(64,64,64),
+			(96,96,96),
+			(128,128,128),
+			(160,160,160),
+			(192,192,192),
+		]),
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.1),
+	}
+
+	result = tune.run(
+		partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
+		resources_per_trial={"cpu": 16, "gpu": 1},
+		config=search_space,
+		num_samples=num_samples,
+		scheduler=scheduler,
+		checkpoint_at_end=False,
+		local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'
+
+
+	# scheduler = ASHAScheduler(
+	# 	max_t=max_num_epochs,
+	# 	grace_period=50,
+	# 	reduction_factor=2)
 
 	# search_space = {
-	# 	"lr": 0.0000465794,#tune.loguniform(1e-5,1e-1),
-	# 	"batch_size": tune.choice([32,64]),
+	# 	# "scaling_config": air.ScalingConfig(use_gpu=True,resources_per_worker={"CPU": 16, "GPU": 1}),
+	# 	"lr": tune.loguniform(1e-4,1e-1), #0.0000465794,
+	# 	"batch_size": tune.choice([2,4,8,16,32]),
 	# 	"n_blocks": 3,
-	# 	"norm": tune.choice(["BATCH","INSTANCE"]),
-	# 	"epochs": 100,
+	# 	"norm": tune.choice(["BATCH"]),
+	# 	"epochs": 150,
 	# 	"start_filters": tune.choice([32]),
-	# 	"activation": tune.choice(["RELU","PRELU"]),
-	# 	"dropout": tune.choice([0,0.1,0.2,0.3,0.4]),
-	# 	"loss_function": tune.grid_search([
+	# 	"activation": tune.choice(["RELU"]),
+	# 	"dropout": tune.choice([0,0.1,0.2,0.3,0.4,0.5]),
+	# 	"loss_function": tune.choice([
 	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.1),
 	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.2),
 	# 		monai.losses.TverskyLoss(include_background=True, alpha=0.3),
@@ -113,64 +150,27 @@ if __name__ == "__main__":
 	# 		])
 	# }
 
-	# result = tune.run(
-	# 	partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
-	# 		test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
-	# 	resources_per_trial={"cpu": 16, "gpu": 1},
-	# 	config=search_space,
-	# 	num_samples=num_samples,
-	# 	scheduler=scheduler,
-	# 	checkpoint_at_end=False,
-	# 	local_dir=dataset_path+'/RAY_RESULTS/') # Path().parent.resolve()/'ray_results'
+	# algo = OptunaSearch()
 
+	# tuner = tune.Tuner(
+	# 	tune.with_resources(
+    #         partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
+	# 			test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
+    #         resources={"cpu": 16, "gpu": gpus_per_trial}
+    #     ),
+	# 	tune_config=tune.TuneConfig(
+	# 		num_samples=num_samples,
+	# 		search_alg=algo,
+	# 		scheduler=scheduler,
+	# 		metric="val_loss",
+	# 		mode="min",
+	# 	),
+	# 	run_config=air.RunConfig(
+	# 		local_dir=dataset_path+'/RAY_RESULTS/', 
+	# 		# name=name,
+	# 	),
+	# 	param_space=search_space,
+	# )
+	# results = tuner.fit()
 
-	scheduler = ASHAScheduler(
-		max_t=max_num_epochs,
-		grace_period=50,
-		reduction_factor=2)
-	scheduler=None
-
-	search_space = {
-		# "scaling_config": air.ScalingConfig(use_gpu=True,resources_per_worker={"CPU": 16, "GPU": 1}),
-		"lr": 0.00263078, #0.0000465794,
-		"batch_size": tune.choice([1,2,4,8,16,32]),
-		"n_blocks": tune.choice([2,3,4,5]),
-		"norm": "BATCH",
-		"epochs": 150,
-		"start_filters": tune.choice([8,16,32]),
-		"activation": tune.choice(["RELU"]),
-		"dropout": tune.choice([0,0.1,0.2,0.3,0.4,0.5]),
-		"patch_size": (160,160,160),
-		"loss_function": tune.choice([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
-			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
-
-			# torch.nn.CrossEntropyLoss(),
-			])
-	}
-
-	algo = OptunaSearch()
-
-	tuner = tune.Tuner(
-		tune.with_resources(
-            partial(train, dataset_path=dataset_path, name=name, bone=bone, train_data=train_data, val_data=val_data, 
-				test_data=test_data, save=save, tuner=True, device_ids=[0,], num_workers=10, work_dir=work_dir, dataset_name=dataset_name),
-            resources={"cpu": 16, "gpu": gpus_per_trial}
-        ),
-		tune_config=tune.TuneConfig(
-			num_samples=num_samples,
-			search_alg=algo,
-			scheduler=scheduler,
-			metric="val_loss",
-			mode="min",
-		),
-		run_config=air.RunConfig(
-			local_dir=dataset_path+'/RAY_RESULTS/', 
-			# name=name,
-		),
-		param_space=search_space,
-		# checkpoint_at_end=False,
-	)
-	results = tuner.fit()
-
-	print(results)
+	# print(results)
