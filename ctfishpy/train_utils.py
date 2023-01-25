@@ -578,7 +578,7 @@ def predictpatches(model, patch_size, subjects_list, criterion, threshold=0.5):
 	
 	for idx, subject in enumerate(subjects_list):
 
-		grid_sampler = tio.inference.GridSampler(subject, patch_size=patch_size, patch_overlap=(8,8,8), padding_mode='mean')
+		grid_sampler = tio.inference.GridSampler(subject, patch_size=patch_size, patch_overlap=(16,16,16), padding_mode='mean')
 		patch_loader = torch.utils.data.DataLoader(grid_sampler, batch_size=1)
 		aggregator = tio.inference.GridAggregator(grid_sampler, overlap_mode='average')
 

@@ -87,12 +87,12 @@ class CTreader:
 
 	def read_roi(self, fish:int, roi, center=None):
 		if self.dataset_initialised:
-			start = time.time()
+			# start = time.time()
 			scan = self.read_dicom(self.dicoms_path / f"ak_{fish}.dcm")
 
 			scan = self.crop3d(scan, roi, center)
 
-			end = time.time()
+			# end = time.time()
 			# print(f"Reading dicom {fish} took {end-start} seconds") 
 			return scan
 		else:

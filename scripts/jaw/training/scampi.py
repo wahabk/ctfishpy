@@ -86,7 +86,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=2000,
+		max_length=4000,
 		samples_per_volume=6,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
@@ -98,7 +98,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=2000,
+		max_length=4000,
 		samples_per_volume=6,
 		sampler=val_sampler,
 		num_workers=params['num_workers'],
@@ -144,7 +144,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	# loss function
 	criterion = params['loss_function']
 	if isinstance(criterion, monai.losses.TverskyLoss):
-		params['alpha'] = criterion.alpha
+		params['alpha'] = float(criterion.alpha)
 	params['loss_function'] = str(params['loss_function'])
 	run['parameters'] = params
 
