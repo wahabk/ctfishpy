@@ -64,7 +64,7 @@ if __name__ == "__main__":
 	# train_data = ready[:25]
 	# val_data = ready[25:28]
 	# test_data = ready[25:]
-	train_data = ready[:2]
+	train_data = ready[:1]
 	val_data = ready[2:3]
 	test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
@@ -89,8 +89,8 @@ if __name__ == "__main__":
 		bone=bone,
 		dataset_name=dataset_name,
 		roiSize = (200, 192, 256),
-		patch_size = (100,100,100),
-		sampler_probs = {0:3, 1:4, 2:4, 3:5, 4:5},
+		patch_size = (192,192,192),
+		sampler_probs = {0:10, 1:10, 2:10, 3:11, 4:11},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -111,13 +111,17 @@ if __name__ == "__main__":
 	
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0), flip_probability=0.5),
-		tio.RandomAffine(p=0.5),
-		tio.RandomBlur(p=0.2),
+		tio.RandomAffine(p=1),
+		tio.RandomBlur(p=0.4),
 		tio.RandomBiasField(0.75, order=4, p=0.5),
 		tio.RandomNoise(1, 0.02, p=0.5),
 		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(p=0.5),
-		tio.RescaleIntensity(percentiles=(0.5,99.5), p=0.25),
+		tio.ZNormalization(masking_method='label', p=1),
+		tio.OneOf({
+			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
+			tio.RescaleIntensity(percentiles=(2,100)): 0.25,
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+		})
 	])
 
 	#TODO find a way to precalculate this for tiling
@@ -131,7 +135,7 @@ if __name__ == "__main__":
 	patches_queue = tio.Queue(
 		train_ds,
 		max_length=800,
-		samples_per_volume=40,
+		samples_per_volume=20,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
@@ -145,8 +149,10 @@ if __name__ == "__main__":
 		for x,y in zip(xs, ys):
 			print(x.shape, y.shape)
 
-			x = np.squeeze(np.array(x))*255
+			x = np.squeeze(np.array(x))*65535
 			y = undo_one_hot(np.array(y), n_classes=5)
+
+			print(x.max(), x.min())
 
 			ctreader.view(x, label=y)
 

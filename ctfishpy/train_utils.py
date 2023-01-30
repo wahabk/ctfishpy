@@ -84,7 +84,7 @@ class CTSubjectDataset(torch.utils.data.Dataset):
 			# if label size is smaller for roi
 			# if self.label_size is not None:
 			# 	self.label_size == self.roi_size
-			X = ctreader.crop3d(X, self.roi_size, center=center)			
+			X = ctreader.crop3d(X, self.roi_size, center=center)
 			y = ctreader.crop3d(y, self.roi_size, center=center)
 
 		X = np.array(X/X.max(), dtype=np.float32)
@@ -446,6 +446,7 @@ def precache(dataset_path, indices, bone, roiSize, label_size=None, dataset_name
 	return dataset, labels
 
 def precacheSubjects(dataset_path, indices, bone, roiSize, label_size=None, dataset_name=None,):
+	#TODO add transforms
 
 	if label_size is None:
 		label_size = roiSize
@@ -489,7 +490,6 @@ def precacheSubjects(dataset_path, indices, bone, roiSize, label_size=None, data
 	return subjects_list
 
 def precache_age(dataset_path, n_dims, indices, bone, roiSize):
-
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
@@ -578,7 +578,7 @@ def predictpatches(model, patch_size, subjects_list, criterion, threshold=0.5):
 	
 	for idx, subject in enumerate(subjects_list):
 
-		grid_sampler = tio.inference.GridSampler(subject, patch_size=patch_size, patch_overlap=(8,8,8), padding_mode='mean')
+		grid_sampler = tio.inference.GridSampler(subject, patch_size=patch_size, patch_overlap=(16,16,16), padding_mode='mean')
 		patch_loader = torch.utils.data.DataLoader(grid_sampler, batch_size=1)
 		aggregator = tio.inference.GridAggregator(grid_sampler, overlap_mode='average')
 
