@@ -47,7 +47,7 @@ if __name__ == "__main__":
 	damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
 	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]+damiano
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_20230101"
+	dataset_name = "JAW_20230124"
 
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
@@ -72,7 +72,7 @@ if __name__ == "__main__":
 	model=None
 
 	num_samples = 50
-	max_num_epochs = 150
+	max_num_epochs = 200
 	gpus_per_trial = 1
 	device_ids = [0,]
 	save = False
@@ -126,26 +126,24 @@ if __name__ == "__main__":
 
 	scheduler = ASHAScheduler(
 		max_t=max_num_epochs,
-		grace_period=50,
+		grace_period=100,
 		reduction_factor=2)
 	scheduler=None
 
 	search_space = {
 		# "scaling_config": air.ScalingConfig(use_gpu=True,resources_per_worker={"CPU": 16, "GPU": 1}),
 		"lr": 0.00263078, #0.0000465794,
-		"batch_size": tune.choice([1,2,4,8,16,32]),
-		"n_blocks": tune.choice([2,3,4,5]),
+		"batch_size": tune.choice([1,2,4,8]),
+		"n_blocks": tune.choice([4,5,6]),
 		"norm": "BATCH",
 		"epochs": 150,
 		"start_filters": tune.choice([8,16,32]),
+		"kernel_size": tune.choice([3,5,7]),
 		"activation": tune.choice(["RELU"]),
-		"dropout": tune.choice([0,0.1,0.2,0.3,0.4,0.5]),
-		"patch_size": (160,160,160),
+		"dropout": tune.loguniform(0.0001,0.6),
+		"patch_size": tune.choice([(160,160,160), (192,192,192)]),
 		"loss_function": tune.choice([
-			monai.losses.TverskyLoss(include_background=True, alpha=0.1),
 			monai.losses.TverskyLoss(include_background=True, alpha=0.2),
-
-			# torch.nn.CrossEntropyLoss(),
 			])
 	}
 
