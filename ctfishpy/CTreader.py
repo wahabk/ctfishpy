@@ -253,8 +253,7 @@ class CTreader:
 		"""
 
 		if is_amira==False and is_tif == False:
-			if name is None:
-				name = bone
+			if name is None: name = bone
 			label_path = str(self.dataset_path / f'LABELS/{bone}/{name}.h5')
 
 			with h5py.File(label_path, "r") as f:
