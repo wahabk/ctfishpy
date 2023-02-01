@@ -240,7 +240,7 @@ if __name__ == "__main__":
 	ax.w_yaxis.set_ticklabels(row_names)
 	ax.set_xlabel('Genotype', fontsize=20, labelpad=20)
 	ax.set_ylabel('Age', fontsize=20, labelpad=20)
-	ax.set_zlabel('Occurrence', fontsize=20, labelpad=20)
+	ax.set_zlabel('Frequency', fontsize=20, labelpad=20)
 	plt.show()
 
 	
