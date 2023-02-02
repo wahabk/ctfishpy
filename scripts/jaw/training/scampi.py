@@ -247,7 +247,6 @@ if __name__ == "__main__":
 		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
     
-	# TODO add model in train?
 	work_dir = Path().parent.resolve()
 
 	train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, model=model, 
