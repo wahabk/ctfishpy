@@ -64,6 +64,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0), flip_probability=0.5),
+		tio.CropOrPad(params['patch_size'], padding_mode=0, mask_name="label", p=0.4),
 		tio.RandomAffine(p=1),
 		tio.RandomBlur(p=0.4),
 		tio.RandomBiasField(0.75, order=4, p=0.5),

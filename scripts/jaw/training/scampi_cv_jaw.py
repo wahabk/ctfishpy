@@ -24,11 +24,6 @@ from ray.tune.search.optuna import OptunaSearch
 from ray import tune, air
 from ray.air import session
 
-print(os.cpu_count())
-print ('Current cuda device ', torch.cuda.current_device())
-print(torch.cuda.is_available())
-print('------------num available devices:', torch.cuda.device_count())
-
 from scampi import train
 
 if __name__ == "__main__":
@@ -43,14 +38,14 @@ if __name__ == "__main__":
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_20230101"
+	dataset_name = "JAW_20230124"
 
 	# curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
 	# damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
 	# ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]+damiano
 
-	# keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
-	# print(f"all keys len {len(keys)} nums {keys}")
+	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
+	print(f"all keys len {len(keys)} nums {keys}")
 
 	# remove = [216,] # 216 hi res, 257 bad seg from me, 274 sp7 fucked
 	# ready = [x for x in ready if x not in remove]
@@ -78,14 +73,14 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 2,
-		"n_blocks":7,
-		"kernel_size":7,
+		"batch_size": 1,
+		"n_blocks":6,
+		"kernel_size":5,
 		"norm": 'BATCH',
-		"epochs": 50,
+		"epochs": 100,
 		"start_filters": 8,
 		"activation": "RELU",
-		"dropout": 0.001,
+		"dropout": 0.0001,
 		"patch_size": (192,192,192),
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.2), 
 	}
@@ -94,17 +89,22 @@ if __name__ == "__main__":
 	curated.remove(216)
 	curated.remove(108)
 	curated.remove(154)
-	curated.remove(230)
 	curated.remove(98)
+	# curated.remove(230)
+
+	missing = list(set(keys).difference(curated))
+	extra = list(set(curated).difference(keys))
+	print(f"difference between curated and keys {missing}{extra}")
+
 	crossval_folds = {
 		"young_wt" 			:[241, 50, 39, 164],
 		"young_mutants" 	:[257, 351, 441, 116],
 		"1yr_wt" 			:[72, 71, 69, 401],
 		"1yr_mut" 			:[193, 420, 274, 364],
 		"1yr_het" 			:[291, 183, 250, 182],
-		"2yr_wt" 			:[220, 1, 131, 340],
-		"2yr_mut" 			:[337, 139, 301],
-		"3yr_wt" 			:[133, 135, 96],
+		"2yr_wt" 			:[220, 1, 340],
+		"2yr_mut" 			:[337, 139, 301, 230],
+		"3yr_wt" 			:[133, 135, 96, 131],
 	}
 
 	cv_array = np.array([
@@ -113,9 +113,9 @@ if __name__ == "__main__":
 		[72, 71, 69, 401],
 		[193, 420, 274, 364],
 		[291, 183, 250, 182],
-		[220, 1, 131, 340],
-		[337, 139, 301],
-		[133, 135, 96],
+		[220, 1, 340],
+		[337, 139, 301, 230],
+		[133, 135, 96, 131],
 	], dtype = object)
 	flattened_cv_array = np.hstack(cv_array)
 
