@@ -37,12 +37,12 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 if __name__ == "__main__":
 
 	# dataset_path = '/home/ak18001/Data/HDD/uCT'
-	# dataset_path = '/mnt/scratch/ak18001/uCT'
+	dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
-	dataset_path = "/home/wahab/Data/HDD/uCT"
+	# dataset_path = "/home/wahab/Data/HDD/uCT"
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 		"kernel_size": 7,
 		"activation": "RELU",
 		"dropout": 0.2,
-		"patch_size": (160,160,160),
+		"patch_size": (192,192,192),
 		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
 		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
@@ -91,7 +91,7 @@ if __name__ == "__main__":
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (192, 192, 224),
+		roiSize = (224, 224, 224),
 		patch_size = config['patch_size'], #(100,100,100),
 		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
@@ -115,20 +115,21 @@ if __name__ == "__main__":
 	
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
-		tio.CropOrPad(params['patch_size'], padding_mode=0, mask_name="label", p=0.5),
-		tio.RandomAffine(p=0.75),
-		tio.RandomBlur(p=0.5),
-		tio.RandomBiasField(0.6, order=4, p=0.5),
-		tio.RandomNoise(1, 0.03, p=0.5),
-		tio.RandomGamma((-0.5,0.5), p=0.25),
-		tio.ZNormalization(masking_method='label', p=1),
+		tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
+		tio.RandomAffine(p=0.5),
+		tio.ZNormalization(masking_method='label',p=0.5),
 		tio.OneOf({
-			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
-			tio.RescaleIntensity(percentiles=(2,100)): 0.25,
-			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+			tio.RandomBlur(): 0.1,
+			tio.RandomBiasField(0.25, order=4): 0.1,
+			tio.RandomNoise(0, 0.02): 0.1,
+			tio.RandomGamma((-0.1,0.1)): 0.1,
+		}),
+		tio.OneOf({
+			tio.RescaleIntensity(percentiles=(0,99)): 0.1,
+			tio.RescaleIntensity(percentiles=(1,100)): 0.1,
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.1,
 		})
 	])
-
 	#TODO find a way to precalculate this for tiling
 	# if config['n_blocks'] == 2: label_size = (48,48,48)
 	# if config['n_blocks'] == 3: label_size = (24,24,24)

@@ -38,7 +38,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (192, 192, 224),
+		roiSize = (224, 224, 224),
 		patch_size = config['patch_size'], #(100,100,100),
 		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
@@ -63,18 +63,20 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	run['Tags'] = name
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0), flip_probability=0.5),
-		tio.CropOrPad(params['patch_size'], padding_mode=0, mask_name="label", p=0.4),
-		tio.RandomAffine(p=1),
-		tio.RandomBlur(p=0.4),
-		tio.RandomBiasField(0.75, order=4, p=0.5),
-		tio.RandomNoise(1, 0.02, p=0.5),
-		tio.RandomGamma((-0.3,0.3), p=0.25),
-		tio.ZNormalization(masking_method='label', p=1),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
+		tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
+		tio.RandomAffine(p=0.5),
+		tio.ZNormalization(masking_method='label',p=0.5),
 		tio.OneOf({
-			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
-			tio.RescaleIntensity(percentiles=(2,100)): 0.25,
-			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+			tio.RandomBlur(): 0.1,
+			tio.RandomBiasField(0.25, order=4): 0.1,
+			tio.RandomNoise(0, 0.02): 0.1,
+			tio.RandomGamma((-0.1,0.1)): 0.1,
+		}),
+		tio.OneOf({
+			tio.RescaleIntensity(percentiles=(0,99)): 0.1,
+			tio.RescaleIntensity(percentiles=(1,100)): 0.1,
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.1,
 		})
 	])
 
@@ -236,14 +238,14 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 4,
-		"n_blocks":5,
+		"batch_size": 2,
+		"n_blocks":7,
 		"norm": 'BATCH',
 		"epochs": 100,
-		"start_filters": 32,
-		"kernel_size": 7,
+		"start_filters": 16,
+		"kernel_size": 3,
 		"activation": "RELU",
-		"dropout": 0.2,
+		"dropout": 0.0001,
 		"patch_size": (160,160,160),
 		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
 		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
