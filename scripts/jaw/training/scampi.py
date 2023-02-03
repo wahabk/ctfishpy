@@ -241,6 +241,7 @@ if __name__ == "__main__":
 		"norm": 'BATCH',
 		"epochs": 100,
 		"start_filters": 32,
+		"kernel_size": 7,
 		"activation": "RELU",
 		"dropout": 0.2,
 		"patch_size": (160,160,160),

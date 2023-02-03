@@ -415,7 +415,7 @@ class CTreader:
 		return projections
 
 	def label_projections(self, scan_proj, mask_proj):
-		scan_proj = [np.array(cv2.cvtColor(s/s.max(), cv2.COLOR_GRAY2RGB)*255, dtype=np.uint8) for s in scan_proj]		
+		scan_proj = [np.array(cv2.cvtColor(s, cv2.COLOR_GRAY2RGB), dtype=np.uint8) for s in scan_proj]		
 
 		for i, p in enumerate(scan_proj):
 			p[mask_proj[i] == 1 ]=[255,0,0]
@@ -775,3 +775,11 @@ class CTreader:
 		b[z - zl : z + zl, y - yl : y + yl, x - xl : x + xl] = a
 
 		return b
+
+	def plot_side_by_side(self, array, label):
+		array_projections = self.make_max_projections(array)
+		label_projections = self.make_max_projections(label)
+		labelled_projections = self.label_projections(array_projections, label_projections)
+		sidebyside = np.concatenate(labelled_projections[0:2], 0)
+
+		return sidebyside

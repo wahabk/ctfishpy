@@ -757,6 +757,7 @@ def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_wor
 
 		# print(f"final pred shape {pred_label.shape}")
 		# test predict on sim
+		array = np.array((array/array.max())*255, dtype="uint8")
 		array_projections = ctreader.make_max_projections(array)
 		label_projections = ctreader.make_max_projections(pred_label)
 		labelled_projections = ctreader.label_projections(array_projections, label_projections)
@@ -1168,30 +1169,10 @@ class LearningRateFinder:
 Utils
 """
 
-def plot_side_by_side(array, label):
-	pass
-
 
 def renormalise(array):
 	array = np.squeeze(array)  # remove batch dim and channel dim -> [H, W]
 	array = array * 255
 	return array
 
-class DiceLoss(torch.nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(DiceLoss, self).__init__()
-
-    def forward(self, inputs, targets, smooth=1):
-        
-        #comment out if your model contains a sigmoid or equivalent activation layer
-        # inputs = torch.sigmoid(inputs)       
-        
-        #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
-        
-        intersection = (inputs * targets).sum()                            
-        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
-        
-        return 1 - dice
 

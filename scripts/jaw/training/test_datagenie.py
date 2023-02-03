@@ -36,13 +36,13 @@ def undo_one_hot(result, n_classes, threshold=0.5):
 
 if __name__ == "__main__":
 
-	dataset_path = '/home/ak18001/Data/HDD/uCT'
+	# dataset_path = '/home/ak18001/Data/HDD/uCT'
 	# dataset_path = '/mnt/scratch/ak18001/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
-	# dataset_path = "/home/wahab/Data/HDD/uCT"
+	dataset_path = "/home/wahab/Data/HDD/uCT"
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 	damiano = [131,216,351,39,139,69,133,135,420,441,220,291,401,250,193]
 	ready = [1, 50, 71, 72, 96, 116, 164, 182, 183, 241, 257, 274, 301, 337, 340, 364]+damiano
 	bone = ctfishpy.JAW
-	dataset_name = "JAW_20230101"
+	dataset_name = "JAW_20230124"
 
 	keys = ctreader.get_hdf5_keys(f"{dataset_path}/LABELS/{bone}/{dataset_name}.h5")
 	print(f"all keys len {len(keys)} nums {keys}")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 	# train_data = ready[:25]
 	# val_data = ready[25:28]
 	# test_data = ready[25:]
-	train_data = ready[:1]
+	train_data = [1]#ready[:1]
 	val_data = ready[2:3]
 	test_data = ready[2:3]
 	print(f"train = {train_data} val = {val_data} test = {test_data}")
@@ -72,15 +72,18 @@ if __name__ == "__main__":
 	num_workers = 10
 
 	config = {
-		"lr": 9e-3,
-		"batch_size": 16,
-		"n_blocks":4,
+		"lr": 0.00263078,
+		"batch_size": 10,
+		"n_blocks":5,
 		"norm": 'BATCH',
-		"epochs": 200,
+		"epochs": 100,
 		"start_filters": 32,
+		"kernel_size": 7,
 		"activation": "RELU",
-		"dropout": 0.1,
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.5), 
+		"dropout": 0.2,
+		"patch_size": (160,160,160),
+		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
+		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
 
 
@@ -88,13 +91,14 @@ if __name__ == "__main__":
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (200, 192, 256),
-		patch_size = (192,192,192),
-		sampler_probs = {0:10, 1:10, 2:10, 3:11, 4:11},
+		roiSize = (192, 192, 224),
+		patch_size = config['patch_size'], #(100,100,100),
+		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
 		batch_size = config['batch_size'],
+		kernel_size = config['kernel_size'],
 		n_blocks = config['n_blocks'],
 		norm = config['norm'],
 		loss_function = config['loss_function'],
@@ -110,12 +114,13 @@ if __name__ == "__main__":
 	)
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0), flip_probability=0.5),
-		tio.RandomAffine(p=1),
-		tio.RandomBlur(p=0.4),
-		tio.RandomBiasField(0.75, order=4, p=0.5),
-		tio.RandomNoise(1, 0.02, p=0.5),
-		tio.RandomGamma((-0.3,0.3), p=0.25),
+		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
+		tio.CropOrPad(params['patch_size'], padding_mode=0, mask_name="label", p=0.5),
+		tio.RandomAffine(p=0.75),
+		tio.RandomBlur(p=0.5),
+		tio.RandomBiasField(0.6, order=4, p=0.5),
+		tio.RandomNoise(1, 0.03, p=0.5),
+		tio.RandomGamma((-0.5,0.5), p=0.25),
 		tio.ZNormalization(masking_method='label', p=1),
 		tio.OneOf({
 			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
@@ -134,27 +139,53 @@ if __name__ == "__main__":
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=800,
-		samples_per_volume=20,
+		max_length=8000,
+		samples_per_volume=1,
 		sampler=patch_sampler,
 		num_workers=params['num_workers'],
 	)
-	train_loader = torch.utils.data.DataLoader(patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
+	train_loader = torch.utils.data.DataLoader(patches_queue, batch_size=params['batch_size'], shuffle=False, num_workers=0, pin_memory=torch.cuda.is_available())
+
+	i = train_data[0]
+	scan = ctreader.read(i)
+	label = ctreader.read_label(bone, i, name="JAW_20230124")
+	center = ctreader.jaw_centers[i]
+	x = ctreader.crop3d(scan, params['roiSize'], center=center)
+	x = np.array((x/x.max())*255, dtype="uint8")
+	y = ctreader.crop3d(label, params['roiSize'], center=center)
+	print(x.shape, x.min(), x.max(), x.dtype)
+	print(y.shape, y.min(), y.max(), y.dtype)
+
+	# import pdb; pdb.set_trace()
+	proj = ctreader.plot_side_by_side(x, y)
+	print(proj.shape, proj.min(), proj.max(), proj.dtype)
+	plt.imsave(f"output/figs/jaw/data_aug/data_aug_raw.png", proj)
+
+	# import pdb;pdb.set_trace()
+	saved = 0
+	target = 10
+	for e in range(target):
+		for batch in train_loader:
+			print(batch.keys())
+			xs,ys = batch['ct'][tio.DATA].cpu(), batch['label'][tio.DATA].cpu()
+
+			for x,y in zip(xs, ys):
+				print(x.shape, y.shape)
+
+				x = np.squeeze(np.array(x))*255
+				y = undo_one_hot(np.array(y), n_classes=5)
+
+				print(x.max(), x.min())
+
+				proj = ctreader.plot_side_by_side(x, y)
+				proj = proj/proj.max()
+				plt.imsave(f"output/figs/jaw/data_aug/data_aug_{saved}.png", proj)
+				saved+=1
+				if saved >= target: exit()
+				# break
+				# ctreader.view(x, label=y)
 
 
-	for batch in train_loader:
-		print(batch.keys())
-		xs,ys = batch['ct'][tio.DATA], batch['label'][tio.DATA]
-
-		for x,y in zip(xs, ys):
-			print(x.shape, y.shape)
-
-			x = np.squeeze(np.array(x))*65535
-			y = undo_one_hot(np.array(y), n_classes=5)
-
-			print(x.max(), x.min())
-
-			ctreader.view(x, label=y)
 
 
 
