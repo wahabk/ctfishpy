@@ -91,7 +91,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patches_queue = tio.Queue(
 		train_ds,
 		max_length=8000,
-		samples_per_volume=4,
+		samples_per_volume=6,
 		sampler=patch_sampler,
 		num_workers=10,
 	)
@@ -103,7 +103,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_patches_queue = tio.Queue(
 		val_ds,
 		max_length=8000,
-		samples_per_volume=4,
+		samples_per_volume=6,
 		sampler=val_sampler,
 		num_workers=6,
 	)
