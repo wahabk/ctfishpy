@@ -76,12 +76,12 @@ if __name__ == "__main__":
 		"batch_size": 1,
 		"n_blocks":6,
 		"norm": 'BATCH',
-		"epochs": 120,
-		"start_filters": 16,
-		"kernel_size": 7,
+		"epochs": 75,
+		"start_filters": 8,
+		"kernel_size": 5,
 		"activation": "RELU",
-		"dropout": 0,
-		"patch_size": (192,192,192),
+		"dropout": 0.000178,
+		"patch_size": (160,160,160),
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.2), 
 	}
 

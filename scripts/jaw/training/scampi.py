@@ -38,7 +38,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (192, 192, 224),
+		roiSize = (200, 200, 256),
 		patch_size = config['patch_size'], #(100,100,100),
 		sampler_probs = {0:6, 1:6, 2:6, 3:6, 4:6},
 		train_data = train_data,
@@ -63,19 +63,19 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	run['Tags'] = name
 	
 	transforms = tio.Compose([
-		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
+		tio.RandomFlip(axes=(0), flip_probability=0.5),
 		tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
 		tio.RandomAffine(p=0.5),
 		tio.ZNormalization(p=0.5),
-		tio.RandomNoise(0, 0.02, p= 0.25),
+		tio.RandomNoise(0, 0.03, p= 0.4),
 		tio.OneOf({
 			tio.RandomBlur(): 0.25,
 			tio.RandomBiasField(0.25, order=4): 0.25,
 			tio.RandomGamma((-0.1,0.1)): 0.25,
 		}),
 		tio.OneOf({
-			tio.RescaleIntensity(percentiles=(0,99)): 0.25,
-			tio.RescaleIntensity(percentiles=(1,100)): 0.25,
+			tio.RescaleIntensity(percentiles=(0,98.5)): 0.25,
+			tio.RescaleIntensity(percentiles=(1.5,100)): 0.25,
 			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
 		})
 	])
