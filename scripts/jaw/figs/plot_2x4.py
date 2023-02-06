@@ -12,9 +12,9 @@ import seaborn as sns
 
 
 if __name__ == '__main__':
-	# dataset_path = '/home/wahab/Data/HDD/uCT/'
+	dataset_path = '/home/wahab/Data/HDD/uCT/'
 	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
-	dataset_path = '/mnt/scratch/ak18001/uCT/'
+	# dataset_path = '/mnt/scratch/ak18001/uCT/'
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	'wnt16', 'ncoa3', 'gdf5', 'mcf2l', 'scxa', 'sp7', 'col11 ',
 	'chsy1', 'atg', 'ctsk', 'spp1']
 	genes_to_analyse = ['wt','irf6']
-	age_bins = [0,6,12] # for age in months
+	age_bins = [6,12] # for age in months
 
 	import pdb; pdb.set_trace()
 
@@ -41,6 +41,7 @@ if __name__ == '__main__':
 	# ages = [ctreader.trim(master, 'age', [b]) for b in bins]
 	print(master)
 	print(master.strain.to_list())
+	print(master.genotype.to_list())
 
 	# clean strain naming
 	for n in master.index:
@@ -89,11 +90,12 @@ if __name__ == '__main__':
 			print(b,bin_)
 
 			final_df = df.loc[df['age'] == bin_]
+			# dropna?
 			sub_plot_title = f"{b} age {bin_}, n={len(final_df)}"
 			axs[i,j].title.set_text(sub_plot_title)
 			if len(df)>0:
 				# sns.violinplot(data=dens_df, x="genotype", y="Density ($g.cm^{3}HA$)", ax=axs[i,j], inner='stick',)
-				sns.boxplot(data=final_df, x="genotype", y="Density ($g.cm^{3}HA$)", ax=axs[i,j])
+				sns.boxplot(data=final_df, y="Density ($g.cm^{3}HA$)", hue="genotype", ax=axs[i,j])
 			else: print("\nSKIPPED\n")
 
 
@@ -116,6 +118,7 @@ if __name__ == '__main__':
 			print(df)
 
 			final_df = df.loc[df['age'] == bin_]
+			final_df.reset_index()
 			sub_plot_title = f"{b} age {bin_}, n={len(final_df)}"
 			axs[i,j].title.set_text(sub_plot_title)
 			if len(df)>0:
