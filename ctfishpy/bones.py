@@ -11,7 +11,7 @@ import warnings
 
 subject = tio.Subject()
 
-class Bone():
+class Bone(tio.Subject):
     def __init__(self) -> None:
         self.name = "BONE"
         self.n_classes = [None]
@@ -29,6 +29,10 @@ class Bone():
 class Otolith(Bone):
     def __init__(self) -> None:
         super().__init__()
+        self.name = "BONE"
+        self.n_classes = [None]
+        self.class_names = []
+        self.centers_path
 
     def localise(self):
         return super().localise()
@@ -98,3 +102,16 @@ class Otolith(Bone):
                 predict_list.append(y_pred)
 
         return predict_list
+
+class SwimBladder(Bone):
+    def __init__(self) -> None:
+        super().__init__()
+        self.name = "BONE"
+        self.n_classes = [None]
+        self.class_names = []
+        self.centers_path
+
+    def localise(self):
+        return super().localise()
+
+    def predict(self):

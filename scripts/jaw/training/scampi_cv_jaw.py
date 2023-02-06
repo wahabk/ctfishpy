@@ -73,16 +73,16 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 2,
+		"batch_size": 1,
 		"n_blocks":6,
 		"norm": 'BATCH',
-		"epochs": 150,
+		"epochs": 120,
 		"start_filters": 16,
-		"kernel_size": 5,
+		"kernel_size": 7,
 		"activation": "RELU",
-		"dropout": 0.0001,
+		"dropout": 0,
 		"patch_size": (192,192,192),
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.2), 
 	}
 
 	curated = [257,351,241,164,50,39,116,441,291,193,420,274,364,401,72,71,69,250,182,183,301,108,216,340,139,337,220,1,154,230,131,133,135,96,98,]
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 	print(len(curated))
 
 	for i, (k, fold) in enumerate(crossval_folds.items()):
-		name = f'jaw cv-{i+1}-{k}'
+		name = f'jaw cv-btrue-{i+1}-{k}'
 		print(f"\n\n\n !!! ---- training {name}  ---- !!! \n\n\n")
 		print(k, fold)
 

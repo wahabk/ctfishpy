@@ -38,9 +38,9 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		dataset_path=dataset_path,
 		bone=bone,
 		dataset_name=dataset_name,
-		roiSize = (224, 224, 224),
+		roiSize = (192, 192, 224),
 		patch_size = config['patch_size'], #(100,100,100),
-		sampler_probs = {0:5, 1:5, 2:5, 3:6, 4:6},
+		sampler_probs = {0:6, 1:6, 2:6, 3:6, 4:6},
 		train_data = train_data,
 		val_data = val_data,
 		test_data = test_data,
@@ -66,17 +66,17 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 		tio.RandomFlip(axes=(0,1,2), flip_probability=0.5),
 		tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
 		tio.RandomAffine(p=0.5),
-		tio.ZNormalization(masking_method='label',p=0.5),
+		tio.ZNormalization(p=0.5),
+		tio.RandomNoise(0, 0.02, p= 0.25),
 		tio.OneOf({
-			tio.RandomBlur(): 0.1,
-			tio.RandomBiasField(0.25, order=4): 0.1,
-			tio.RandomNoise(0, 0.02): 0.1,
-			tio.RandomGamma((-0.1,0.1)): 0.1,
+			tio.RandomBlur(): 0.25,
+			tio.RandomBiasField(0.25, order=4): 0.25,
+			tio.RandomGamma((-0.1,0.1)): 0.25,
 		}),
 		tio.OneOf({
-			tio.RescaleIntensity(percentiles=(0,99)): 0.1,
-			tio.RescaleIntensity(percentiles=(1,100)): 0.1,
-			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.1,
+			tio.RescaleIntensity(percentiles=(0,99)): 0.25,
+			tio.RescaleIntensity(percentiles=(1,100)): 0.25,
+			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
 		})
 	])
 
@@ -91,9 +91,9 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patches_queue = tio.Queue(
 		train_ds,
 		max_length=8000,
-		samples_per_volume=6,
+		samples_per_volume=4,
 		sampler=patch_sampler,
-		num_workers=params['num_workers'],
+		num_workers=10,
 	)
 	train_loader = torch.utils.data.DataLoader(patches_queue, batch_size=params['batch_size'], shuffle=True, num_workers=0, pin_memory=torch.cuda.is_available())
 
@@ -103,9 +103,9 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_patches_queue = tio.Queue(
 		val_ds,
 		max_length=8000,
-		samples_per_volume=6,
+		samples_per_volume=4,
 		sampler=val_sampler,
-		num_workers=params['num_workers'],
+		num_workers=6,
 	)
 	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=False, num_workers=0, pin_memory=torch.cuda.is_available())
 
@@ -239,7 +239,7 @@ if __name__ == "__main__":
 	config = {
 		"lr": 0.00263078,
 		"batch_size": 2,
-		"n_blocks":7,
+		"n_blocks":6,
 		"norm": 'BATCH',
 		"epochs": 100,
 		"start_filters": 16,
@@ -247,7 +247,7 @@ if __name__ == "__main__":
 		"activation": "RELU",
 		"dropout": 0.0001,
 		"patch_size": (160,160,160),
-		"loss_function": monai.losses.TverskyLoss(include_background=False, alpha=0.2), 
+		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.2), 
 		# "loss_function": monai.losses.GeneralizedDiceLoss(include_background=True),
 	}
     
