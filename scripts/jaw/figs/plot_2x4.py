@@ -10,11 +10,26 @@ import torch
 import seaborn as sns
 
 
+def get_names(df, col='genotype'):
+	order =['wt', 'het', 'hom', 'mosaic']
+	names = ""
+	df_dict = df.groupby(col)[col].count().to_dict()
+	
+	for i, o in enumerate(order):
+		
+		try: 
+	  		names = names + f"{df_dict[o]}, " 
+		except: pass
+			
+	
+	return names
 
 if __name__ == '__main__':
-	dataset_path = '/home/wahab/Data/HDD/uCT/'
+	# dataset_path = '/home/wahab/Data/HDD/uCT/'
 	# dataset_path = '/home/ak18001/Data/HDD/uCT/'
-	# dataset_path = '/mnt/scratch/ak18001/uCT/'
+	dataset_path = '/mnt/scratch/ak18001/uCT/'
+	sns.color_palette("hls", 3)
+
 
 	ctreader = ctfishpy.CTreader(dataset_path)
 	master = ctreader.master
@@ -30,10 +45,10 @@ if __name__ == '__main__':
 	genes_to_include = ['wt', 'barx1', 'arid1b', 'col11a2', 'giantin', 'chst11', 'runx2',
 	'wnt16', 'ncoa3', 'gdf5', 'mcf2l', 'scxa', 'sp7', 'col11 ',
 	'chsy1', 'atg', 'ctsk', 'spp1']
-	genes_to_analyse = ['wt','irf6']
+	genes_to_analyse = ['wt','col11 ']
 	age_bins = [6,12] # for age in months
 
-	import pdb; pdb.set_trace()
+	# import pdb; pdb.set_trace()
 
 	# bin  ages
 	master.age = pd.cut(master.age, bins = len(age_bins), labels=age_bins, 
@@ -79,38 +94,46 @@ if __name__ == '__main__':
 	print(dens_df)
 	print(vols_df)
 
-	fig , axs = plt.subplots(len(sub_bones)//2, len(age_bins),sharey="row",sharex=True)
+	fig , axs = plt.subplots(len(sub_bones)//2, len(age_bins),sharey="row",sharex="col")
 	plt.tight_layout()
 
 	bones_to_analyse = ["Dentary","Quadrate"]
-
+	bones_to_analyse_short = ["Dent","Quad"]
+	fig_index=0
 	for i, b in enumerate(bones_to_analyse):
-		df = ctreader.trim(dens_df, "Bone",[f"L_{b}", f"R_{b}"])
+		df = ctreader.trim(dens_df, "Bone", [f"L_{b}", f"R_{b}"])
 		for j, bin_ in enumerate(age_bins):
-			print(b,bin_)
+			print(i,j,b,bin_)
 
 			final_df = df.loc[df['age'] == bin_]
+			final_df.to_csv("output/test.csv")
 			# dropna?
-			sub_plot_title = f"{b} age {bin_}, n={len(final_df)}"
-			axs[i,j].title.set_text(sub_plot_title)
 			if len(df)>0:
 				# sns.violinplot(data=dens_df, x="genotype", y="Density ($g.cm^{3}HA$)", ax=axs[i,j], inner='stick',)
-				sns.boxplot(data=final_df, y="Density ($g.cm^{3}HA$)", hue="genotype", ax=axs[i,j])
+				sns.boxplot(data=final_df,  x="genotype", y="Density ($g.cm^{3}HA$)",ax=axs[i,j])
 			else: print("\nSKIPPED\n")
+			if b == "Dentary": axs[i,j].set_xlabel("")
+			if bin_ == 12: axs[i,j].set_ylabel("")
+			names = get_names(final_df)
+			sub_plot_title = f"{chr(fig_index+65)} - {bones_to_analyse_short[i]} {bin_} months, n = {names}"
+			axs[i,j].set_title(sub_plot_title)
 
+			fig_index += 1
 
+	# import pdb;pdb.set_trace()
 	
 	fig.set_figwidth(7)
 	fig.set_figheight(9)
+	fig.suptitle(f"Densities {genes_to_analyse[-1]}", fontsize=16, y=1.025)
+
 	# plt.subplots_adjust(left=0.125, bottom=0.125, right=0.25, top=0.25, wspace=0.25, hspace=0.25)
-	# plt.gcf().subplots_adjust(bottom=0.05, right=0.1)
-	fig.suptitle(f"Densities {genes_to_analyse[-1]}", fontsize=16)
+	# plt.gcf().subplots_adjust(bottom=0.5)
 	plt.savefig(f"output/results/jaw/genes/dens_{genes_to_analyse[-1]}.png", bbox_inches="tight")
 	plt.clf()
 
-	fig , axs = plt.subplots(len(sub_bones)//2, len(age_bins),sharey="row",sharex=True)
+	fig , axs = plt.subplots(len(sub_bones)//2, len(age_bins),sharey="row",sharex="col")
 	plt.tight_layout()
-
+	fig_index = 0
 	for i, b in enumerate(bones_to_analyse):
 		df = ctreader.trim(vols_df, "Bone",[f"L_{b}", f"R_{b}"])
 		for j, bin_ in enumerate(age_bins):
@@ -118,19 +141,25 @@ if __name__ == '__main__':
 			print(df)
 
 			final_df = df.loc[df['age'] == bin_]
-			final_df.reset_index()
-			sub_plot_title = f"{b} age {bin_}, n={len(final_df)}"
-			axs[i,j].title.set_text(sub_plot_title)
+
 			if len(df)>0:
 				# sns.violinplot(data=dens_df, x="genotype", y="Density ($g.cm^{3}HA$)", ax=axs[i,j], inner='stick',)
 				sns.boxplot(data=final_df, x="genotype", y="Volume ($mm^{3}$)", ax=axs[i,j])
 			else: print("\nSKIPPED\n")
+   
+			if b == "Dentary": axs[i,j].set_xlabel("")
+			if bin_ == 12: axs[i,j].set_ylabel("")
+			names = get_names(final_df)
+			sub_plot_title = f"{chr(fig_index+65)} - {bones_to_analyse_short[i]} {bin_} months, n = {names}"
+			axs[i,j].set_title(sub_plot_title)
+
+			fig_index += 1
 
 	fig.set_figwidth(7)
 	fig.set_figheight(9)
 	# plt.subplots_adjust(left=0.125, bottom=0.125, right=0.25, top=0.25, wspace=0.25, hspace=0.25)
 	# plt.gcf().subplots_adjust(bottom=0.05)
-	fig.suptitle(f"Volumes {genes_to_analyse[-1]}", fontsize=16)
+	fig.suptitle(f"Volumes {genes_to_analyse[-1]}", fontsize=16, y=1.025)
 	plt.savefig(f"output/results/jaw/genes/vols_{genes_to_analyse[-1]}.png", bbox_inches="tight")
 
 

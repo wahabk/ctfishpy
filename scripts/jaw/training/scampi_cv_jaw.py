@@ -73,14 +73,14 @@ if __name__ == "__main__":
 
 	config = {
 		"lr": 0.00263078,
-		"batch_size": 1,
+		"batch_size": 8,
 		"n_blocks":6,
 		"norm": 'BATCH',
-		"epochs": 75,
-		"start_filters": 8,
-		"kernel_size": 5,
+		"epochs": 150,
+		"start_filters": 32,
+		"kernel_size": 7,
 		"activation": "RELU",
-		"dropout": 0.000178,
+		"dropout": 0.015,
 		"patch_size": (160,160,160),
 		"loss_function": monai.losses.TverskyLoss(include_background=True, alpha=0.2), 
 	}

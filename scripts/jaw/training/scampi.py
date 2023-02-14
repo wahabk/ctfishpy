@@ -64,21 +64,36 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	
 	transforms = tio.Compose([
 		tio.RandomFlip(axes=(0), flip_probability=0.5),
-		tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
-		tio.RandomAffine(p=0.5),
-		tio.ZNormalization(p=0.5),
-		tio.RandomNoise(0, 0.03, p= 0.4),
+		tio.RandomAffine(p=1),
+		tio.RandomBlur(p=0.4),
+		tio.RandomBiasField(0.75, order=4, p=0.5),
+		tio.RandomNoise(1, 0.02, p=0.5),
+		tio.RandomGamma((-0.3,0.3), p=0.25),
+		tio.ZNormalization(masking_method='label', p=1),
 		tio.OneOf({
-			tio.RandomBlur(): 0.25,
-			tio.RandomBiasField(0.25, order=4): 0.25,
-			tio.RandomGamma((-0.1,0.1)): 0.25,
-		}),
-		tio.OneOf({
-			tio.RescaleIntensity(percentiles=(0,98.5)): 0.25,
-			tio.RescaleIntensity(percentiles=(1.5,100)): 0.25,
+			tio.RescaleIntensity(percentiles=(0,98)): 0.25,
+			tio.RescaleIntensity(percentiles=(2,100)): 0.25,
 			tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
 		})
 	])
+
+	# transforms = tio.Compose([
+	# 	tio.RandomFlip(axes=(0), flip_probability=0.5),
+	# 	tio.CropOrPad(params['patch_size'], padding_mode=0, p=0.5),
+	# 	tio.RandomAffine(p=0.5),
+	# 	tio.ZNormalization(p=0.5),
+	# 	tio.RandomNoise(0, 0.03, p= 0.4),
+	# 	tio.OneOf({
+	# 		tio.RandomBlur(): 0.25,
+	# 		tio.RandomBiasField(0.25, order=4): 0.25,
+	# 		tio.RandomGamma((-0.1,0.1)): 0.25,
+	# 	}),
+	# 	tio.OneOf({
+	# 		tio.RescaleIntensity(percentiles=(0,98.5)): 0.25,
+	# 		tio.RescaleIntensity(percentiles=(1.5,100)): 0.25,
+	# 		tio.RescaleIntensity(percentiles=(0.5,99.5)): 0.25,
+	# 	})
+	# ])
 
 	#TODO find a way to precalculate this for tiling
 	# if config['n_blocks'] == 2: label_size = (48,48,48)
