@@ -76,8 +76,8 @@ if __name__ == "__main__":
 		"batch_size": 8,
 		"n_blocks":6,
 		"norm": 'BATCH',
-		"epochs": 150,
-		"start_filters": 32,
+		"epochs": 100,
+		"start_filters": 16,
 		"kernel_size": 7,
 		"activation": "RELU",
 		"dropout": 0.015,
@@ -96,52 +96,19 @@ if __name__ == "__main__":
 	extra = list(set(curated).difference(keys))
 	print(f"difference between curated and keys {missing}{extra}")
 
-	crossval_folds = {
-		"young_wt" 			:[241, 50, 39, 164],
-		"young_mutants" 	:[257, 351, 441, 116],
-		"1yr_wt" 			:[72, 71, 69, 401],
-		"1yr_mut" 			:[193, 420, 274, 364],
-		"1yr_het" 			:[291, 183, 250, 182],
-		"2yr_wt" 			:[220, 1, 340],
-		"2yr_mut" 			:[337, 139, 301, 230],
-		"3yr_wt" 			:[133, 135, 96, 131],
-	}
-
-	cv_array = np.array([
-		[241, 50, 39, 164],
-		[257, 351, 441, 116],
-		[72, 71, 69, 401],
-		[193, 420, 274, 364],
-		[291, 183, 250, 182],
-		[220, 1, 340],	
-		[337, 139, 301, 230],
-		[133, 135, 96, 131],
-	], dtype = object)
-	flattened_cv_array = np.hstack(cv_array)
-
-	missing = list(set(flattened_cv_array).difference(curated))
-	extra = list(set(curated).difference(flattened_cv_array))
-	if len(missing) > 0 or len(extra) > 0:
-		print(missing, extra)
-		raise ValueError("something wrong with folds")
-
-	print(len(curated))
-
-	for i, (k, fold) in enumerate(crossval_folds.items()):
-		name = f'jaw cv-btrue-{i+1}-{k}'
-		print(f"\n\n\n !!! ---- training {name}  ---- !!! \n\n\n")
-		print(k, fold)
+	random.shuffle(curated)
+	fold_size = 2
+	n_curated = len(curated)
+	fold_n = 0
+	for i in range(0,n_curated-(fold_size-1),fold_size):
+		fold = curated[i:i+fold_size]
+		print(f"fold {fold_n+1} test {fold}")
+		name = f'jaw cv{fold_n+1}'
 
 		train_data = [x for x in curated if x not in fold]
-		# train_data = train_data[0]
 		val_data = fold
 		test_data = fold
-
-		missing = list(set(fold).difference(curated))
-		extra = list(set(curated).difference(fold))
-
-		print(missing)
-		print(len(test_data), len(train_data))
+		fold_n+=1
 
 		work_dir = Path().parent.resolve()
 		train(config, dataset_path, name, bone=bone, train_data=train_data, val_data=val_data, model=model, 

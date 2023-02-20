@@ -45,8 +45,8 @@ if __name__ == '__main__':
 	genes_to_include = ['wt', 'barx1', 'arid1b', 'col11a2', 'giantin', 'chst11', 'runx2',
 	'wnt16', 'ncoa3', 'gdf5', 'mcf2l', 'scxa', 'sp7', 'col11 ',
 	'chsy1', 'atg', 'ctsk', 'spp1']
-	genes_to_analyse = ['wt','col11 ']
-	age_bins = [6,12] # for age in months
+	genes_to_analyse = ['wt',"col11a2"]
+	age_bins = [6,12,24,36] # for age in months
 
 	# import pdb; pdb.set_trace()
 
@@ -113,7 +113,7 @@ if __name__ == '__main__':
 				sns.boxplot(data=final_df,  x="genotype", y="Density ($g.cm^{3}HA$)",ax=axs[i,j])
 			else: print("\nSKIPPED\n")
 			if b == "Dentary": axs[i,j].set_xlabel("")
-			if bin_ == 12: axs[i,j].set_ylabel("")
+			if bin_ > 6: axs[i,j].set_ylabel("")
 			names = get_names(final_df)
 			sub_plot_title = f"{chr(fig_index+65)} - {bones_to_analyse_short[i]} {bin_} months, n = {names}"
 			axs[i,j].set_title(sub_plot_title)
@@ -122,8 +122,8 @@ if __name__ == '__main__':
 
 	# import pdb;pdb.set_trace()
 	
-	fig.set_figwidth(7)
-	fig.set_figheight(9)
+	fig.set_figwidth(12)
+	fig.set_figheight(7)
 	fig.suptitle(f"Densities {genes_to_analyse[-1]}", fontsize=16, y=1.025)
 
 	# plt.subplots_adjust(left=0.125, bottom=0.125, right=0.25, top=0.25, wspace=0.25, hspace=0.25)
@@ -148,15 +148,15 @@ if __name__ == '__main__':
 			else: print("\nSKIPPED\n")
    
 			if b == "Dentary": axs[i,j].set_xlabel("")
-			if bin_ == 12: axs[i,j].set_ylabel("")
+			if bin_ > 6: axs[i,j].set_ylabel("")
 			names = get_names(final_df)
 			sub_plot_title = f"{chr(fig_index+65)} - {bones_to_analyse_short[i]} {bin_} months, n = {names}"
 			axs[i,j].set_title(sub_plot_title)
 
 			fig_index += 1
 
-	fig.set_figwidth(7)
-	fig.set_figheight(9)
+	fig.set_figwidth(12) #7
+	fig.set_figheight(7) #9
 	# plt.subplots_adjust(left=0.125, bottom=0.125, right=0.25, top=0.25, wspace=0.25, hspace=0.25)
 	# plt.gcf().subplots_adjust(bottom=0.05)
 	fig.suptitle(f"Volumes {genes_to_analyse[-1]}", fontsize=16, y=1.025)

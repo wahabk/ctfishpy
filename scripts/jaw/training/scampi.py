@@ -105,7 +105,7 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	patch_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	patches_queue = tio.Queue(
 		train_ds,
-		max_length=8000,
+		max_length=10000,
 		samples_per_volume=6,
 		sampler=patch_sampler,
 		num_workers=10,
@@ -117,10 +117,10 @@ def train(config, dataset_path, name, bone, train_data, val_data, test_data, mod
 	val_sampler = tio.LabelSampler(params['patch_size'], 'label', params['sampler_probs'])
 	val_patches_queue = tio.Queue(
 		val_ds,
-		max_length=8000,
+		max_length=10000,
 		samples_per_volume=6,
 		sampler=val_sampler,
-		num_workers=6,
+		num_workers=10,
 	)
 	val_loader = torch.utils.data.DataLoader(val_patches_queue, batch_size=params['batch_size'], shuffle=False, num_workers=0, pin_memory=torch.cuda.is_available())
 

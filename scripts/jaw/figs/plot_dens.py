@@ -21,7 +21,7 @@ if __name__ == '__main__':
 
 	data_path = "output/results/jaw/jawunet_data230124.csv"
 	cols = ["Dens1","Dens2","Dens3","Dens4","Vol1","Vol2","Vol3","Vol4"]
-	sub_bones = ["L_Dentary", "R_Dentary", "L_Quadrate", "R_Quadrate"]
+	sub_bones = ["Dentary", "Dentary", "Quadrate", "Quadrate"]
 	all_genes = ['wt', 'barx1', 'arid1b', 'col11a2', 'panther', 'giantin', 'chst11', 'runx2',
 	'wnt16', 'ncoa3', 'gdf5', 'mcf2l', 'dot1', 'scxb', 'scxa', 'col9', 'sp7', 'col11 ',
 	'vhl', 'tert', 'chsy1', 'col9a1', 'ras', 'atg', 'ctsk', 'spp1', 'il10', 'il1b',
@@ -60,14 +60,6 @@ if __name__ == '__main__':
 	vols_df = ctreader.trim(vols_df, 'genotype', ['wt', 'het', 'hom'])
 	vols_df = ctreader.trim(vols_df, 'strain', genes_to_include)
 
-	dens_df.plot()
-	plt.savefig("output/results/jaw/dens_df.png")
-	plt.clf()
-
-	vols_df.plot()
-	plt.savefig("output/results/jaw/vols_df.png")
-	plt.clf()
-
 	id_vars = ['age', 'strain', 'genotype', 'length']
 	value_vars = sub_bones
 
@@ -79,10 +71,11 @@ if __name__ == '__main__':
 
 	# fig = plt.subplot([331])
 
-	fig, axs = plt.subplots(2,len(sub_bones))
-	plt.tight_layout(pad=0.5)
+	sub_bones_to_plot = ["Dentary", "Quadrate"]
+	fig, axs = plt.subplots(2,len(sub_bones_to_plot))
+	plt.tight_layout(pad=2.2)
 
-	for i, sub_bone in enumerate(sub_bones):
+	for i, sub_bone in enumerate(sub_bones_to_plot):
 		print(i, sub_bone)
 		dens_sub_bone = ctreader.trim(dens_df, 'Bone', [sub_bone])
 		if i == 0:
@@ -90,19 +83,26 @@ if __name__ == '__main__':
 		else:
 			ledge = False
 
-		# plt.xticks(rotation = -45)
-		g = sns.violinplot(data=dens_sub_bone, x='strain', y="Density ($g.cm^{3}HA$)", hue='genotype', ax=axs[0,i], inner='stick',)
-		# plt.draw()
+		g = sns.violinplot(data=dens_sub_bone, x='strain', y="Density ($g.cm^{3}HA$)", hue='genotype', ax=axs[0,i], ledgend=ledge)
 		# plt.xticks(rotation=-45) 
-		axs[0,i].tick_params(axis='x', rotation=-20)
-		axs[0,i].legend().remove()
+		axs[0,i].tick_params(axis='x', rotation=-45)
+		if i != 0 : axs[0,i].legend().remove()
+		sub_plot_title = f"{chr(i+65)} - {sub_bone} Density"
+		axs[0,i].set_title(sub_plot_title)
+		axs[0,i].set_xlabel("")
+
 
 
 		vols_sub_bone = ctreader.trim(vols_df, 'Bone', [sub_bone])
 
 		sns.scatterplot(data=vols_sub_bone, x='age', y="Volume ($mm^{3}$)", hue='genotype', ax=axs[1,i], legend=ledge)
+		sub_plot_title = f"{chr(i+65+2)} - {sub_bone} Volume"
+		axs[1,i].set_title(sub_plot_title)
+		axs[1,i].set_xlabel("Age (months)")
+
+  
 	fig.set_figwidth(12)
-	fig.set_figheight(5)
+	fig.set_figheight(6)
 	plt.savefig("output/results/jaw/vol_dens_fig.png")
 	plt.clf()
 
@@ -132,12 +132,4 @@ if __name__ == '__main__':
 
 	# sns.violinplot(data=vols_df, x='strain', y="Volume ($mm^{3}$)", hue='age', inner='stick',)
 	# plt.savefig("output/results/jaw/vols_age_fig3.png")
-	# plt.clf()
-
-	# dens_df.plot()
-	# plt.savefig("output/results/jaw/dens_df.png")
-	# plt.clf()
-
-	# vols_df.plot()
-	# plt.savefig("output/results/jaw/vols_df.png")
 	# plt.clf()
