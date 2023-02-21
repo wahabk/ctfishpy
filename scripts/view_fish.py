@@ -8,20 +8,21 @@ if __name__ == '__main__':
     scan = ctreader.read(index)
 
     bone = ctreader.JAW
-    name = 'jaw_unet_230124'
+    # name = 'jaw_unet_230124'
+    name = "JAW_20230124"
     jaw_label = ctreader.read_label(bone, index, name=name,)
     # jaw_label = jaw_label[1000:]
     print(f"jaw {jaw_label.shape}")
 
-    bone = ctreader.OTOLITHS
-    name = "OTOLITHS_FINAL"
-    oto_label = ctreader.read_label(bone, index, name=name,)
-    oto_label = oto_label
-    oto_center = ctreader.otolith_centers[index]
-    oto_label = ctreader.uncrop3d(scan, oto_label, oto_center)
-    print(f"oto {oto_label.shape}")
+    # bone = ctreader.OTOLITHS
+    # name = "OTOLITHS_FINAL"
+    # oto_label = ctreader.read_label(bone, index, name=name,)
+    # oto_label = oto_label
+    # oto_center = ctreader.otolith_centers[index]
+    # oto_label = ctreader.uncrop3d(scan, oto_label, oto_center)
+    # print(f"oto {oto_label.shape}")
 
-    label = jaw_label + oto_label
+    label = jaw_label #+ oto_label
  
     jaw_center = ctreader.otolith_centers[index]
     scan = ctreader.crop3d(scan, (650,400,400), center=jaw_center)
