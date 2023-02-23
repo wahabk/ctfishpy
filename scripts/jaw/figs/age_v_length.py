@@ -88,33 +88,49 @@ if __name__ == '__main__':
     # axs = axs.flatten()
     dens_df = ctreader.trim(dens_df, "Bone", [f"L_{b}", f"R_{b}"])
     vols_df = ctreader.trim(vols_df, "Bone", [f"L_{b}", f"R_{b}"])
-    sns.regplot(data=dens_df, x="age", y="Density ($g.cm^{3}HA$)", ax=axs[0,0], color="red")
+    
+    sns.regplot(data=vols_df, x="age", y="Volume ($mm^{3}$)", ax=axs[0,0], color="gold")
+    axs[0,0].set_xlabel("")
     x = np.array(dens_df["age"])
-    y = np.array(dens_df["Density ($g.cm^{3}HA$)"])
+    y = np.array(vols_df["Volume ($mm^{3}$)"])
     results = scipy.stats.linregress(x,y)
     print(results)
+    print(f"{x.mean():.2f}, {x.std():.2f}, {y.mean():.2f}, {y.std():.2f}")
+    axs[0,0].set_title(f"$A$ - $R^{2}$ = {results.rvalue:.2f} slope = {results.slope:.2f}, intercept = {results.intercept:.2f}")
     
-    sns.regplot(data=dens_df, x="length", y="Density ($g.cm^{3}HA$)", ax=axs[0,1], color="firebrick")
+    sns.regplot(data=vols_df, x="length", y="Volume ($mm^{3}$)", ax=axs[0,1], color="yellowgreen")
+    axs[0,1].set_xlabel("")
+    axs[0,1].set_ylabel("")
     x = np.array(dens_df["length"])
-    y = np.array(dens_df["Density ($g.cm^{3}HA$)"])
+    y = np.array(vols_df["Volume ($mm^{3}$)"])
     results = scipy.stats.linregress(x,y)
     print(results)
+    print(f"{x.mean():.2f}, {x.std():.2f}, {y.mean():.2f}, {y.std():.2f}")
+    axs[0,1].set_title(f"$B$ - $R^{2}$ = {results.rvalue:.2f} slope = {results.slope:.2f}, intercept = {results.intercept:.2f}")
     
-    sns.regplot(data=vols_df, x="age", y="Volume ($mm^{3}$)", ax=axs[1,0], color="gold")
+    sns.regplot(data=dens_df, x="age", y="Density ($g.cm^{3}HA$)", ax=axs[1,0], color="red")
     axs[1,0].set_xlabel("Age (months)")
     x = np.array(dens_df["age"])
-    y = np.array(vols_df["Volume ($mm^{3}$)"])
+    y = np.array(dens_df["Density ($g.cm^{3}HA$)"])
     results = scipy.stats.linregress(x,y)
     print(results)
+    print(f"{x.mean():.2f}, {x.std():.2f}, {y.mean():.2f}, {y.std():.2f}")
+    axs[1,0].set_title(f"$C$ - $R^{2}$ = {results.rvalue:.2f} slope = {results.slope:.2f}, intercept = {results.intercept:.2f}")
     
-    sns.regplot(data=vols_df, x="length", y="Volume ($mm^{3}$)", ax=axs[1,1], color="yellowgreen")  
+    sns.regplot(data=dens_df, x="length", y="Density ($g.cm^{3}HA$)", ax=axs[1,1], color="firebrick")
     axs[1,1].set_xlabel("Length (mm)")
+    axs[1,1].set_ylabel("")
     x = np.array(dens_df["length"])
-    y = np.array(vols_df["Volume ($mm^{3}$)"])
+    y = np.array(dens_df["Density ($g.cm^{3}HA$)"])
     results = scipy.stats.linregress(x,y)
     print(results)
+    print(f"{x.mean():.2f}, {x.std():.2f}, {y.mean():.2f}, {y.std():.2f}")
+    axs[1,1].set_title(f"$D$ - $R^{2}$ = {results.rvalue:.2f} slope = {results.slope:.2f}, intercept = {results.intercept:.2f}")
+
     
-    plt.show()
+    fig.set_figwidth(9)
+    fig.set_figheight(7)
+    plt.savefig("output/results/jaw/age_v_len_dv.png")
     
     """
     OUTPUT
@@ -125,7 +141,7 @@ LinregressResult(slope=0.004355738704920829, intercept=0.17196821171908905, rval
 LinregressResult(slope=0.01696370899172899, intercept=-0.2237909886296559, rvalue=0.7928174380528079, pvalue=5.432388670238397e-79, stderr=0.0006892086823124486, intercept_stderr=0.019478357038287472)
     
     """
-
+    print(results.rvalue, results.slope, results.intercept)
 
 
 
