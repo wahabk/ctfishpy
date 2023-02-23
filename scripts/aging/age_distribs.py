@@ -14,12 +14,12 @@ import ast
 
 if __name__ == "__main__":
 
-	# dataset_path = '/home/ak18001/Data/HDD/uCT'
+	dataset_path = '/home/ak18001/Data/HDD/uCT'
 	# dataset_path = '/mnt/storage/home/ak18001/scratch/Colloids'
 	# dataset_path = '/data/mb16907/wahab/Colloids'
 	# dataset_path = '/user/home/ak18001/scratch/Colloids/' #bc4
 	# dataset_path = '/user/home/ak18001/scratch/ak18001/Colloids' #bp1
-	dataset_path = '/home/wahab/Data/HDD/uCT'
+	# dataset_path = '/home/wahab/Data/HDD/uCT'
 
 
 	ctreader = ctfishpy.CTreader(dataset_path)
@@ -51,14 +51,18 @@ if __name__ == "__main__":
 
 	
 
-	sns.boxplot(data=master, x='age')
-	# plt.scatter(ages)
-	plt.show()
+	# sns.boxplot(data=master, x='age')
+	# # plt.scatter(ages)
+	# plt.show()
 
 	# TODO use this to fit a least squares
 	# https://www.statsmodels.org/stable/examples/notebooks/generated/ols.html
 
 	sns.scatterplot(data=df, x='age', y='length', hue='genotype')
+	plt.xlabel("Age (months)", fontsize=12)
+	plt.ylabel("Length (mm)", fontsize=12)
+	plt.ylim(0,45)
+	plt.legend(loc="lower right")
 	plt.show()
 
 	# TODO find volumes of whole fish
