@@ -5,7 +5,8 @@ if __name__ == '__main__':
     dataset_path = "/home/ak18001/Data/HDD/uCT"
     ctreader = ctfishpy.CTreader(dataset_path)
 
-    for fish in ctreader.fish_nums:
+    for fish in range(280,500): #ctreader.fish_nums[279:]:
+        print(fish)
         scan = ctreader.read(fish)
 
         # ctreader.view(scan)
