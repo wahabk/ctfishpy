@@ -46,10 +46,6 @@ class Otolith(Bone):
 
         """
         NOTE array size must be 128x128x160
-
-        TODO bring scripts/otoliths/pred_all to here
-
-        helper function for testing
         """
 
         n_blocks = 3
@@ -74,9 +70,13 @@ class Otolith(Bone):
 
         model = torch.nn.DataParallel(model, device_ids=None) # parallelise model
 
-        if weights_path is not None:
+        if weights_path is None:
+            weights_path = Path(__file__).parent / "otolith_unet_221019.pt"
             model_weights = torch.load(weights_path, map_location=device) # read trained weights
             model.load_state_dict(model_weights) # add weights to model
+        else:
+            model_weights = torch.load(weights_path, map_location=device) # read trained weights
+            model.load_state_dict(model_weights) # add weights to model  
 
         X = array
         X = np.array(X/X.max(), dtype=np.float32)
@@ -141,9 +141,13 @@ class Jaw(Bone):
         model = torch.nn.DataParallel(model, device_ids=None)
         model.to(device)
 
-        if weights_path is not None:
+        if weights_path is None:
+            weights_path = Path(__file__).parent / "jaw_unet_230124.pt"
             model_weights = torch.load(weights_path, map_location=device) # read trained weights
             model.load_state_dict(model_weights) # add weights to model
+        else:
+            model_weights = torch.load(weights_path, map_location=device) # read trained weights
+            model.load_state_dict(model_weights) # add weights to model            
 
         # The weights require dataparallel because it's used in training
         # But dataparallel doesn't work on cpu so remove it if need be

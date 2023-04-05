@@ -8,6 +8,8 @@ setup(
         author_email="<akawafi3@gmail.com>",
         description='Zebrafish bone segmentation using deep learning.',
         # long_description=LONG_DESCRIPTION,
+        package_dir={'ctfishpy': 'ctfishpy'},
+        package_data={'ctfishpy': ['otolith_unet_221019.pt', 'jaw_unet_230124.pt']},
         packages=find_packages(),
         install_requires=[
                 'numpy>=1.19',
