@@ -3,14 +3,12 @@ CTreader is the main class you use to interact with ctfishpy
 """
 
 import torch
-from CTreader import CTreader
-from train_utils import CTDatasetPredict, undo_one_hot
+from .train_utils import undo_one_hot
 from tqdm import tqdm
 import numpy as np
 import torchio as tio
 import math
 import monai
-import warnings
 from pathlib2 import Path
 
 class Bone(tio.Subject):
@@ -29,7 +27,7 @@ class Bone(tio.Subject):
     def predict(self, array, weights_path=None, model=None,):
         pass
 
-class Otolith(Bone):
+class Otoliths(Bone):
     def __init__(self) -> None:
         super().__init__()
         self.name = "OTOLITHS"
@@ -47,6 +45,9 @@ class Otolith(Bone):
         """
         NOTE array size must be 128x128x160
         """
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f'predicting on {device}')
 
         n_blocks = 3
         start_filters = 32
@@ -72,7 +73,7 @@ class Otolith(Bone):
 
         if weights_path is None:
             weights_path = Path(__file__).parent / "otolith_unet_221019.pt"
-            model_weights = torch.load(weights_path, map_location=device) # read trained weights
+            model_weights = torch.load(str(weights_path), map_location=device) # read trained weights
             model.load_state_dict(model_weights) # add weights to model
         else:
             model_weights = torch.load(weights_path, map_location=device) # read trained weights
@@ -82,9 +83,6 @@ class Otolith(Bone):
         X = np.array(X/X.max(), dtype=np.float32)
         X = np.expand_dims(X, 0)      # if numpy array
         X = torch.from_numpy(X)
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f'predicting on {device}')
 
         predict_list = []
         model.eval()
@@ -143,7 +141,7 @@ class Jaw(Bone):
 
         if weights_path is None:
             weights_path = Path(__file__).parent / "jaw_unet_230124.pt"
-            model_weights = torch.load(weights_path, map_location=device) # read trained weights
+            model_weights = torch.load(str(weights_path), map_location=device) # read trained weights
             model.load_state_dict(model_weights) # add weights to model
         else:
             model_weights = torch.load(weights_path, map_location=device) # read trained weights
