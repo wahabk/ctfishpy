@@ -46,7 +46,12 @@ class Otoliths(Bone):
         NOTE array size must be 128x128x160
         """
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
         print(f'predicting on {device}')
 
         n_blocks = 3
@@ -119,7 +124,13 @@ class Jaw(Bone):
         jaw predict 
         """
 
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+
         print(f'predicting on {device}')
 
         if model is None:
