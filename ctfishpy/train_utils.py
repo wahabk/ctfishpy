@@ -11,18 +11,13 @@ This file contains:
 import ctfishpy
 import numpy as np
 import pandas as pd
-import scipy
 from matplotlib import pyplot as plt
 from tqdm import tqdm, trange
 import math
 import os
-import copy
 
 import torch
 import torch.nn.functional as F
-import neptune.new as neptune
-from neptune.new.types import File
-from ray import tune
 import torchio as tio
 from .CTreader import CTreader
 from .models.unet import UNet
@@ -700,6 +695,8 @@ def predict2d(model, test_loader, criterion, threshold=0.5):
 def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
 		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
 		label_size:tuple=None, dataset_name=None):
+	from neptune.new.types import File
+
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 	spatial_dims = params['spatial_dims']
@@ -805,6 +802,9 @@ def test_jaw(dataset_path, model, bone, test_set, params, threshold=0.5, num_wor
 def test_otoliths(dataset_path, model, bone, test_set, params, threshold=0.5, num_workers=10, 
 		batch_size=1, criterion=torch.nn.BCEWithLogitsLoss(), run=False, device='cpu', 
 		label_size:tuple=None, dataset_name=None):
+	
+	from neptune.new.types import File
+
 	roiSize = params['roiSize']
 	n_classes = params['n_classes']
 	spatial_dims = params['spatial_dims']
@@ -927,6 +927,7 @@ class Trainer:
 				 on_subject=False,
 				 ):
 
+
 		self.model = model
 		self.criterion = criterion
 		self.optimizer = optimizer
@@ -948,6 +949,8 @@ class Trainer:
 		self.learning_rate = []
 
 	def run_trainer(self):
+
+		from ray import tune
 
 		if self.notebook:
 			from tqdm.notebook import tqdm, trange
@@ -985,6 +988,7 @@ class Trainer:
 		return self.training_loss, self.validation_loss, self.learning_rate
 
 	def _train(self):
+		
 
 		if self.notebook:
 			from tqdm.notebook import tqdm, trange
@@ -1029,6 +1033,8 @@ class Trainer:
 		batch_iter.close()
 
 	def _validate(self):
+
+		from ray import tune
 
 		if self.notebook:
 			from tqdm.notebook import tqdm, trange

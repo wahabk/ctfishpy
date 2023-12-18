@@ -27,8 +27,6 @@ setup(
                 'monai-weekly',
                 'torchio',
                 'albumentations',
-                'neptune-client',
-                'ray[tune]',
                 'tqdm',
                 'scipy',
                 'scikit-image',
@@ -38,5 +36,11 @@ setup(
                 'pytest',
                 'pydicom',
                 ],
+        extras_require={
+                "dev": [
+                        'neptune-client',
+                        'ray[tune]',
+                ],
+        },
         keywords=['python', 'ctfishpy'],
 )
