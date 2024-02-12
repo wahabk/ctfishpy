@@ -104,8 +104,6 @@ class CTreader:
 	def read_dicom(self, path, bits=16, dtype='uint16'):
 		with pydicom.dcmread(path) as ds:
 			ds.file_meta.TransferSyntaxUID = pydicom.uid.ImplicitVRLittleEndian
-			ds.BitsAllocated = bits
-			ds.BitsStored = bits
 			data = ds.pixel_array
 			data = data.astype(dtype)
 				
