@@ -2,7 +2,7 @@
 
 <a href=https://colab.research.google.com/github/wahabk/ctfishpy/blob/master/CTFishpy_Tutorial_segment.ipynb> 
 <img src="https://colab.research.google.com/assets/colab-badge.svg"> </a>
-<img src="examples/ctf_readme.gif" alt="readme_gif"/>
+<img src="examples/Data/ctf_readme.gif" alt="readme_gif"/>
 
 Automatic segmentation of zebrafish bone from uCT data using deep learning.
 

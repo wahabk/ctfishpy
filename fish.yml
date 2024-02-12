@@ -2,16 +2,16 @@ name: fish
 channels:
   - defaults
 dependencies:
-  - python=3.8.12
-  - ca-certificates=2022.2.1
-  - certifi=2021.10.8
-  - openssl=1.1.1m
-  - setuptools=58.0.4
-  - sqlite=3.37.2
-  - tk=8.6.11
-  - wheel=0.37.1
-  - xz=5.2.5
-  - zlib=1.2.11
+  - python
+  - ca-certificates
+  - certifi
+  - openssl
+  - setuptools
+  - sqlite
+  - tk
+  - wheel
+  - xz
+  - zlib
   - pip
   - pip:
     - alabaster
