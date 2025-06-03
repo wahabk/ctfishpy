@@ -1,5 +1,11 @@
 # CTFishPy
 
+> [!WARNING]
+> This project was a chapter of my PhD.
+> I have left the code available but this repository is not maintained.
+> The work is being continued by the Jean Golding Institute in this repository: 
+> [JGIBristol/zebrafish_jaw_segmentation](https://github.com/JGIBristol/zebrafish_jaw_segmentation)
+
 <a href=https://colab.research.google.com/github/wahabk/ctfishpy/blob/master/CTFishpy_Tutorial_segment.ipynb> 
 <img src="https://colab.research.google.com/assets/colab-badge.svg"> </a>
 <img src="examples/Data/ctf_readme.gif" alt="readme_gif"/>
